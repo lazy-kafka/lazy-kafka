@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lazy-kafka"
+dynamic = ["version"]
+description = ''
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+keywords = []
+authors = [
+  { name = "Timon Viola", email = "44016238+timonviola@users.noreply.github.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+    "confluent-kafka[avro,json,protobuf]>=2.4.0",
+    "textual>=0.70.0",
+    "rich",
+    "click>=8.0.0",
+]
+
+[project.urls]
+Documentation = "https://github.com/Timon Viola/lazy-kafka#readme"
+Issues = "https://github.com/Timon Viola/lazy-kafka/issues"
+Source = "https://github.com/Timon Viola/lazy-kafka"
+
+[tool.hatch.version]
+path = "src/lazy_kafka/__about__.py"
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/lazy_kafka tests}"
+
+[tool.coverage.run]
+source_pkgs = ["lazy_kafka", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/lazy_kafka/__about__.py",
+]
+
+[tool.coverage.paths]
+lazy_kafka = ["src/lazy_kafka", "*/lazy-kafka/src/lazy_kafka"]
+tests = ["tests", "*/lazy-kafka/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]

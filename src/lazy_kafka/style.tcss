@@ -1,0 +1,15 @@
+TopicList {
+    content-align: center middle;
+    text-opacity: 60%;
+    color: red;
+}
+
+
+
+#topic {
+    border: round $accent;
+
+    border-title-background: white;
+    border-title-style: bold;
+    border-subtitle-style: italic;
+}
