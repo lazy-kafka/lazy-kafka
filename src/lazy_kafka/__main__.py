@@ -79,29 +79,28 @@ class TopicDetails(Widget):
 class TopicPanelApp(App):
     """A Textual app to manage stopwatches."""
 
-    #CSS_PATH = "style.tcss"
+    CSS_PATH = "style.tcss"
 
     def on_mount(self):
         label = self.query_one("#topic")
         label.border_title = "Topics"
         label.border_subtitle = "status"
-        #self.panel.styles.color = Color(191, 78, 96)
+        label = self.query_one("#details")
+        label.border_title = "Details"
         self.log(self.tree)
 
     def compose(self) -> ComposeResult:
         """Called to add widgets to the app."""
         yield Header()
-        yield TopicPanel(id="topic")
-        #yield TopicDetails(classes="box")
-        yield Rule(line_style="thick")
-        yield Rule(line_style="dashed")
-        yield TopicDetails()
+        yield ScrollableContainer(TopicPanel(), id="topic", classes="box")
+        yield ScrollableContainer(TopicDetails(), Pretty([]), id="details", classes="box")
         yield Footer()
 
     def on_topic_selected(self, message: Topic.Selected) -> None:
-        self.log(message.topic)
-        self.query_one(TopicDetails).topic = "topic: "+str(message.topic.topic)+str(message.topic.partitions)
-        self.log(f"------------------{message.topic}")
+        self.query_one(TopicDetails).topic = "[b]topic: [/b]"+str(message.topic.topic)+str(message.topic.partitions)
+        d = {"topic": message.topic.topic, "partitions": {k:{"id":v.id, "leader": v.leader, "replicas":v.replicas, "isrs":v.isrs, "error":v.error} for k,v in message.topic.partitions.items()}}
+        self.query_one(Pretty).update(d)
+        self.log(f"{message.topic}")
 
 app = TopicPanelApp()
 

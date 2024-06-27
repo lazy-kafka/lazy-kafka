@@ -1,6 +1,24 @@
 Screen {
     layout: horizontal;
-    border: heavy red;
+}
+Pretty {}
+
+Topic {
+  width: auto;
+  background: black;
+  color: white;
+  padding: 0;
+  margin: 0;
+  height:1;
+}
+
+TopicDetails {
+   height: auto; 
+   color: yellow;
+}
+
+Topic:focus {
+  color: red;
 }
 
 TopicList {
@@ -10,28 +28,20 @@ TopicList {
 
 }
 
-#topicTree {
-}
 
 .box {
-    border: round $accent;
     width: 1fr;
-    border-title-background: white;
-    border-title-style: bold;
+    border: round $primary;
     border-subtitle-style: italic;
+    border-title-color: $primary;
 }
 
 
 .box:focus {
-    border: round $secondary;
-    width: 1fr;
-    border-title-background: white;
+    border: round $accent;
     border-title-style: bold;
+    border-title-color: $secondary;
     border-subtitle-style: italic;
     border-subtitle-align: left; 
-    margin: 1;
-}
-TopicList:focus {
-    border: wide $accent;
 }
 
