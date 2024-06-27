@@ -1,12 +1,13 @@
 """Kafka interface"""
 
-
 from typing import TYPE_CHECKING
 from confluent_kafka.admin import AdminClient
+
 if TYPE_CHECKING:
     from confluent_kafka.admin import TopicMetadata
 
-CONFIG = {"bootstrap.servers":"localhost:9092"}
+CONFIG = {"bootstrap.servers": "localhost:9092"}
+
 
 def list_topics():
     admin_client = AdminClient(CONFIG)

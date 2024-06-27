@@ -1,7 +1,9 @@
 Screen {
     layout: horizontal;
 }
-Pretty {}
+Pretty {
+    width: 1fr;
+}
 
 Topic {
   width: auto;
@@ -13,6 +15,7 @@ Topic {
 }
 
 TopicDetails {
+   width: 0;
    height: auto; 
    color: yellow;
 }
@@ -34,6 +37,10 @@ TopicList {
     border: round $primary;
     border-subtitle-style: italic;
     border-title-color: $primary;
+}
+
+.initial {
+    width: 0;
 }
 
 
