@@ -31,6 +31,12 @@ dependencies = [
     "click>=8.0.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "textual-dev",
+  "ruff",
+]
+
 [project.urls]
 Documentation = "https://github.com/Timon Viola/lazy-kafka#readme"
 Issues = "https://github.com/Timon Viola/lazy-kafka/issues"

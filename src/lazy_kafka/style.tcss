@@ -1,15 +1,37 @@
+Screen {
+    layout: horizontal;
+    border: heavy red;
+}
+
 TopicList {
     content-align: center middle;
     text-opacity: 60%;
     color: red;
+
 }
 
+#topicTree {
+}
 
-
-#topic {
+.box {
     border: round $accent;
-
+    width: 1fr;
     border-title-background: white;
     border-title-style: bold;
     border-subtitle-style: italic;
 }
+
+
+.box:focus {
+    border: round $secondary;
+    width: 1fr;
+    border-title-background: white;
+    border-title-style: bold;
+    border-subtitle-style: italic;
+    border-subtitle-align: left; 
+    margin: 1;
+}
+TopicList:focus {
+    border: wide $accent;
+}
+
