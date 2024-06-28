@@ -2,7 +2,7 @@ Screen {
     layout: horizontal;
 }
 Pretty {
-    width: 1fr;
+    width: auto;
 }
 
 Topic {
@@ -15,7 +15,7 @@ Topic {
 }
 
 TopicDetails {
-   width: 0;
+   width: auto;
    height: auto; 
    color: yellow;
 }

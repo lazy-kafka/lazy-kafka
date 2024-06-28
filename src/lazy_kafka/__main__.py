@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional
 
 import rich.console
 from textual.css.query import NoMatches
@@ -36,6 +37,21 @@ class TopicData:
     topic: str
     partitions: object
 
+def _topic_data_to_dict(topic: TopicData):
+    d = {
+        "topic": topic.topic,
+        "partitions": {
+            k: {
+                "id": v.id,
+                "leader": v.leader,
+                "replicas": v.replicas,
+                "isrs": v.isrs,
+                "error": v.error,
+            }
+            for k, v in topic.partitions.items()
+        },
+    }
+    return d
 
 class Topic(Static):
     """A widget to display elapsed time."""
@@ -76,8 +92,20 @@ class TopicPanel(Static):
 
 class MyScrollableContainer(ScrollableContainer):
 
+    class Completed(Message):
+        """Color selected message."""
+
+        def __init__(self) -> None:
+            log(f"{self.__class__} Mounted")
+            self.done = True
+            super().__init__()
+
     def on_mount(self) -> None:
-        self.styles.animate("width", value=20.0, duration=1.0, easing="out_expo")
+        def comp():
+            self.post_message(self.Completed())
+            log("COMPLETED")
+
+        self.styles.animate("width", value=30.0, duration=1.0, easing="out_expo", on_complete=comp)
         self.log(self.tree)
 
 
@@ -98,6 +126,7 @@ class TopicDetailsPretty(Pretty):
         self.styles.animate("opacity", value=1.0, duration=2.0)
 
 
+
 class TopicPanelApp(App):
     """A Textual app to manage stopwatches."""
 
@@ -106,6 +135,7 @@ class TopicPanelApp(App):
         ("d", "toggle_dark", "Toggle dark mode"),
         ("escape", "unset_topic", "Toggle dark mode"),
     ]
+    STATE_TOPIC: Optional[TopicData] = None
 
     def on_mount(self):
         label = self.query_one("#topic")
@@ -123,30 +153,29 @@ class TopicPanelApp(App):
         yield Footer()
 
     def on_topic_selected(self, message: Topic.Selected) -> None:
+        TopicPanelApp.STATE_TOPIC = message.topic
         try:
             topic_details = self.query_one(TopicDetails)
         except NoMatches as e:
-            details_panel = MyScrollableContainer(TopicDetails(), id="details", classes="box initial")
+            details_panel = MyScrollableContainer(TopicDetails(), Pretty([]), id="details", classes="box initial")
             self.query_one("Screen").mount(details_panel)
             return
         topic_details.topic = (
             "[b]topic: [/b]" + str(message.topic.topic) + str(message.topic.partitions)
         )
-        d = {
-            "topic": message.topic.topic,
-            "partitions": {
-                k: {
-                    "id": v.id,
-                    "leader": v.leader,
-                    "replicas": v.replicas,
-                    "isrs": v.isrs,
-                    "error": v.error,
-                }
-                for k, v in message.topic.partitions.items()
-            },
-        }
-        # self.query_one(Pretty).update(d)
+        self.query_one(Pretty).update(_topic_data_to_dict(message.topic))
         self.log(f"{message.topic}")
+
+    def on_my_scrollable_container_completed(self):
+        log("ON_MY_SCRALLABLE_CONTAINER_COMPLETED")
+        topic = TopicPanelApp.STATE_TOPIC
+        if topic is None:
+            raise ValueError
+        topic_details = self.query_one(TopicDetails)
+        topic_details.topic = (
+            "[b]topic: [/b]" + str(topic.topic) + str(topic.partitions)
+        )
+        self.query_one(Pretty).update(_topic_data_to_dict(topic))
 
     def action_unset_topic(self) -> None:
         """Called to remove a timer."""
