@@ -1,8 +1,37 @@
+
 Screen {
-    layout: horizontal;
+    layout: vertical;
+    background: transparent;
 }
-Pretty {
-    width: auto;
+
+Tabs {
+    height: 3;
+    margin-top: 0;
+    padding-top: 0;
+}
+
+
+DataTable {
+    overflow-x: hidden;
+    max-height: 98%;
+}
+DataTable > .datatable--odd-row {
+    background: #131a2c;
+}
+DataTable > .datatable--even-row {
+    background: #0f1525;
+}
+
+.datatable--header {
+    background: transparent;
+    color: $primary;
+    text-style: bold;
+}
+
+.TabBar {
+  width: 1fr;
+  color: orange;
+  background: #00161C;
 }
 
 Topic {
@@ -12,6 +41,10 @@ Topic {
   padding: 0;
   margin: 0;
   height:1;
+}
+
+MyScrollableContainer {
+    background: transparent;
 }
 
 TopicDetails {
@@ -30,7 +63,6 @@ TopicList {
     color: red;
 
 }
-
 
 .box {
     width: 1fr;

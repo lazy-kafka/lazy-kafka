@@ -1,6 +1,10 @@
 """Kafka interface"""
 
+from __future__ import annotations
+
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
+
 from confluent_kafka.admin import AdminClient
 
 if TYPE_CHECKING:
@@ -9,10 +13,33 @@ if TYPE_CHECKING:
 CONFIG = {"bootstrap.servers": "localhost:9092"}
 
 
-def list_topics():
+def list_topics() -> list[TopicMetadata]:
     admin_client = AdminClient(CONFIG)
-    raw_topics: List[TopicMetadata] = list(
+    raw_topics: list[TopicMetadata] = list(
         admin_client.list_topics(timeout=1000).topics.values()
     )
 
     return raw_topics
+
+
+@dataclass
+class TopicData:
+    topic: str
+    partitions: object
+
+
+def _topic_data_to_dict(topic: TopicData):
+    d = {
+        "topic": topic.topic,
+        "partitions": {
+            k: {
+                "id": v.id,
+                "leader": v.leader,
+                "replicas": v.replicas,
+                "isrs": v.isrs,
+                "error": v.error,
+            }
+            for k, v in topic.partitions.items()
+        },
+    }
+    return d
