@@ -136,9 +136,10 @@ class MyTab(Tabs):
     pass
 
 
-class LazyKafka(Screen):
+class LazyKafka(App):
     """A Textual app to manage stopwatches."""
 
+    CSS_PATH = "style.tcss"
     BINDINGS = [
         ("d", "toggle_dark", "Toggle dark mode"),
         ("escape", "unset_topic", "Toggle dark mode"),
@@ -166,8 +167,8 @@ class LazyKafka(Screen):
             Text.from_markup(":warning: K-connect"),
             id="tabs",
         )
-        #with Horizontal(id="vertical"):
-        #    yield TopicPanel(id="topic", classes="box")
+        with Horizontal(id="vertical"):
+            yield TopicPanel(id="topic", classes="box")
         yield Footer()
 
     def on_topic_panel_selected(self, message: TopicPanel.Selected) -> None:
@@ -206,17 +207,8 @@ class LazyKafka(Screen):
         topic_details.remove()
 
 
-class LazyKafkaApp(App):
-    CSS_PATH = "style.tcss"
-    SCREENS = {"lazykafka": LazyKafka()}
-    BINDINGS = [("b", "push_screen('lazykafka')", "LazyKafka")]
-
-    def on_mount(self) -> None:
-        # self.install_screen(LazyKafka(), "lazykafka")
-        self.push_screen("lazykafka")
-
-app = LazyKafkaApp()
+app = LazyKafka()
 
 if __name__ == "__main__":
-    app = LazyKafkaApp()
+    app = LazyKafka()
     app.run()
