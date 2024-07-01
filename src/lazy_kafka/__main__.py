@@ -138,6 +138,23 @@ class SchemaRegistryPanel(Container):
 class KConnectPanel(Container):
     pass
 
+class PluginManager:
+    # TODO: read these from plugins folder
+    # or cfg
+    TABS = [
+        ("topic", TopicPanel, "Kafka"),
+        ("schema", SchemaRegistryPanel, "Schema Registry"),
+        ("connect", KConnectPanel, Text.from_markup(":warning: K-connect")),
+    ]
+
+    def get_tabs(self: Self, id: str) -> Tabs:
+        _tabs = Tabs(id=id)
+        for t in PluginManager.TABS:
+            _tabs.add_tab(Tab(t[-1], id="tab-" + t[0]))
+        return _tabs
+
+
+
 class LazyKafka(App):
     """A Textual app to manage stopwatches."""
 
@@ -150,11 +167,6 @@ class LazyKafka(App):
         ("h", "previous_tab", "Previous"),
         ("j", "next_widget_item", "next"),
         ("k", "previous_widget_item", "prev"),
-    ]
-    TABS = [
-        ("topic", TopicPanel),
-        ("schema", SchemaRegistryPanel),
-        ("connect", KConnectPanel),
     ]
 
     def on_mount(self):
@@ -176,6 +188,8 @@ class LazyKafka(App):
     def compose(self) -> ComposeResult:
         """Called to add widgets to the app."""
         yield Header()
+
+        #yield PluginManager().get_tabs()
         yield Tabs(
             Tab("Kafka",id="topic"),
             Tab("Schema Registry",id="tab-schema"),
