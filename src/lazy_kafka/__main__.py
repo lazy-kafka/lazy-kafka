@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Self
 
 import rich.console
 import textual
@@ -21,8 +21,9 @@ from textual.widgets import (
     Pretty,
     Static,
     Tabs,
+    Tab,
 )
-
+from abc import ABC
 logging.basicConfig(level=logging.INFO)
 from textual import log
 
@@ -31,7 +32,7 @@ print(textual.__version__)
 
 
 from .kafka import TopicData, _topic_data_to_dict, list_topics
-
+from .widgets.switcher import ContentSwitcher
 
 class Topic(Static):
     """A widget to display elapsed time."""
@@ -131,22 +132,30 @@ class TopicDetailsPretty(Pretty):
     def on_mount(self) -> None:
         self.styles.animate("opacity", value=1.0, duration=2.0)
 
-
-class MyTab(Tabs):
+class SchemaRegistryPanel(Container):
     pass
 
+class KConnectPanel(Container):
+    pass
 
 class LazyKafka(App):
     """A Textual app to manage stopwatches."""
 
+    STATE_TOPIC: Optional[TopicData] = None
     CSS_PATH = "style.tcss"
     BINDINGS = [
         ("d", "toggle_dark", "Toggle dark mode"),
         ("escape", "unset_topic", "Toggle dark mode"),
         ("l", "next_tab", "Next"),
         ("h", "previous_tab", "Previous"),
+        ("j", "next_widget_item", "next"),
+        ("k", "previous_widget_item", "prev"),
     ]
-    STATE_TOPIC: Optional[TopicData] = None
+    TABS = [
+        ("topic", TopicPanel),
+        ("schema", SchemaRegistryPanel),
+        ("connect", KConnectPanel),
+    ]
 
     def on_mount(self):
         pass
@@ -157,19 +166,32 @@ class LazyKafka(App):
     def action_previous_tab(self):
         self.query_one("#tabs").action_previous_tab()
 
+    def action_next_widget_item(self):
+        self.query_one(DataTable).action_cursor_down()
+
+    def action_previous_widget_item(self):
+        self.query_one(DataTable).action_cursor_up()
+
+
     def compose(self) -> ComposeResult:
         """Called to add widgets to the app."""
         yield Header()
-        #        yield Static("One", classes="TabBar", id="tab-bar")
-        yield MyTab(
-            "Kafka",
-            "Schema Registry",
-            Text.from_markup(":warning: K-connect"),
+        yield Tabs(
+            Tab("Kafka",id="topic"),
+            Tab("Schema Registry",id="tab-schema"),
+            Tab(Text.from_markup(":warning: K-connect"), id="tab-connect"),
             id="tabs",
         )
-        with Horizontal(id="vertical"):
+        with ContentSwitcher(initial="topic", id="vertical"):
             yield TopicPanel(id="topic", classes="box")
+            yield SchemaRegistryPanel(id="tab-schema")
+            yield KConnectPanel(id="tab-connect")
         yield Footer()
+
+    def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
+        """Handle TabActivated message sent by Tabs."""
+        log(f"TAB EVENT {event.tab}")
+        self.query_one(ContentSwitcher).current = event.tab.id  
 
     def on_topic_panel_selected(self, message: TopicPanel.Selected) -> None:
         log(f"{message=}")
@@ -180,7 +202,7 @@ class LazyKafka(App):
             details_panel = MyScrollableContainer(
                 TopicDetails(), Pretty([]), id="details", classes="box initial"
             )
-            self.query_one("#vertical").mount(details_panel)
+            self.query_one(TopicPanel).mount(details_panel)
             return
         topic_details.topic = (
             "[b]topic: [/b]" + str(message.topic.topic) + str(message.topic.partitions)
@@ -212,3 +234,4 @@ app = LazyKafka()
 if __name__ == "__main__":
     app = LazyKafka()
     app.run()
+

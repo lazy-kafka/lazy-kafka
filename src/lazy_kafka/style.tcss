@@ -64,6 +64,10 @@ TopicList {
 
 }
 
+TopicPanel {
+    layout: horizontal;
+}
+
 .box {
     width: 1fr;
     border: round $primary;
