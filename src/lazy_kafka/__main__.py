@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Optional, Self
 import rich.console
 import textual
 from rich.text import Text
+from textual import work
 from textual.app import App, ComposeResult
 from textual.color import Color
 from textual.containers import Container, Horizontal, ScrollableContainer
@@ -84,12 +85,20 @@ class TopicPanel(Container):
             super().__init__()
 
     def compose(self):
-        dt = DataTable()
-        dt.add_column("Name")
+        yield DataTable()
+
+    def on_mount(self):
+        for data_table in self.query(DataTable):
+            data_table.loading = True
+            self.load_data(data_table)
+
+    @work(exclusive=True, thread=True)
+    async def load_data(self, data_table: DataTable) -> None:
+        data_table.add_column("Name")
         j = list_topics()
         for t in j:
-            dt.add_row(t.topic)
-        yield dt
+            data_table.add_row(t.topic)
+        data_table.loading = False
 
     def on_data_table_cell_highlighted(self, event: DataTable.CellHighlighted) -> None:
         # The post_message method sends an event to be handled in the DOM
@@ -152,7 +161,6 @@ class PluginManager:
         for t in PluginManager.TABS:
             _tabs.add_tab(Tab(t[-1], id="tab-" + t[0]))
         return _tabs
-
 
 
 class LazyKafka(App):

@@ -13,7 +13,8 @@ Tabs {
 
 DataTable {
     overflow-x: hidden;
-    max-height: 98%;
+    height: 1fr;
+    max-height: 80%;
 }
 DataTable > .datatable--odd-row {
     background: #131a2c;
