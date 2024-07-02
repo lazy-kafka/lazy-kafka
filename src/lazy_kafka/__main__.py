@@ -34,36 +34,8 @@ print(textual.__version__)
 from .kafka import TopicData, _topic_data_to_dict, list_topics
 from .widgets.switcher import ContentSwitcher
 
-class Topic(Static):
-    """A widget to display elapsed time."""
-
-    class Selected(Message):
-        """Color selected message."""
-
-        def __init__(self, topic: TopicData) -> None:
-            log(f"INIT: {topic!r}")
-            self.topic = topic
-            super().__init__()
-
-    def __init__(self, topic: TopicData) -> None:
-        self.topic = topic
-        super().__init__()
-
-    def on_click(self) -> None:
-        # The post_message method sends an event to be handled in the DOM
-        self.post_message(self.Selected(self.topic))
-
-    def on_mount(self) -> None:
-        self.styles.margin = (1, 2)
-        self.styles.content_align = ("center", "middle")
-        self.styles.background = Color.parse("#ffffff33")
-
-    def render(self) -> str:
-        return str(self.topic.topic)
-
-
 class TopicPanel(Container):
-    """A stopwatch widget."""
+    """Topics widget."""
 
     BORDER_TITLE = "Topics"
     BORDER_SUBTITLE = "status"
@@ -122,13 +94,11 @@ class MyScrollableContainer(ScrollableContainer):
             "width", value=30.0, duration=1.0, easing="out_expo", on_complete=comp
         )
 
-
 class TopicDetails(Widget):
     topic = reactive("")
 
     def render(self) -> str:
         return f"[b]TOPIC:[/b] {self.topic}"
-
 
 class TopicDetailsPretty(Pretty):
     DEFAULT_CSS = """
@@ -161,6 +131,12 @@ class PluginManager:
             _tabs.add_tab(Tab(t[-1], id="tab-" + t[0]))
         return _tabs
 
+# TODO: on tab change set the focus to the Tab widget.
+# 1. this will solve the locality of bindings
+# 1. will offload a lot of logic to the widgets from the main app - yay!
+#    ref: https://textual.textualize.io/api/app/#textual.app.App.set_focus
+# 1. maybe screens and mode_switch are better suited
+#    ref: https://textual.textualize.io/guide/screens/#modes
 
 class LazyKafka(App):
     """A Textual app to manage stopwatches."""
@@ -192,12 +168,10 @@ class LazyKafka(App):
     def action_previous_widget_item(self):
         self.query_one(DataTable).action_cursor_up()
 
-
     def compose(self) -> ComposeResult:
         """Called to add widgets to the app."""
         yield Header()
 
-        #yield PluginManager().get_tabs()
         yield Tabs(
             Tab("Kafka",id="topic"),
             Tab("Schema Registry",id="tab-schema"),
@@ -212,11 +186,13 @@ class LazyKafka(App):
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
         """Handle TabActivated message sent by Tabs."""
-        log(f"TAB EVENT {event.tab}")
         self.query_one(ContentSwitcher).current = event.tab.id  
 
     def on_topic_panel_selected(self, message: TopicPanel.Selected) -> None:
-        log(f"{message=}")
+        """Set reactive attribute.
+
+        Currently -> Message() -> Reactive() -> watch_topic()
+        """
         self.topic = message.topic
 
     def watch_topic(self, topic: TopicData):
