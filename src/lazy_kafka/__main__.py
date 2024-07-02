@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional, Self
+from typing import Self
 
 import rich.console
 import textual
@@ -9,11 +9,10 @@ from rich.text import Text
 from textual import work
 from textual.app import App, ComposeResult
 from textual.color import Color
-from textual.containers import Container, Horizontal, ScrollableContainer
+from textual.containers import Container, ScrollableContainer
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import reactive, Reactive
-from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import (
     DataTable,
@@ -24,7 +23,7 @@ from textual.widgets import (
     Tabs,
     Tab,
 )
-from abc import ABC
+
 logging.basicConfig(level=logging.INFO)
 from textual import log
 
