@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from confluent_kafka.admin import AdminClient
 
@@ -24,8 +24,8 @@ def list_topics() -> list[TopicMetadata]:
 
 @dataclass
 class TopicData:
-    topic: str
-    partitions: object
+    topic: Optional[str] = None
+    partitions: Optional[object] = None
 
 
 def _topic_data_to_dict(topic: TopicData):

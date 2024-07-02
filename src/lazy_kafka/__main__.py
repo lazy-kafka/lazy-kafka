@@ -12,7 +12,7 @@ from textual.color import Color
 from textual.containers import Container, Horizontal, ScrollableContainer
 from textual.css.query import NoMatches
 from textual.message import Message
-from textual.reactive import reactive
+from textual.reactive import reactive, Reactive
 from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import (
@@ -166,7 +166,8 @@ class PluginManager:
 class LazyKafka(App):
     """A Textual app to manage stopwatches."""
 
-    STATE_TOPIC: Optional[TopicData] = None
+    topic: Reactive[TopicData] = reactive(TopicData())
+
     CSS_PATH = "style.tcss"
     BINDINGS = [
         ("d", "toggle_dark", "Toggle dark mode"),
@@ -217,7 +218,14 @@ class LazyKafka(App):
 
     def on_topic_panel_selected(self, message: TopicPanel.Selected) -> None:
         log(f"{message=}")
-        LazyKafka.STATE_TOPIC = message.topic
+        self.topic = message.topic
+
+    def watch_topic(self, topic: TopicData):
+        """Callback on topic changed.
+
+        Args:
+            topic: 
+        """
         try:
             topic_details = self.query_one(TopicDetails)
         except NoMatches as _:
@@ -227,14 +235,24 @@ class LazyKafka(App):
             self.query_one(TopicPanel).mount(details_panel)
             return
         topic_details.topic = (
-            "[b]topic: [/b]" + str(message.topic.topic) + str(message.topic.partitions)
+            "[b]topic: [/b]" + str(topic.topic) + str(topic.partitions)
         )
-        self.query_one(Pretty).update(_topic_data_to_dict(message.topic))
-        self.log(f"{message.topic}")
+        self.query_one(Pretty).update(_topic_data_to_dict(topic))
+        self.log(f"{topic}")
 
     def on_my_scrollable_container_completed(self):
-        topic = LazyKafka.STATE_TOPIC
-        if topic is None:
+        """This is quite ugly.
+
+        I don't have anything quick to fix it up. It's not truly reactive
+        as I need to wait for the animation to finish first. Then pull the values
+        from the state and send attributes down.
+
+        In that sense, it's reactive, but not 'data' reactive.
+
+        Should be handled inside the details widget at least...
+        """
+        topic = self.topic
+        if topic.topic is None:
             raise ValueError
         topic_details = self.query_one(TopicDetails)
         topic_details.topic = (
