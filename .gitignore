@@ -8,7 +8,9 @@ docs/build
 docs/source/_build
 tools/*.txt
 playground/
-
+.aws
+# local files
+scripts/volume/*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

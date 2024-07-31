@@ -25,3 +25,12 @@ pip install lazy-kafka
 check topics:
 docker exec 1793ae26d162 /bin/kafka-topics --bootstrap-server=localhost:9092
 
+## Docker compose
+The docker compose will:
+- Start a Kafka cluster: 1 broker and 1 zookeeper
+  - create a test-topic
+- Start ConfluentSchemaRegistry
+  - register a 'test-schema' for the 'test-topic'
+- Start LocalStack S3 bucket 'test-bucket'
+- Start Kafka Connect
+  - create a connector to read from test-topic, dump to S3 test-bucket
