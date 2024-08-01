@@ -2,8 +2,7 @@
 
 set -x
 set -eo pipefail
-
-until kafka-topics --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic $TEST_TOPIC_NAME; do
+until [[ `kafka-topics --create --zookeeper $ZOOKEEPER_URL --replication-factor 1 --partitions 1 --topic $TOPIC_NAME` == *'already exists.'* ]]; do
       >&2 echo "Broker is unavailable - sleeping"
       sleep 5
 done

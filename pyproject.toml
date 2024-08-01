@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "versioningit>=3.1.2"]
 build-backend = "hatchling.build"
 
 [project]
@@ -42,8 +42,39 @@ Documentation = "https://github.com/Timon Viola/lazy-kafka#readme"
 Issues = "https://github.com/Timon Viola/lazy-kafka/issues"
 Source = "https://github.com/Timon Viola/lazy-kafka"
 
+[tool.hatch.envs.dev]
+extra-dependencies = [
+    "pre-commit == 3.7.*",
+    "ruff == 0.4.4",
+    "mypy == 1.10.*",
+    "versioningit @ git+https://github.com/jwodder/versioningit@gh-89",
+    "towncrier == 23.11.*",
+]
+
+[tool.hatch.envs.dev.scripts]
+install = "pre-commit install --hook-type commit-msg"
+version = "versioningit"
+changelog = "towncrier"
+
+[tool.hatch.envs.test]
+extra-dependencies = [
+    "pytest >= 8.0.0",
+    "versioningit >= 3.1.2",
+    "pytest-cov",
+    "pytest-mock >= 3.14.0",
+]
+
+[[tool.hatch.envs.test.matrix]]
+python = ["3.11", "3.12"]
+
+[tool.hatch.envs.test.scripts]
+test = "pytest --cov=hatcht --cov-report=term-missing --cov-report=xml --cov-report=html tests"
+
 [tool.hatch.version]
-path = "src/lazy_kafka/__about__.py"
+source = "versioningit"
+
+[tool.hatch.envs.default]
+installer = "uv"
 
 [tool.hatch.envs.types]
 extra-dependencies = [
@@ -70,3 +101,199 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
+
+# ---- My tools -----
+
+[tool.towncrier]
+# The name of your Python package
+package = "hatcht"
+# The path to your Python package.
+# If your package lives in 'src/myproject/', it must be 'src',
+# but if you don't keep your code in a 'src' dir, remove the
+# config option
+package_dir = "src"
+# Where you want your news files to come out. This can be .rst
+# or .md, towncrier's default template works with both.
+filename = "doc/changelog.rst"
+directory = "doc/changes"
+
+[[tool.towncrier.type]]
+directory = "deprecation"
+name = "Deprecations"
+showcontent = true
+[[tool.towncrier.type]]
+directory = "feature"
+name = "Features"
+showcontent = true
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bug Fixes"
+showcontent = true
+[[tool.towncrier.type]]
+directory = "removal"
+name = "Removals"
+showcontent = true
+[[tool.towncrier.type]]
+directory = "doc"
+name = "Documentation"
+showcontent = true
+[[tool.towncrier.type]]
+directory = "misc"
+name = "Miscellaneous"
+showcontent = true
+
+[tool.pyright]
+include = ["src"]
+exclude = ["**/__pycache__",
+    "src/experimental",
+    "src/typestubs"
+]
+ignore = ["src/hatcht/newfragments"]
+defineConstant = { DEBUG = true }
+stubPath = "src/stubs"
+
+typeCheckingMode = "strict"
+reportMissingImports = true
+reportMissingTypeStubs = false
+
+pythonVersion = "3.6"
+pythonPlatform = "Linux"
+
+executionEnvironments = [
+  { root = "src" }
+]
+[tool.ruff]
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+
+[tool.ruff.lint]
+typing-modules = ["airflow.typing_compat"]
+extend-select = [
+    # Enable entire ruff rule section
+    "I", # Missing required import (auto-fixable)
+    "UP", # Pyupgrade
+    "ASYNC", # subset of flake8-async rules
+    "ISC",  # Checks for implicit literal string concatenation (auto-fixable)
+    "TCH", # Rules around TYPE_CHECKING blocks
+    "G", # flake8-logging-format rules
+    "LOG", # flake8-logging rules, most of them autofixable
+    "PT", # flake8-pytest-style rules
+    "TID25", # flake8-tidy-imports rules
+    "E", # pycodestyle rules
+    "W", # pycodestyle rules
+    # Per rule enables
+    "RUF006", # Checks for asyncio dangling task
+    "RUF015", # Checks for unnecessary iterable allocation for first element
+    "RUF019", # Checks for unnecessary key check
+    "RUF100", # Unused noqa (auto-fixable)
+    # We ignore more pydocstyle than we enable, so be more selective at what we enable
+    "D101",
+    "D106",
+    "D2",
+    "D3",
+    "D400",
+    "D401",
+    "D402",
+    "D403",
+    "D412",
+    "D419",
+    "PGH004",  # Use specific rule codes when using noqa
+    "PGH005", # Invalid unittest.mock.Mock methods/attributes/properties
+    "S101", # Checks use `assert` outside the test cases, test cases should be added into the exclusions
+    "B004", # Checks for use of hasattr(x, "__call__") and replaces it with callable(x)
+    "B006", # Checks for uses of mutable objects as function argument defaults.
+    "B007", # Checks for unused variables in the loop
+    "B017", # Checks for pytest.raises context managers that catch Exception or BaseException.
+    "B019", # Use of functools.lru_cache or functools.cache on methods can lead to memory leaks
+    "B028", # No explicit stacklevel keyword argument found
+    "TRY002", # Prohibit use of `raise Exception`, use specific exceptions instead.
+]
+ignore = [
+    "D203",
+    "D212",
+    "D213",
+    "D214",
+    "D215",
+    "E731", # Do not assign a lambda expression, use a def
+    "TCH003", # Do not move imports from stdlib to TYPE_CHECKING block
+    "PT004", # Fixture does not return anything, add leading underscore
+    "PT005", # Fixture returns a value, remove leading underscore
+    "PT006", # Wrong type of names in @pytest.mark.parametrize
+    "PT007", # Wrong type of values in @pytest.mark.parametrize
+    "PT011", # pytest.raises() is too broad, set the match parameter
+    "PT019", # fixture without value is injected as parameter, use @pytest.mark.usefixtures instead
+    # Rules below explicitly set off which could overlap with Ruff's formatter
+    # as it recommended by https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+    # Except ISC rules
+    "W191",
+    "E111",
+    "E114",
+    "E117",
+    "D206",
+    "D300",
+    "Q000",
+    "Q001",
+    "Q002",
+    "Q003",
+    "COM812",
+    "COM819",
+    "E501", # Formatted code may exceed the line length, leading to line-too-long (E501) errors.
+    "ISC001", # Conflicts with formatter
+]
+unfixable = [
+    # PT022 replace empty `yield` to empty `return`. Might be fixed with a combination of PLR1711
+    # In addition, it can't do anything with invalid typing annotations, protected by mypy.
+    "PT022",
+]
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
+combine-as-imports = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D", "S101"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Disallow all relative imports.
+ban-relative-imports = "all"
+# Ban certain modules from being imported at module level, instead requiring
+# that they're imported lazily (e.g., within a function definition).
+banned-module-level-imports = ["numpy", "pandas"]
+
+[tool.ruff.lint.flake8-type-checking]
+exempt-modules = ["typing", "typing_extensions"]
+
+[tool.ruff.lint.flake8-pytest-style]
+mark-parentheses = false
+fixture-parentheses = false
+
+
+[tool.mypy]
+ignore_missing_imports = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+pretty = true
+show_error_codes = true
+disable_error_code = [
+    "annotation-unchecked",
+]
+
+[tool.versioningit]
+default-version = "0.0.0+unknown"
+
+[tool.versioningit.vcs]
+# The method key:
+method = "git"  # <- The method name
+
+# Parameters to pass to the method:
+match = ["v*"]
+default-tag = "0.0.1"
+
+[tool.versioningit.format]
+distance = "{next_version}.dev{distance}+{vcs}{rev}"
+dirty = "{version}+dirty"
+distance-dirty = "{next_version}.dev{distance}+{vcs}{rev}.dirty"

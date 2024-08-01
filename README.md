@@ -34,3 +34,11 @@ The docker compose will:
 - Start LocalStack S3 bucket 'test-bucket'
 - Start Kafka Connect
   - create a connector to read from test-topic, dump to S3 test-bucket
+
+
+
+# useful
+
+curl -s -XGET http://localhost:8083/connector-plugins | jq '.[].class'
+
+curl -XGET http://localhost:8083/connectors
