@@ -33,6 +33,7 @@ print(textual.__version__)
 
 from .kafka import TopicData, _topic_data_to_dict, list_topics
 from .widgets.switcher import ContentSwitcher
+from . import connect
 
 class TopicPanel(Container):
     """Topics widget."""
@@ -114,7 +115,32 @@ class SchemaRegistryPanel(Container):
     pass
 
 class KConnectPanel(Container):
+    """KafkaConnect widget."""
+
+    BORDER_SUBTITLE = "connectors"
+
+    def __init__(self, *args, **kwargs):
+        self.CONNECTORS:dict[str,str] = dict()
+        self.CONNECTORS = connect.list()
+        super().__init__(*args, **kwargs)
+        log(self.CONNECTORS)
     pass
+
+    def compose(self):
+        yield DataTable()
+
+    def on_mount(self):
+        for data_table in self.query(DataTable):
+            data_table.loading = True
+            self.load_data(data_table)
+
+    @work(exclusive=True, thread=True)
+    async def load_data(self, data_table: DataTable) -> None:
+        data_table.add_column("Name")
+        j = self.CONNECTORS
+        for t in j:
+            data_table.add_row(t)
+        data_table.loading = False
 
 class PluginManager:
     # TODO: read these from plugins folder

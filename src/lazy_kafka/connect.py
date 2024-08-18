@@ -1,4 +1,5 @@
 """Confluent kafka connect interface."""
+# TODO plug this to httpx
 from __future__ import annotations
 from typing import Optional
 from enum import Enum
@@ -88,15 +89,19 @@ class Connect:
             content = json.dumps(response.json(), indent=4, sort_keys=True)
         return content
 
-    def list(self) -> str:
+    def list(self) -> dict[str,str]:
         """Get a list of active connectors."""
-        uri = f"{self._connect_url}/connectors"
-        return self._request(method=HTTPMethod.GET, uri=uri)
+        uri = f"{self._connect_url}/connectors?expand=status"
+        response = self._request(method=HTTPMethod.GET, uri=uri)
+        content = json.loads(response)
+        return  content
 
 
 def list():
     """List all connectors."""
-    pass
+    # todo: this is just a joke, it will be rewritten
+    con = Connect("http://localhost:8083")
+    return con.list()
 
 def status():
     """Get status of connector."""
