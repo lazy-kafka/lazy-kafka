@@ -21,6 +21,12 @@ pip install lazy-kafka
 `lazy-kafka` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
 
 # dev
+run:
+`$ scripts/start-up`
+`$ hatch run python -m lazy-kafka`
+for textual dev:
+`$ hatch run python -m lazy_kafka run --dev`
+_Recreate the venv if the above is not starting the app._
 
 check topics:
 docker exec 1793ae26d162 /bin/kafka-topics --bootstrap-server=localhost:9092
