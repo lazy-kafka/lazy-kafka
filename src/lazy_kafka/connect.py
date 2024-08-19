@@ -1,12 +1,15 @@
 """Confluent kafka connect interface."""
 # TODO plug this to httpx
 from __future__ import annotations
-from typing import Optional
-from enum import Enum
+
 import json
+from dataclasses import dataclass
+from enum import Enum
+from typing import Optional
 
 from requests import delete, get, post, put  # noqa
 from requests.exceptions import ConnectionError, HTTPError
+
 
 class HTTPMethod(Enum):
     """HTTP methods allowed."""
@@ -18,6 +21,10 @@ class HTTPMethod(Enum):
 
 __all__ = ["list", "status"]
 
+@dataclass
+class ConnectorData:
+    name: Optional[str] = None
+    status: Optional[object] = None
 
 class Connect:
     """Kafka Connect API helper class.
@@ -97,11 +104,12 @@ class Connect:
         return  content
 
 
-def list():
+def list() -> list[ConnectorData]:
     """List all connectors."""
     # todo: this is just a joke, it will be rewritten
     con = Connect("http://localhost:8083")
-    return con.list()
+    con_list = [ConnectorData(name=k, status=v) for k,v in con.list().items()]
+    return con_list
 
 def status():
     """Get status of connector."""
@@ -111,3 +119,4 @@ if __name__ == "__main__":
     con = Connect("http://localhost:8083")
     from rich.pretty import pprint
     pprint(con.list())
+    pprint(list())

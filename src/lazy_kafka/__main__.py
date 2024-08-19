@@ -6,22 +6,19 @@ from typing import Self
 import rich.console
 import textual
 from rich.text import Text
-from textual import work
 from textual.app import App, ComposeResult
-from textual.color import Color
 from textual.containers import Container, ScrollableContainer
 from textual.css.query import NoMatches
 from textual.message import Message
-from textual.reactive import reactive, Reactive
+from textual.reactive import Reactive, reactive
 from textual.widget import Widget
 from textual.widgets import (
     DataTable,
     Footer,
     Header,
     Pretty,
-    Static,
-    Tabs,
     Tab,
+    Tabs,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -31,52 +28,11 @@ CONSOLE = rich.console.Console()
 print(textual.__version__)
 
 
-from .kafka import TopicData, _topic_data_to_dict, list_topics
+from .kafka import TopicData, topic_data_to_dict
+from .connect import ConnectorData
+from .widgets.kconnect import KConnectPanel
 from .widgets.switcher import ContentSwitcher
-from . import connect
-
-class TopicPanel(Container):
-    """Topics widget."""
-
-    BORDER_TITLE = "Topics"
-    BORDER_SUBTITLE = "status"
-
-    def __init__(self, *args, **kwargs):
-        self.TOPICS = dict()
-        for k in list_topics():
-            self.TOPICS[k.topic] = k
-        super().__init__(*args, **kwargs)
-        log(self.TOPICS)
-
-    class Selected(Message):
-        """Color selected message."""
-
-        def __init__(self, topic: TopicData) -> None:
-            self.topic = topic
-            log(f"INIT: {self.topic!r}")
-            super().__init__()
-
-    def compose(self):
-        yield DataTable()
-
-    def on_mount(self):
-        for data_table in self.query(DataTable):
-            data_table.loading = True
-            self.load_data(data_table)
-
-    @work(exclusive=True, thread=True)
-    async def load_data(self, data_table: DataTable) -> None:
-        data_table.add_column("Name")
-        j = list_topics()
-        for t in j:
-            data_table.add_row(t.topic)
-        data_table.loading = False
-
-    def on_data_table_cell_highlighted(self, event: DataTable.CellHighlighted) -> None:
-        # The post_message method sends an event to be handled in the DOM
-        log(f"selected: {self.TOPICS[event.value]}")
-        self.post_message(self.Selected(self.TOPICS[event.value]))
-
+from .widgets.topic import TopicPanel
 
 class MyScrollableContainer(ScrollableContainer):
     class Completed(Message):
@@ -101,6 +57,12 @@ class TopicDetails(Widget):
     def render(self) -> str:
         return f"[b]TOPIC:[/b] {self.topic}"
 
+class ConnectorDetails(Widget):
+    connector = reactive("")
+
+    def render(self) -> str:
+        return f"[b]CONNECTOR:[/b] {self.connector}"
+
 class TopicDetailsPretty(Pretty):
     DEFAULT_CSS = """
     .hidden {
@@ -114,33 +76,6 @@ class TopicDetailsPretty(Pretty):
 class SchemaRegistryPanel(Container):
     pass
 
-class KConnectPanel(Container):
-    """KafkaConnect widget."""
-
-    BORDER_SUBTITLE = "connectors"
-
-    def __init__(self, *args, **kwargs):
-        self.CONNECTORS:dict[str,str] = dict()
-        self.CONNECTORS = connect.list()
-        super().__init__(*args, **kwargs)
-        log(self.CONNECTORS)
-    pass
-
-    def compose(self):
-        yield DataTable()
-
-    def on_mount(self):
-        for data_table in self.query(DataTable):
-            data_table.loading = True
-            self.load_data(data_table)
-
-    @work(exclusive=True, thread=True)
-    async def load_data(self, data_table: DataTable) -> None:
-        data_table.add_column("Name")
-        j = self.CONNECTORS
-        for t in j:
-            data_table.add_row(t)
-        data_table.loading = False
 
 class PluginManager:
     # TODO: read these from plugins folder
@@ -168,6 +103,8 @@ class LazyKafka(App):
     """A Textual app to manage stopwatches."""
 
     topic: Reactive[TopicData] = reactive(TopicData())
+    connector: Reactive[ConnectorData] = reactive(ConnectorData())
+
 
     CSS_PATH = "style.tcss"
     BINDINGS = [
@@ -212,7 +149,7 @@ class LazyKafka(App):
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
         """Handle TabActivated message sent by Tabs."""
-        self.query_one(ContentSwitcher).current = event.tab.id  
+        self.query_one(ContentSwitcher).current = event.tab.id
 
     def on_topic_panel_selected(self, message: TopicPanel.Selected) -> None:
         """Set reactive attribute.
@@ -238,7 +175,28 @@ class LazyKafka(App):
         topic_details.topic = (
             "[b]topic: [/b]" + str(topic.topic) + str(topic.partitions)
         )
-        self.query_one(Pretty).update(_topic_data_to_dict(topic))
+        self.query_one(Pretty).update(topic_data_to_dict(topic))
+        self.log(f"{topic}")
+
+
+    def watch_connect(self, topic: ConnectorData):
+        """Callback on topic changed.
+
+        Args:
+            topic: 
+        """
+        try:
+            topic_details = self.query_one(ConnectorDetails)
+        except NoMatches as _:
+            details_panel = MyScrollableContainer(
+                TopicDetails(), Pretty([]), id="details", classes="box initial"
+            )
+            self.query_one(KConnectPanel).mount(details_panel)
+            return
+        topic_details.connector = (
+            "[b]connector: [/b]" + str(topic.name) + str(topic.status)
+        )
+        self.query_one(Pretty).update(topic)
         self.log(f"{topic}")
 
     def on_my_scrollable_container_completed(self):
@@ -259,7 +217,7 @@ class LazyKafka(App):
         topic_details.topic = (
             "[b]topic: [/b]" + str(topic.topic) + str(topic.partitions)
         )
-        self.query_one(Pretty).update(_topic_data_to_dict(topic))
+        self.query_one(Pretty).update(topic_data_to_dict(topic))
 
     def action_unset_topic(self) -> None:
         """Called to remove a timer."""

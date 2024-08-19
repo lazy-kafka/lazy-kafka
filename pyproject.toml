@@ -47,7 +47,7 @@ extra-dependencies = [
     "pre-commit == 3.7.*",
     "ruff == 0.4.4",
     "mypy == 1.10.*",
-    "versioningit @ git+https://github.com/jwodder/versioningit@gh-89",
+    "versioningit>=3.1.2",
     "towncrier == 23.11.*",
 ]
 
@@ -152,16 +152,19 @@ ignore = ["src/hatcht/newfragments"]
 defineConstant = { DEBUG = true }
 stubPath = "src/stubs"
 
-typeCheckingMode = "strict"
+typeCheckingMode = "standard"
 reportMissingImports = true
 reportMissingTypeStubs = false
 
-pythonVersion = "3.6"
+pythonVersion = "3.12"
 pythonPlatform = "Linux"
 
 executionEnvironments = [
   { root = "src" }
 ]
+venvPath = ".hatch"
+venv = "dev"
+
 [tool.ruff]
 [tool.ruff.format]
 quote-style = "double"

@@ -28,7 +28,7 @@ class TopicData:
     partitions: Optional[object] = None
 
 
-def _topic_data_to_dict(topic: TopicData):
+def topic_data_to_dict(topic: TopicData):
     d = {
         "topic": topic.topic,
         "partitions": {
