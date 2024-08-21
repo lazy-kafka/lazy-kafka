@@ -23,10 +23,10 @@ CONSOLE = rich.console.Console()
 print(textual.__version__)
 
 
-from .connect import ConnectorData
-from .widgets.kconnect import KConnectPanel
-from .widgets.switcher import ContentSwitcher
-from .widgets.topic import TopicPanel
+from lazy_kafka.connect import ConnectorData
+from lazy_kafka.widgets.kconnect import KConnectPanel
+from lazy_kafka.widgets.switcher import ContentSwitcher
+from lazy_kafka.widgets.topic import TopicPanel
 
 
 class ConnectorDetails(Widget):

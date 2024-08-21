@@ -22,11 +22,13 @@ pip install lazy-kafka
 
 # dev
 run:
-`$ scripts/start-up`
-`$ hatch run python -m lazy-kafka`
-for textual dev:
-`$ hatch run python -m lazy_kafka run --dev`
-_Recreate the venv if the above is not starting the app._
+- 🐳 docker environment `$ scripts/start-up`
+- 📃 `$ hatch run dev:console`
+- 💾 `$ hatch run dev:app`
+
+If you are using pip:
+- `pip install -e .`
+- `lazy-kafka`
 
 check topics:
 docker exec 1793ae26d162 /bin/kafka-topics --bootstrap-server=localhost:9092

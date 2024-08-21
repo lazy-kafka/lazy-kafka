@@ -31,19 +31,17 @@ dependencies = [
     "click>=8.0.0",
 ]
 
-[project.optional-dependencies]
-dev = [
-  "textual-dev",
-  "ruff",
-]
-
 [project.urls]
 Documentation = "https://github.com/Timon Viola/lazy-kafka#readme"
 Issues = "https://github.com/Timon Viola/lazy-kafka/issues"
 Source = "https://github.com/Timon Viola/lazy-kafka"
 
+[project.scripts]
+lazy-kafka = "lazy_kafka.entry_points:lazy_kafka"
+
 [tool.hatch.envs.dev]
 extra-dependencies = [
+    "textual-dev",
     "pre-commit == 3.7.*",
     "ruff == 0.4.4",
     "mypy == 1.10.*",
@@ -55,8 +53,8 @@ extra-dependencies = [
 install = "pre-commit install --hook-type commit-msg"
 version = "versioningit"
 changelog = "towncrier"
-console = "textual console"
-app = "textual run --dev lazy_kafka"
+console = "textual console --port 7342"
+app = "textual run --dev --port 7342 src/lazy_kafka/__main__.py"
 
 [tool.hatch.envs.test]
 extra-dependencies = [
