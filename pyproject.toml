@@ -55,6 +55,8 @@ extra-dependencies = [
 install = "pre-commit install --hook-type commit-msg"
 version = "versioningit"
 changelog = "towncrier"
+console = "textual console"
+app = "textual run --dev lazy_kafka"
 
 [tool.hatch.envs.test]
 extra-dependencies = [
