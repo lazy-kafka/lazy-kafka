@@ -1,7 +1,7 @@
 
 Screen {
     layout: vertical;
-    background: transparent;
+    background: black;
 }
 
 Tabs {
@@ -12,15 +12,20 @@ Tabs {
 
 
 DataTable {
-    overflow-x: hidden;
-    height: 1fr;
-    max-height: 80%;
+    height: 90%;
+    width: 1fr;
 }
+
 DataTable > .datatable--odd-row {
     background: #131a2c;
 }
 DataTable > .datatable--even-row {
     background: #0f1525;
+}
+
+DataTable > .datatable--cursor {
+    background: $secondary-darken-3;
+    color: $text;
 }
 
 .datatable--header {
@@ -44,8 +49,19 @@ Topic {
   height:1;
 }
 
+MyContainer {
+  max-height: 90%;
+}
+
 MyScrollableContainer {
     background: transparent;
+}
+
+
+Details {
+   width: 1fr;
+   height: auto; 
+   color: yellow;
 }
 
 TopicDetails {
@@ -65,7 +81,7 @@ TopicList {
 
 }
 
-TopicPanel {
+MyContainer {
     layout: horizontal;
 }
 
@@ -73,7 +89,8 @@ TopicPanel {
     width: 1fr;
     border: round $primary;
     border-subtitle-style: italic;
-    border-title-color: $primary;
+    border-title-color: $secondary;
+    border-subtitle-color: $secondary-darken-1;
 }
 
 .initial {
@@ -88,4 +105,5 @@ TopicPanel {
     border-subtitle-style: italic;
     border-subtitle-align: left; 
 }
+
 

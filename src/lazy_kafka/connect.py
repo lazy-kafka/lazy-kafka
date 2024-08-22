@@ -1,14 +1,18 @@
 """Confluent kafka connect interface."""
+
 # TODO plug this to httpx
 from __future__ import annotations
 
+from typing import Any, Self
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import Optional
-
+import logging
 from requests import delete, get, post, put  # noqa
 from requests.exceptions import ConnectionError, HTTPError
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class HTTPMethod(Enum):
@@ -19,12 +23,24 @@ class HTTPMethod(Enum):
     POST = "post"
     DELETE = "delete"
 
+
 __all__ = ["list", "status"]
 
-@dataclass
+
+@dataclass(frozen=True, slots=False)
 class ConnectorData:
     name: Optional[str] = None
-    status: Optional[object] = None
+    state: Optional[str] = None
+    worker_id: Optional[str] = None
+    type: Optional[str] = None
+
+    def to_dict(self: Self) -> dict[str, Any]:
+        """Return contents as dict"""
+        return asdict(self)
+
+    def to_tuple(self: Self) -> tuple[str, str, str, str]:
+        return tuple(self.to_dict().values())
+
 
 class Connect:
     """Kafka Connect API helper class.
@@ -40,9 +56,7 @@ class Connect:
     def __init__(self, connect_url: str) -> None:
         self._connect_url = connect_url
 
-    def _request(
-        self, method: HTTPMethod, uri: str, data: Optional[str] = None
-    ) -> str:
+    def _request(self, method: HTTPMethod, uri: str, data: Optional[str] = None) -> str:
         """Make HTTP requests.
 
         Parameters
@@ -96,27 +110,40 @@ class Connect:
             content = json.dumps(response.json(), indent=4, sort_keys=True)
         return content
 
-    def list(self) -> dict[str,str]:
+    def list(self) -> dict[str, Any]:
         """Get a list of active connectors."""
         uri = f"{self._connect_url}/connectors?expand=status"
         response = self._request(method=HTTPMethod.GET, uri=uri)
         content = json.loads(response)
-        return  content
+        return content
 
 
-def list() -> list[ConnectorData]:
+def list():
     """List all connectors."""
     # todo: this is just a joke, it will be rewritten
     con = Connect("http://localhost:8083")
-    con_list = [ConnectorData(name=k, status=v) for k,v in con.list().items()]
+    cc = con.list()
+    _LOGGER.debug(json.dumps(cc, indent=2, sort_keys=True))
+    con_list = {
+        k: ConnectorData(
+            name=k,
+            state=v["status"]["connector"]["state"],
+            worker_id=v["status"]["connector"]["worker_id"],
+            type=v["status"]["type"],
+        )
+        for k, v in con.list().items()
+    }
     return con_list
+
 
 def status():
     """Get status of connector."""
     pass
 
+
 if __name__ == "__main__":
     con = Connect("http://localhost:8083")
     from rich.pretty import pprint
+
     pprint(con.list())
     pprint(list())

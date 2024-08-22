@@ -3,29 +3,20 @@ from __future__ import annotations
 import logging
 
 from textual import work
-from textual.message import Message
-from textual.widgets import (
-    DataTable,
-)
-
-logging.basicConfig(level=logging.INFO)
-import logging
-
-from textual import log
 from textual.containers import ScrollableContainer
 from textual.css.query import NoMatches
+from textual.message import Message
 from textual.reactive import Reactive, reactive
 from textual.widget import Widget
 from textual.widgets import (
+    DataTable,
     Pretty,
 )
 
-from lazy_kafka.kafka import TopicData, list_topics
+from lazy_kafka.kafka import TopicData, list_topics, topic_data_to_dict
 from lazy_kafka.widgets.common import MyContainer
 
-logging.basicConfig(level=logging.INFO)
-
-from lazy_kafka.kafka import topic_data_to_dict
+_LOGGER = logging.getLogger(__name__)
 
 
 class MyScrollableContainer(ScrollableContainer):
@@ -33,7 +24,7 @@ class MyScrollableContainer(ScrollableContainer):
         """Color selected message."""
 
         def __init__(self) -> None:
-            log(f"{self.__class__} Mounted")
+            _LOGGER.debug("%s Mounted", self.__class__)
             self.done = True
             super().__init__()
 
@@ -97,14 +88,14 @@ class TopicPanel(MyContainer):
         for k in list_topics():
             self.TOPICS[k.topic] = k
         super().__init__(*args, **kwargs)
-        log(self.TOPICS)
+        self.log(self.TOPICS)
 
     class Selected(Message):
         """Color selected message."""
 
         def __init__(self, topic: TopicData) -> None:
             self.topic = topic
-            log(f"INIT: {self.topic!r}")
+            _LOGGER.debug(f"INIT: {self.topic!r}")
             super().__init__()
 
     def compose(self):
@@ -152,7 +143,7 @@ class TopicPanel(MyContainer):
 
     def on_data_table_cell_highlighted(self, event: DataTable.CellHighlighted) -> None:
         # The post_message method sends an event to be handled in the DOM
-        log(f"selected: {self.TOPICS[event.value]}")
+        self.log(f"selected: {self.TOPICS[event.value]}")
         self.post_message(self.Selected(self.TOPICS[event.value]))
 
     def on_my_scrollable_container_completed(self):

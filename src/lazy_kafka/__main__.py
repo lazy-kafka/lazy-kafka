@@ -8,6 +8,8 @@ import textual
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Container
+from textual.css.query import NoMatches
+from textual.logging import TextualHandler
 from textual.reactive import Reactive, reactive
 from textual.widget import Widget
 from textual.widgets import (
@@ -17,7 +19,11 @@ from textual.widgets import (
     Tabs,
 )
 
-logging.basicConfig(level=logging.INFO)
+from textual.widgets import (
+    DataTable,
+)
+
+logging.basicConfig(level="NOTSET", handlers=[TextualHandler()])
 
 CONSOLE = rich.console.Console()
 print(textual.__version__)
@@ -27,7 +33,6 @@ from lazy_kafka.connect import ConnectorData
 from lazy_kafka.widgets.kconnect import KConnectPanel
 from lazy_kafka.widgets.switcher import ContentSwitcher
 from lazy_kafka.widgets.topic import TopicPanel
-
 
 class ConnectorDetails(Widget):
     connector = reactive("")
@@ -104,10 +109,20 @@ class LazyKafka(App):
         yield Footer()
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
-        """Handle TabActivated message sent by Tabs."""
+        """Handle TabActivated message sent by Tabs.
+
+        Tab activated handler customized to focus the DataTable component of
+        the current tab (this saves a 'Tab' key press).
+        """
+        logging.debug("%s", f"{event!r}")
         cs = self.query_one(ContentSwitcher)
         cs.current = event.tab.id
-
+        if cs.visible_content is None:
+            return
+        try:
+            self.set_focus(cs.visible_content.query_one(DataTable))
+        except NoMatches:
+            logging.error("No DataTable component in %s", event.tab.id)
 
 app = LazyKafka()
 

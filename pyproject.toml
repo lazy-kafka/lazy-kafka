@@ -53,7 +53,8 @@ extra-dependencies = [
 install = "pre-commit install --hook-type commit-msg"
 version = "versioningit"
 changelog = "towncrier"
-console = "textual console --port 7342"
+console = "textual console -x EVENT -x SYSTEM --port 7342"
+consall = "textual console --port 7342"
 app = "textual run --dev --port 7342 src/lazy_kafka/__main__.py"
 
 [tool.hatch.envs.test]
