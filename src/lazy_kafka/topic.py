@@ -1,4 +1,4 @@
-"""Kafka topics interface."""
+"""Kafka topics interface. (lib confluent_kafka)"""
 
 from __future__ import annotations
 

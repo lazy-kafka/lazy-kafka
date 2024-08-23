@@ -29,6 +29,7 @@ dependencies = [
     "textual>=0.70.0",
     "rich",
     "click>=8.0.0",
+    "httpx",
 ]
 
 [project.urls]

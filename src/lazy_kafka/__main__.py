@@ -31,6 +31,7 @@ print(textual.__version__)
 
 from lazy_kafka.connect import ConnectorData
 from lazy_kafka.widgets.kconnect import KConnectPanel
+from lazy_kafka.widgets.registry import SchemaRegistry as SchemaRegistryPanel
 from lazy_kafka.widgets.switcher import ContentSwitcher
 from lazy_kafka.widgets.topic import TopicPanel
 
@@ -39,11 +40,6 @@ class ConnectorDetails(Widget):
 
     def render(self) -> str:
         return f"[b]CONNECTOR:[/b] {self.connector}"
-
-
-class SchemaRegistryPanel(Container):
-    pass
-
 
 class PluginManager:
     # TODO: read these from plugins folder
