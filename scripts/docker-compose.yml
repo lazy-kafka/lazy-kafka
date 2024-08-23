@@ -41,6 +41,11 @@ services:
       - broker
     ports:
       - "8081:8081"
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8081/"]
+        interval: 30s
+        timeout: 10s
+        retries: 5
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
@@ -115,4 +120,21 @@ services:
         source: ./create_connector.sh
         target: /create_connector.sh
 
+
+  registry-init:
+    platform: linux/x86_64
+    image: curlimages/curl:8.9.1
+    depends_on:
+      schema-registry:
+        condition: service_healthy
+    links:
+      - connect
+    command: [ "sh", "-c", "/create.sh"]
+    environment:
+      - SUBJECT=test-topic-value
+      - SCHEMA_REGISTRY_URL=schema-registry:8081
+    volumes:
+      - type: bind
+        source: ./create_schema.sh
+        target: /create.sh
 
