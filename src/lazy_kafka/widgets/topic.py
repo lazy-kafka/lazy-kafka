@@ -3,65 +3,18 @@ from __future__ import annotations
 import logging
 
 from textual import work
-from textual.containers import ScrollableContainer
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import Reactive, reactive
-from textual.widget import Widget
 from textual.widgets import (
     DataTable,
     Pretty,
 )
 
-from lazy_kafka.kafka import TopicData, list_topics, topic_data_to_dict
-from lazy_kafka.widgets.common import MyContainer
+from lazy_kafka.topic import TopicData, list_topics, topic_data_to_dict
+from lazy_kafka.widgets.common import Details, MyContainer, MyScrollableContainer
 
 _LOGGER = logging.getLogger(__name__)
-
-
-class MyScrollableContainer(ScrollableContainer):
-    class Completed(Message):
-        """Color selected message."""
-
-        def __init__(self) -> None:
-            _LOGGER.debug("%s Mounted", self.__class__)
-            self.done = True
-            super().__init__()
-
-    def on_mount(self) -> None:
-        def comp():
-            self.post_message(self.Completed())
-
-        self.styles.animate(
-            "width", value=30.0, duration=1.0, easing="out_expo", on_complete=comp
-        )
-
-
-class TopicDetails(Widget):
-    topic = reactive("")
-
-    def __init__(
-        self,
-        *children: Widget,
-        name: str | None = None,
-        id: str | None = "topic-details",
-        classes: str | None = None,
-        disabled: bool = False,
-    ) -> None:
-        super().__init__(
-            *children, name=name, id=id, classes=classes, disabled=disabled
-        )
-
-
-class TopicDetailsPretty(Pretty):
-    DEFAULT_CSS = """
-    .hidden {
-        display: none;
-    }
-    """
-
-    def on_mount(self) -> None:
-        self.styles.animate("opacity", value=1.0, duration=2.0)
 
 
 class TopicPanel(MyContainer):
@@ -120,14 +73,14 @@ class TopicPanel(MyContainer):
             topic:
         """
         try:
-            topic_details = self.query_one(TopicDetails)
+            topic_details = self.query_one(Details)
         except NoMatches as _:
             details_panel = MyScrollableContainer(
-                TopicDetails(), Pretty([]), id="details", classes="box initial"
+                Details(), Pretty([]), id="details", classes="box initial"
             )
             self.mount(details_panel)
             return
-        topic_details.topic = (
+        topic_details.detail_name = (
             "[b]topic: [/b]" + str(topic.topic) + str(topic.partitions)
         )
         self.query_one(Pretty).update(topic_data_to_dict(topic))
@@ -160,16 +113,8 @@ class TopicPanel(MyContainer):
         topic = self.topic
         if topic.topic is None:
             raise ValueError
-        topic_details = self.query_one(TopicDetails)
-        topic_details.topic = (
+        topic_details = self.query_one(Details)
+        topic_details.detail_name = (
             "[b]topic: [/b]" + str(topic.topic) + str(topic.partitions)
         )
         self.query_one(Pretty).update(topic_data_to_dict(topic))
-
-    def action_unset_topic(self) -> None:
-        """Called to remove a timer."""
-        try:
-            topic_details = self.query_one("#details")
-        except NoMatches:
-            return
-        topic_details.remove()

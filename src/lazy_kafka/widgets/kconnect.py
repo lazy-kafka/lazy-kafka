@@ -3,72 +3,21 @@ from __future__ import annotations
 import logging
 from typing import Any, Generator
 
-from textual.css.query import NoMatches
-from textual.reactive import Reactive, reactive
 from textual import work
-from textual.containers import Container
-from textual.message import Message
-from textual.widgets import (
-    DataTable,
-)
-
-from textual.widget import Widget
-
-from lazy_kafka.widgets.common import MyContainer
-logging.basicConfig(level=logging.INFO)
-from textual import log
-
-_LOGGER = logging.getLogger(__name__)
-from lazy_kafka import connect
-
-
-from textual import work
-from textual.containers import ScrollableContainer
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import Reactive, reactive
-from textual.widget import Widget
 from textual.widgets import (
     DataTable,
     Pretty,
 )
 
-class MyScrollableContainer(ScrollableContainer):
-    class Completed(Message):
-        """Color selected message."""
+from lazy_kafka import connect
+from lazy_kafka.widgets.common import Details, MyContainer, MyScrollableContainer
 
-        def __init__(self) -> None:
-            _LOGGER.debug("%s Mounted", self.__class__)
-            self.done = True
-            super().__init__()
+logging.basicConfig(level=logging.INFO)
 
-    def on_mount(self) -> None:
-        def comp():
-            self.post_message(self.Completed())
-
-        self.styles.animate(
-            "width", value=30.0, duration=1.0, easing="out_expo", on_complete=comp
-        )
-
-
-class Details(Widget):
-    topic = reactive("")
-
-    def __init__(
-        self,
-        *children: Widget,
-        name: str | None = None,
-        id: str | None = "topic-details",
-        classes: str | None = None,
-        disabled: bool = False,
-    ) -> None:
-        super().__init__(
-            *children, name=name, id=id, classes=classes, disabled=disabled
-        )
-
-#################
-
-
+_LOGGER = logging.getLogger(__name__)
 
 
 class KConnectPanel(MyContainer):
@@ -85,7 +34,6 @@ class KConnectPanel(MyContainer):
     details: Reactive[connect.ConnectorData] = reactive(connect.ConnectorData())
 
     def action_next_widget_item(self):
-        _LOGGER.debug("KCONNECT NEXT")
         self.query_one(DataTable).action_cursor_down()
 
     def action_previous_widget_item(self):
@@ -99,7 +47,6 @@ class KConnectPanel(MyContainer):
 
     pass
 
-
     class Selected(Message):
         """Color selected message."""
 
@@ -108,17 +55,15 @@ class KConnectPanel(MyContainer):
             _LOGGER.debug(f"INIT: {self.details!r}")
             super().__init__()
 
-
     def compose(self) -> Generator[DataTable[Any], Any, None]:
         yield DataTable()
 
     def on_mount(self):
         for data_table in self.query(DataTable):
             data_table.loading = True
-            data_table.cursor_type="row"
+            data_table.cursor_type = "row"
             data_table.fixed_columns = 4
             self.load_data(data_table)
-
 
     def on_kconnect_panel_selected(self, message: KConnectPanel.Selected) -> None:
         """Set reactive attribute.
@@ -142,9 +87,7 @@ class KConnectPanel(MyContainer):
             )
             self.mount(details_panel)
             return
-        details_panel.topic = (
-            "[b]connector: [/b]" + str(details.name)
-        )
+        details_panel.detail_name = "[b]connector: [/b]" + str(details.name)
         self.query_one(Pretty).update(details.to_dict())
         self.log(f"{details}")
 
@@ -156,19 +99,17 @@ class KConnectPanel(MyContainer):
         data_table.add_column("Type")
         for i in map(lambda x: x.to_tuple(), self.connectors.values()):
             data_table.add_row(*i, key=i[0])
-        #data_table.add_rows(map(lambda x: x.to_tuple(), self.connectors.values()))
+        # data_table.add_rows(map(lambda x: x.to_tuple(), self.connectors.values()))
         data_table.loading = False
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
-        _LOGGER.debug("SNOHEUNSTHEOU")
         # The post_message method sends an event to be handled in the DOM
         _LOGGER.debug(f"selected: {event}")
-        #log(f"selected: {self.connectors[event.value]}")
+        # log(f"selected: {self.connectors[event.value]}")
         if event.row_key.value is None:
             _LOGGER.error("False event")
             return
         self.post_message(self.Selected(self.connectors[event.row_key.value]))
-
 
     def on_my_scrollable_container_completed(self):
         """This is quite ugly.
@@ -185,16 +126,6 @@ class KConnectPanel(MyContainer):
         if details is None:
             raise ValueError
         details_panel = self.query_one(Details)
-        details_panel.topic = (
-            "[b]connector: [/b]" + str(details.name)
-        )
+        details_panel.detail_name = "[b]connector: [/b]" + str(details.name)
         self.query_one(Pretty).update(details.to_dict())
 
-
-    def action_unset_topic(self) -> None:
-        """Called to remove a timer."""
-        try:
-            topic_details = self.query_one("#details")
-        except NoMatches:
-            return
-        topic_details.remove()
