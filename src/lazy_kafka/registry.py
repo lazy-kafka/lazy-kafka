@@ -6,7 +6,6 @@
 textual docs: https://textual.textualize.io/guide/workers/#thread-workers
 """
 from __future__ import annotations
-import asyncio
 import logging
 import httpx
 from functools import partialmethod
@@ -16,27 +15,24 @@ _LOGGER = logging.getLogger(__name__)
 list_schemas = "schemas/types"
 
 
-class ScheamRegistry:
+class SchemaRegistry:
     DEFAULT_HOST = "http://localhost:8081/"
 
     def __init__(self, host: str = DEFAULT_HOST) -> None:
         self.host = host
 
+    def __repr__(self):
+        return f"SchemaRegistry@{self.host}"
+
     def _generic_get_json(self, url: str):
         response = httpx.get(self.host + url)
         return response.json()
 
-    async def sleepy(self):
-        _LOGGER.debug("START SLEEPY------")
-        await asyncio.sleep(10)
-        _LOGGER.debug("END SLEEPY------")
-
     async def _ageneric_get_json(self, url: str):
+         _LOGGER.debug("%s request: %s", self, url)
          async with httpx.AsyncClient() as client:
-            await self.sleepy()
             response = await client.get(self.host + url)
             return response.json()
-
 
     asubjects = partialmethod(_ageneric_get_json, "subjects")
     subjects = partialmethod(_generic_get_json, "subjects")
@@ -49,15 +45,9 @@ class ScheamRegistry:
         depending on whether you are registering the value schema for that topic 
         or the key schema. To learn more about subject name strategies, see 
         [How the naming strategies work](https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/index.html#sr-schemas-subject-name-strategies-work).
-
-
         """
 
-def list():
-    sr = ScheamRegistry()
-    return sr.subjects()
-
 if __name__ == "__main__":
-    sr = ScheamRegistry()
+    sr = SchemaRegistry()
     from rich.pretty import pprint
     pprint(sr.subjects())

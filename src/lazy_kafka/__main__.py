@@ -23,6 +23,8 @@ from textual.widgets import (
     DataTable,
 )
 
+from lazy_kafka.widgets.common import MyContainer
+
 logging.basicConfig(level="NOTSET", handlers=[TextualHandler()])
 
 CONSOLE = rich.console.Console()
@@ -31,7 +33,7 @@ print(textual.__version__)
 
 from lazy_kafka.connect import ConnectorData
 from lazy_kafka.widgets.kconnect import KConnectPanel
-from lazy_kafka.widgets.registry import SchemaRegistry as SchemaRegistryPanel
+from lazy_kafka.widgets.registry import SchemaRegistryPanel
 from lazy_kafka.widgets.switcher import ContentSwitcher
 from lazy_kafka.widgets.topic import TopicPanel
 
@@ -98,7 +100,7 @@ class LazyKafka(App):
             Tab(Text.from_markup(":warning: K-connect"), id="tab-connect"),
             id="tabs",
         )
-        with ContentSwitcher(initial="topic", id="vertical"):
+        with ContentSwitcher(initial="topic", id="main-content-switcher"):
             yield TopicPanel(id="topic", classes="box")
             yield SchemaRegistryPanel(id="tab-schema")
             yield KConnectPanel(id="tab-connect")
@@ -111,12 +113,13 @@ class LazyKafka(App):
         the current tab (this saves a 'Tab' key press).
         """
         logging.debug("tab actinvated: %s", f"{event!r}")
-        cs = self.query_one(ContentSwitcher)
+        logging.debug("tab : %s", f"{event.tab!r}")
+        cs: ContentSwitcher = self.query_one("#main-content-switcher")
         cs.current = event.tab.id
         if cs.visible_content is None:
             return
         try:
-            self.set_focus(cs.visible_content.query_one(DataTable))
+            self.set_focus(cs.visible_content)
         except NoMatches:
             logging.error("No DataTable component in %s", event.tab.id)
 

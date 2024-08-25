@@ -12,10 +12,11 @@ logging.basicConfig(level=logging.INFO)
 
 _LOGGER = logging.getLogger(__name__)
 
-class MyContainer(Container):
+class MyContainer(Container, can_focus=True):
     """Class which all plugins should stem from."""
 
-    pass
+    def on_focus(self):
+        _LOGGER.debug("heeeyaho")
 
     def action_unset_topic(self) -> None:
         """Called to remove a timer."""

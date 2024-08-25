@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Generator
+from typing import Any
+import time
 
 from textual import work
+from textual.containers import Vertical
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import Reactive, reactive
-from textual.lazy import Lazy
 from textual.widgets import (
     DataTable,
     Pretty,
+    Static,
 )
+
+from textual.widgets.data_table import DuplicateKey
 
 from lazy_kafka import registry
 from lazy_kafka.widgets.common import Details, MyContainer, MyScrollableContainer
@@ -21,7 +25,16 @@ logging.basicConfig(level=logging.INFO)
 _LOGGER = logging.getLogger(__name__)
 
 
-class SchemaRegistry(MyContainer):
+def get_current_time() -> str:
+    return time.strftime("%H:%M:%S", time.localtime())
+
+
+class Updated(Static):
+    """Last refreshed label."""
+    pass
+
+
+class SchemaRegistryPanel(MyContainer):
     """KafkaConnect widget."""
 
     BORDER_TITLE = "Subjects"
@@ -29,7 +42,7 @@ class SchemaRegistry(MyContainer):
     BINDINGS = [
         ("j", "next_widget_item", "next"),
         ("k", "previous_widget_item", "prev"),
-        ("s", "load_data", "load"),
+        ("s", "load_data", "prev"),
         ("escape", "unset_topic", "close"),
     ]
 
@@ -46,11 +59,10 @@ class SchemaRegistry(MyContainer):
             self.load_data(data_table)
 
     def __init__(self, *args: Any, **kwargs: Any):
-        self.subjects: dict[str, str] = {"":""}
+        self.subjects: dict[str, str] = {"": ""}
+        self.hook = registry.SchemaRegistry()
         super().__init__(*args, **kwargs)
         _LOGGER.debug(self.subjects)
-
-    pass
 
     class Selected(Message):
         """Color selected message."""
@@ -60,16 +72,16 @@ class SchemaRegistry(MyContainer):
             _LOGGER.debug(f"INIT: {self.details!r}")
             super().__init__()
 
-
-
     def compose(self) -> Any:
-        yield DataTable(cursor_type="row", fixed_columns=4)
-        #yield Lazy(DataTable())
+        yield Vertical(Updated(), DataTable(cursor_type="row", fixed_columns=4) )
 
     def on_mount(self):
-        _LOGGER.debug("widget on mount")
+        data_table = self.query_one(DataTable)
+        data_table.add_column("Subjects")
 
-    def on_schemaregistry_panel_selected(self, message: SchemaRegistry.Selected) -> None:
+    def on_schemaregistry_panel_selected(
+        self, message: SchemaRegistryPanel.Selected
+    ) -> None:
         """Set reactive attribute.
 
         Currently -> Message() -> Reactive() -> watch_topic()
@@ -79,7 +91,6 @@ class SchemaRegistry(MyContainer):
 
     def on_data_table_focused(self, event):
         _LOGGER.debug("DATA TABLE FOC %s", f"{event!r}")
-
 
     async def on_focus(self, event):
         _LOGGER.debug("ON FOCUS!!!!!!!!!!!")
@@ -108,14 +119,18 @@ class SchemaRegistry(MyContainer):
 
     @work(exclusive=True)
     async def load_data(self, data_table: DataTable) -> None:
-        _LOGGER.debug("here we go")
         data_table.loading = True
-        sr = registry.ScheamRegistry()
-        self.subjects = {i:i for i in await sr.asubjects()}
-        data_table.add_column("Subjects")
+        self.subjects = {i: i for i in await self.hook.asubjects()}
         for i in self.subjects.values():
-            data_table.add_row(i, key=i)
+            try:
+                data_table.add_row(i, key=i)
+            except DuplicateKey:
+                data_table.remove_row(row_key=i)
+                data_table.add_row(i, key=i)
+
         data_table.loading = False
+        label = self.query_one(Updated)
+        label.update(f"[i]Updated: [green]{get_current_time()}[/]")
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         # The post_message method sends an event to be handled in the DOM
@@ -143,4 +158,3 @@ class SchemaRegistry(MyContainer):
         details_panel = self.query_one(Details)
         details_panel.detail_name = "[b]connector: [/b]" + str(details)
         self.query_one(Pretty).update(details)
-
