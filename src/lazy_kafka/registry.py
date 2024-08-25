@@ -6,10 +6,15 @@
 textual docs: https://textual.textualize.io/guide/workers/#thread-workers
 """
 from __future__ import annotations
+import asyncio
+import logging
 import httpx
 from functools import partialmethod
 
+_LOGGER = logging.getLogger(__name__)
+
 list_schemas = "schemas/types"
+
 
 class ScheamRegistry:
     DEFAULT_HOST = "http://localhost:8081/"
@@ -21,6 +26,19 @@ class ScheamRegistry:
         response = httpx.get(self.host + url)
         return response.json()
 
+    async def sleepy(self):
+        _LOGGER.debug("START SLEEPY------")
+        await asyncio.sleep(10)
+        _LOGGER.debug("END SLEEPY------")
+
+    async def _ageneric_get_json(self, url: str):
+         async with httpx.AsyncClient() as client:
+            await self.sleepy()
+            response = await client.get(self.host + url)
+            return response.json()
+
+
+    asubjects = partialmethod(_ageneric_get_json, "subjects")
     subjects = partialmethod(_generic_get_json, "subjects")
     subjects.__doc__ = """List subjects.
 

@@ -110,7 +110,7 @@ class LazyKafka(App):
         Tab activated handler customized to focus the DataTable component of
         the current tab (this saves a 'Tab' key press).
         """
-        logging.debug("%s", f"{event!r}")
+        logging.debug("tab actinvated: %s", f"{event!r}")
         cs = self.query_one(ContentSwitcher)
         cs.current = event.tab.id
         if cs.visible_content is None:

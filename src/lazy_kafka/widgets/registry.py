@@ -7,6 +7,7 @@ from textual import work
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import Reactive, reactive
+from textual.lazy import Lazy
 from textual.widgets import (
     DataTable,
     Pretty,
@@ -28,6 +29,7 @@ class SchemaRegistry(MyContainer):
     BINDINGS = [
         ("j", "next_widget_item", "next"),
         ("k", "previous_widget_item", "prev"),
+        ("s", "load_data", "load"),
         ("escape", "unset_topic", "close"),
     ]
 
@@ -39,9 +41,12 @@ class SchemaRegistry(MyContainer):
     def action_previous_widget_item(self):
         self.query_one(DataTable).action_cursor_up()
 
+    async def action_load_data(self):
+        for data_table in self.query(DataTable):
+            self.load_data(data_table)
+
     def __init__(self, *args: Any, **kwargs: Any):
-        self.subjects: dict[str, str] = dict()
-        self.subjects = {i:i for i in registry.list()}
+        self.subjects: dict[str, str] = {"":""}
         super().__init__(*args, **kwargs)
         _LOGGER.debug(self.subjects)
 
@@ -55,15 +60,14 @@ class SchemaRegistry(MyContainer):
             _LOGGER.debug(f"INIT: {self.details!r}")
             super().__init__()
 
-    def compose(self) -> Generator[DataTable[Any], Any, None]:
-        yield DataTable()
+
+
+    def compose(self) -> Any:
+        yield DataTable(cursor_type="row", fixed_columns=4)
+        #yield Lazy(DataTable())
 
     def on_mount(self):
-        for data_table in self.query(DataTable):
-            data_table.loading = True
-            data_table.cursor_type = "row"
-            data_table.fixed_columns = 4
-            self.load_data(data_table)
+        _LOGGER.debug("widget on mount")
 
     def on_schemaregistry_panel_selected(self, message: SchemaRegistry.Selected) -> None:
         """Set reactive attribute.
@@ -72,6 +76,17 @@ class SchemaRegistry(MyContainer):
         """
         _LOGGER.debug(message.details)
         self.details = message.details
+
+    def on_data_table_focused(self, event):
+        _LOGGER.debug("DATA TABLE FOC %s", f"{event!r}")
+
+
+    async def on_focus(self, event):
+        _LOGGER.debug("ON FOCUS!!!!!!!!!!!")
+        _LOGGER.debug(event)
+
+        for data_table in self.query(DataTable):
+            self.load_data(data_table)
 
     def watch_details(self, details: str):
         """Callback on topic changed.
@@ -91,8 +106,12 @@ class SchemaRegistry(MyContainer):
         self.query_one(Pretty).update(details)
         self.log(f"{details}")
 
-    @work(exclusive=True, thread=True)
+    @work(exclusive=True)
     async def load_data(self, data_table: DataTable) -> None:
+        _LOGGER.debug("here we go")
+        data_table.loading = True
+        sr = registry.ScheamRegistry()
+        self.subjects = {i:i for i in await sr.asubjects()}
         data_table.add_column("Subjects")
         for i in self.subjects.values():
             data_table.add_row(i, key=i)

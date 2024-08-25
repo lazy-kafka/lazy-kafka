@@ -35,6 +35,9 @@ class MyScrollableContainer(ScrollableContainer):
             self.done = True
             super().__init__()
 
+    def on_focus(self) -> None:
+        _LOGGER.debug("HERE")
+
     def on_mount(self) -> None:
         def comp():
             self.post_message(self.Completed())
