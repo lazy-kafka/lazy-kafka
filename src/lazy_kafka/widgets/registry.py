@@ -42,7 +42,8 @@ class SchemaRegistryPanel(MyContainer):
     BINDINGS = [
         ("j", "next_widget_item", "next"),
         ("k", "previous_widget_item", "prev"),
-        ("s", "load_data", "prev"),
+        ("s", "stop_refresh", "prev"),
+        ("t", "start_refresh", "prev"),
         ("escape", "unset_topic", "close"),
     ]
 
@@ -54,6 +55,12 @@ class SchemaRegistryPanel(MyContainer):
     def action_previous_widget_item(self):
         self.query_one(DataTable).action_cursor_up()
 
+    def action_stop_refresh(self):
+        self.update_timer.pause()
+
+    def action_start_refresh(self):
+        self.update_timer.resume()
+
     async def action_load_data(self):
         for data_table in self.query(DataTable):
             self.load_data(data_table)
@@ -61,6 +68,7 @@ class SchemaRegistryPanel(MyContainer):
     def __init__(self, *args: Any, **kwargs: Any):
         self.subjects: dict[str, str] = {"": ""}
         self.hook = registry.SchemaRegistry()
+        self.data_auto_refresh = False
         super().__init__(*args, **kwargs)
         _LOGGER.debug(self.subjects)
 
@@ -69,7 +77,6 @@ class SchemaRegistryPanel(MyContainer):
 
         def __init__(self, details: str) -> None:
             self.details = details
-            _LOGGER.debug(f"INIT: {self.details!r}")
             super().__init__()
 
     def compose(self) -> Any:
@@ -78,6 +85,7 @@ class SchemaRegistryPanel(MyContainer):
     def on_mount(self):
         data_table = self.query_one(DataTable)
         data_table.add_column("Subjects")
+        self.update_timer = self.set_interval(2, self.action_load_data, pause=True)
 
     def on_schemaregistry_panel_selected(
         self, message: SchemaRegistryPanel.Selected
@@ -93,11 +101,10 @@ class SchemaRegistryPanel(MyContainer):
         _LOGGER.debug("DATA TABLE FOC %s", f"{event!r}")
 
     async def on_focus(self, event):
+        #TODO: start the auto-refresh on focus and stop on content switch
         _LOGGER.debug("ON FOCUS!!!!!!!!!!!")
         _LOGGER.debug(event)
-
-        for data_table in self.query(DataTable):
-            self.load_data(data_table)
+        return
 
     def watch_details(self, details: str):
         """Callback on topic changed.
