@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 import time
+from typing import Any
 
 from textual import work
 from textual.containers import Vertical
@@ -11,13 +11,13 @@ from textual.message import Message
 from textual.reactive import Reactive, reactive
 from textual.widgets import (
     DataTable,
+    Label,
     Pretty,
-    Static,
 )
-
 from textual.widgets.data_table import DuplicateKey
 
 from lazy_kafka import registry
+from lazy_kafka.widgets._status import Status
 from lazy_kafka.widgets.common import Details, MyContainer, MyScrollableContainer
 
 logging.basicConfig(level=logging.INFO)
@@ -27,11 +27,6 @@ _LOGGER = logging.getLogger(__name__)
 
 def get_current_time() -> str:
     return time.strftime("%H:%M:%S", time.localtime())
-
-
-class Updated(Static):
-    """Last refreshed label."""
-    pass
 
 
 class SchemaRegistryPanel(MyContainer):
@@ -57,9 +52,13 @@ class SchemaRegistryPanel(MyContainer):
 
     def action_stop_refresh(self):
         self.update_timer.pause()
+        label = self.query_one("#icon", Label)
+        label.remove_class("-live")
 
     def action_start_refresh(self):
         self.update_timer.resume()
+        label = self.query_one("#icon", Label)
+        label.add_class("-live")
 
     async def action_load_data(self):
         for data_table in self.query(DataTable):
@@ -80,7 +79,10 @@ class SchemaRegistryPanel(MyContainer):
             super().__init__()
 
     def compose(self) -> Any:
-        yield Vertical(Updated(), DataTable(cursor_type="row", fixed_columns=4) )
+        yield Vertical(
+            Status(),
+            DataTable(cursor_type="row", fixed_columns=4),
+        )
 
     def on_mount(self):
         data_table = self.query_one(DataTable)
@@ -101,10 +103,9 @@ class SchemaRegistryPanel(MyContainer):
         _LOGGER.debug("DATA TABLE FOC %s", f"{event!r}")
 
     async def on_focus(self, event):
-        #TODO: start the auto-refresh on focus and stop on content switch
-        _LOGGER.debug("ON FOCUS!!!!!!!!!!!")
-        _LOGGER.debug(event)
-        return
+        """Perform a single refresh on focus."""
+        for data_table in self.query(DataTable):
+            self.load_data(data_table)
 
     def watch_details(self, details: str):
         """Callback on topic changed.
@@ -136,8 +137,8 @@ class SchemaRegistryPanel(MyContainer):
                 data_table.add_row(i, key=i)
 
         data_table.loading = False
-        label = self.query_one(Updated)
-        label.update(f"[i]Updated: [green]{get_current_time()}[/]")
+        label = self.query_one("#time", Label)
+        label.update(f"{get_current_time()}")
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         # The post_message method sends an event to be handled in the DOM

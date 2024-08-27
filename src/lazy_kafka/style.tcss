@@ -2,7 +2,7 @@ $background: #000000;   /*base00*/
 $primary: #5f8787;      /*base08*/
 $secondary: #e78a53;    /*base0A*/
 $accent: #fbcb97;
-$text: #c1c1c1;
+$text: #c1c1c1;         /*base05*/
 $text-disabled: #333333; /*base03*/
 $success: #0b6e0b;
 
@@ -137,6 +137,7 @@ Topic {
 
 MyContainer {
   max-height: 90%;
+  layout: horizontal;
 }
 
 MyScrollableContainer {
@@ -152,10 +153,6 @@ Details {
 
 Topic:focus {
   color: red;
-}
-
-MyContainer {
-    layout: horizontal;
 }
 
 .box {
@@ -178,4 +175,14 @@ MyContainer {
     border-subtitle-align: left; 
 }
 
+.status-text {
+    color: $text-disabled;
+}
+.status-text.-live {
+    color: $success;
+}
+
+Status {
+    height: 1;
+}
 
