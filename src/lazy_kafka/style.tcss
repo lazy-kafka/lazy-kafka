@@ -187,3 +187,15 @@ Status {
     height: 1;
 }
 
+Footer {
+    background: $background;
+}
+
+FooterKey {
+    background: $background;
+}
+
+FooterKey .footer-key--key {
+    background: $background;
+}
+
