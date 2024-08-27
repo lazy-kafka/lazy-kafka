@@ -14,6 +14,7 @@ $success: #0b6e0b;
     scrollbar-color: #333333;
     scrollbar-color-hover: #333333;
     scrollbar-color-active: #444444;
+    overflow-y: hidden;
 }
 
 #base00 {
