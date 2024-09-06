@@ -4,6 +4,11 @@
 
 
 textual docs: https://textual.textualize.io/guide/workers/#thread-workers
+
+
+This is confulent cloud, so not that relevant
+Schemas API: https://docs.confluent.io/cloud/current/api.html#tag/Modes-(v1)/operation/updateTopLevelMode
+
 """
 from __future__ import annotations
 import logging
@@ -17,6 +22,8 @@ list_schemas = "schemas/types"
 
 class SchemaRegistry:
     DEFAULT_HOST = "http://localhost:8081/"
+    # Reference: https://docs.confluent.io/platform/current/schema-registry/develop/api.html#content-types
+    _CONTENT_TYPE = "application/vnd.schemaregistry.v1+json"
 
     def __init__(self, host: str = DEFAULT_HOST) -> None:
         self.host = host
@@ -47,7 +54,14 @@ class SchemaRegistry:
         [How the naming strategies work](https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/index.html#sr-schemas-subject-name-strategies-work).
         """
 
+
+
 if __name__ == "__main__":
     sr = SchemaRegistry()
     from rich.pretty import pprint
     pprint(sr.subjects())
+    # Create a nice information summary:
+    # number of subjects
+    # Allowed formats /schemas/types/
+    # Compatibility mode (/cont
+    # global mode?
