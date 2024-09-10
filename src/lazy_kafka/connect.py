@@ -3,8 +3,9 @@
 # TODO plug this to httpx
 from __future__ import annotations
 
+import asyncio
 from functools import partialmethod
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
 import json
 from dataclasses import dataclass, asdict
 from enum import Enum
@@ -14,6 +15,9 @@ from requests import delete, get, post, put  # noqa
 from requests.exceptions import ConnectionError, HTTPError
 
 import httpx
+
+if TYPE_CHECKING:
+     from collections.abc import Coroutine
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,8 +36,16 @@ __all__ = ["list", "status"]
 
 @dataclass(frozen=True, slots=False)
 class ConnectorData:
-    name: Optional[str] = None
-    state: Optional[str] = None
+    """
+
+    Attributes: 
+        name: 
+        state: 
+        worker_id: 
+        type: 
+    """
+    name: Optional[str] = None 
+    state: Optional[str] = None #TODO: enum RUNNING | FAILED
     worker_id: Optional[str] = None
     type: Optional[str] = None
 
@@ -43,6 +55,20 @@ class ConnectorData:
 
     def to_tuple(self: Self) -> tuple[str, str, str, str]:
         return tuple(self.to_dict().values())
+
+    @staticmethod
+    def from_response(response: dict[str, Any]) -> dict[str, ConnectorData]:
+        _LOGGER.debug("%s", response)
+        return {
+            k: ConnectorData(
+                name=k,
+                state=v["status"]["connector"]["state"],
+                worker_id=v["status"]["connector"]["worker_id"],
+                type=v["status"]["type"],
+            )
+            for k, v in response.items()
+        }
+
 
 class NeoConnect:
     DEFAULT_HOST = "http://localhost:8083/"
@@ -59,11 +85,12 @@ class NeoConnect:
         response = httpx.get(self.host + url)
         return response.json()
 
-    async def _ageneric_get_json(self, url: str):
-         _LOGGER.debug("%s request: %s", self, url)
-         async with httpx.AsyncClient() as client:
+    async def _ageneric_get_json(self, url: str) -> dict[str, Any]:
+        _LOGGER.debug("%s request: %s", self, url)
+        async with httpx.AsyncClient() as client:
             response = await client.get(self.host + url)
             return response.json()
+
     ainfo = partialmethod(_ageneric_get_json, "")
     ainfo.__doc__ = """Connect Cluster information.
 
@@ -72,16 +99,21 @@ class NeoConnect:
     Kafka cluster ID that the worker is connected to.
     """
 
-    alist = partialmethod(_ageneric_get_json, "connectors?expand=status")
+    alist: partialmethod[Coroutine[Any, Any, dict[str, ConnectorData]]] = partialmethod(
+        _ageneric_get_json, "connectors?expand=status"
+    )
     alist.__doc__ = """Get a list of active connectiors.
     
     [Reference](https://docs.confluent.io/platform/current/connect/references/restapi.html#connectors)
     """
-    #TODO: Post connector [Ref](https://docs.confluent.io/platform/current/connect/references/restapi.html#post--connectors)
-    #TODO: Put Connector - update config
-    #TODO: Post restart
-    #TODO: Get connector info [Ref](https://docs.confluent.io/platform/current/connect/references/restapi.html#get--connectors-(string-name))
-   # TODO:  connector config info [Ref](https://docs.confluent.io/platform/current/connect/references/restapi.html#get--connectors-(string-name)-config)
+    # TODO: Post connector [Ref](https://docs.confluent.io/platform/current/connect/references/restapi.html#post--connectors)
+    # TODO: Put Connector - update config
+    # TODO: Post restart
+    # TODO: Get connector info [Ref](https://docs.confluent.io/platform/current/connect/references/restapi.html#get--connectors-(string-name))
+
+
+# TODO:  connector config info [Ref](https://docs.confluent.io/platform/current/connect/references/restapi.html#get--connectors-(string-name)-config)
+
 
 class Connect:
     """Kafka Connect API helper class.
@@ -182,9 +214,23 @@ def status():
     pass
 
 
-if __name__ == "__main__":
+def test_sync_api():
     con = Connect("http://localhost:8083")
     from rich.pretty import pprint
 
     pprint(con.list())
     pprint(list())
+
+
+async def test_async_api():
+    from rich.pretty import pprint
+
+    reg = NeoConnect()
+    connectors = await reg.alist()
+    pprint(connectors)
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(test_async_api())

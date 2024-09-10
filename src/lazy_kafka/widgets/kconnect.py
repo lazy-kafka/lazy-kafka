@@ -1,24 +1,40 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Generator
+import time
+from typing import Any
 
 from textual import work
+from textual.containers import Vertical
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import Reactive, reactive
 from textual.widgets import (
     DataTable,
+    Label,
     Pretty,
 )
-
 from textual.widgets.data_table import DuplicateKey
-from lazy_kafka import connect
+
+from lazy_kafka.widgets._status import Status
 from lazy_kafka.widgets.common import Details, MyContainer, MyScrollableContainer
 
 logging.basicConfig(level=logging.INFO)
 
 _LOGGER = logging.getLogger(__name__)
+
+
+import logging
+from typing import Generator
+
+from lazy_kafka import connect
+
+logging.basicConfig(level=logging.INFO)
+
+_LOGGER = logging.getLogger(__name__)
+
+def get_current_time() -> str:
+    return time.strftime("%H:%M:%S", time.localtime())
 
 
 class KConnectPanel(MyContainer):
@@ -29,6 +45,8 @@ class KConnectPanel(MyContainer):
     BINDINGS = [
         ("j", "next_widget_item", "next"),
         ("k", "previous_widget_item", "prev"),
+        ("s", "stop_refresh", "prev"),
+        ("t", "start_refresh", "prev"),
         ("escape", "unset_topic", "close"),
     ]
 
@@ -40,14 +58,26 @@ class KConnectPanel(MyContainer):
     def action_previous_widget_item(self):
         self.query_one(DataTable).action_cursor_up()
 
-    def __init__(self, *args: Any, **kwargs: Any):
-        self.connectors: dict[str, str] = {"": ""}
-        self.hook = connect.NeoConnect()
+    def action_stop_refresh(self):
+        self.update_timer.pause()
+        label = self.query_one("#icon", Label)
+        label.remove_class("-live")
 
+    def action_start_refresh(self):
+        self.update_timer.resume()
+        label = self.query_one("#icon", Label)
+        label.add_class("-live")
+
+    async def action_load_data(self):
+        for data_table in self.query(DataTable):
+            self.load_data(data_table)
+
+    def __init__(self, *args: Any, **kwargs: Any):
+        self.connectors: dict[str, connect.ConnectorData] = {}
+        self.hook = connect.NeoConnect()
+        self.data_auto_refresh = False
         super().__init__(*args, **kwargs)
         _LOGGER.debug(self.connectors)
-
-    pass
 
     class Selected(Message):
         """Color selected message."""
@@ -57,23 +87,34 @@ class KConnectPanel(MyContainer):
             _LOGGER.debug(f"INIT: {self.details!r}")
             super().__init__()
 
-    def compose(self) -> Generator[DataTable[Any], Any, None]:
-        yield DataTable()
+    def compose(self) -> Any:
+        yield Vertical(
+            Status(),
+            DataTable(cursor_type="row", fixed_columns=4),
+        )
 
     def on_mount(self):
-        for data_table in self.query(DataTable):
-            data_table.loading = True
-            data_table.cursor_type = "row"
-            data_table.fixed_columns = 4
-            self.load_data(data_table)
+        """Initialize data table with columns"""
+        data_table = self.query_one(DataTable)
+        data_table.add_column("Name")
+        data_table.add_column("State")
+        data_table.add_column("Worker ID")
+        data_table.add_column("Type")
+        self.update_timer = self.set_interval(2, self.action_load_data, pause=True)
 
     def on_kconnect_panel_selected(self, message: KConnectPanel.Selected) -> None:
         """Set reactive attribute.
 
         Currently -> Message() -> Reactive() -> watch_topic()
         """
-        _LOGGER.debug(message.details)
+        _LOGGER.debug("%s", message.details)
         self.details = message.details
+
+
+    async def on_focus(self, event):
+        """Perform a single refresh on focus."""
+        for data_table in self.query(DataTable):
+            self.load_data(data_table)
 
     def watch_details(self, details: connect.ConnectorData):
         """Callback on topic changed.
@@ -96,20 +137,18 @@ class KConnectPanel(MyContainer):
     @work(exclusive=True)
     async def load_data(self, data_table: DataTable) -> None:
         data_table.loading = True
-
-        #data_table.add_column("Name")
-        #data_table.add_column("State")
-        #data_table.add_column("Worker ID")
-        #data_table.add_column("Type")
-        self.connectors = {i: i for i in await self.hook.alist()}
-        for i in self.connectors.values():
+        _resp = await self.hook.alist()
+        self.connectors = connect.ConnectorData.from_response(_resp)
+        for connector in self.connectors.values():
             try:
-                data_table.add_row(i, key=i)
+                data_table.add_row(*connector.to_tuple(), key=connector.name)
             except DuplicateKey:
-                data_table.remove_row(row_key=i)
-                data_table.add_row(i, key=i)
+                data_table.remove_row(row_key=connector.name)
+                data_table.add_row(*connector.to_tuple(), key=connector.name)
 
         data_table.loading = False
+        label = self.query_one("#time", Label)
+        label.update(f"{get_current_time()}")
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         # The post_message method sends an event to be handled in the DOM
