@@ -3,6 +3,7 @@
 # TODO plug this to httpx
 from __future__ import annotations
 
+from functools import partialmethod
 from typing import Any, Self
 import json
 from dataclasses import dataclass, asdict
@@ -11,6 +12,8 @@ from typing import Optional
 import logging
 from requests import delete, get, post, put  # noqa
 from requests.exceptions import ConnectionError, HTTPError
+
+import httpx
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,6 +44,44 @@ class ConnectorData:
     def to_tuple(self: Self) -> tuple[str, str, str, str]:
         return tuple(self.to_dict().values())
 
+class NeoConnect:
+    DEFAULT_HOST = "http://localhost:8083/"
+    # [Reference](https://docs.confluent.io/platform/current/connect/references/restapi.html#content-types)
+    _CONTENT_TYPE = "application/json"
+
+    def __init__(self, host: str = DEFAULT_HOST) -> None:
+        self.host = host
+
+    def __repr__(self):
+        return f"Connect@{self.host}"
+
+    def _generic_get_json(self, url: str):
+        response = httpx.get(self.host + url)
+        return response.json()
+
+    async def _ageneric_get_json(self, url: str):
+         _LOGGER.debug("%s request: %s", self, url)
+         async with httpx.AsyncClient() as client:
+            response = await client.get(self.host + url)
+            return response.json()
+    ainfo = partialmethod(_ageneric_get_json, "")
+    ainfo.__doc__ = """Connect Cluster information.
+
+    Top-level (root) request that gets the version of the Connect worker that
+    serves the REST request, the git commit ID of the source code, and the
+    Kafka cluster ID that the worker is connected to.
+    """
+
+    alist = partialmethod(_ageneric_get_json, "connectors?expand=status")
+    alist.__doc__ = """Get a list of active connectiors.
+    
+    [Reference](https://docs.confluent.io/platform/current/connect/references/restapi.html#connectors)
+    """
+    #TODO: Post connector [Ref](https://docs.confluent.io/platform/current/connect/references/restapi.html#post--connectors)
+    #TODO: Put Connector - update config
+    #TODO: Post restart
+    #TODO: Get connector info [Ref](https://docs.confluent.io/platform/current/connect/references/restapi.html#get--connectors-(string-name))
+   # TODO:  connector config info [Ref](https://docs.confluent.io/platform/current/connect/references/restapi.html#get--connectors-(string-name)-config)
 
 class Connect:
     """Kafka Connect API helper class.

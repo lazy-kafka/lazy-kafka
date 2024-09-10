@@ -12,6 +12,7 @@ from textual.widgets import (
     Pretty,
 )
 
+from textual.widgets.data_table import DuplicateKey
 from lazy_kafka import connect
 from lazy_kafka.widgets.common import Details, MyContainer, MyScrollableContainer
 
@@ -40,8 +41,9 @@ class KConnectPanel(MyContainer):
         self.query_one(DataTable).action_cursor_up()
 
     def __init__(self, *args: Any, **kwargs: Any):
-        self.connectors: dict[str, connect.ConnectorData] = dict()
-        self.connectors = connect.list()
+        self.connectors: dict[str, str] = {"": ""}
+        self.hook = connect.NeoConnect()
+
         super().__init__(*args, **kwargs)
         _LOGGER.debug(self.connectors)
 
@@ -91,15 +93,22 @@ class KConnectPanel(MyContainer):
         self.query_one(Pretty).update(details.to_dict())
         self.log(f"{details}")
 
-    @work(exclusive=True, thread=True)
+    @work(exclusive=True)
     async def load_data(self, data_table: DataTable) -> None:
-        data_table.add_column("Name")
-        data_table.add_column("State")
-        data_table.add_column("Worker ID")
-        data_table.add_column("Type")
-        for i in map(lambda x: x.to_tuple(), self.connectors.values()):
-            data_table.add_row(*i, key=i[0])
-        # data_table.add_rows(map(lambda x: x.to_tuple(), self.connectors.values()))
+        data_table.loading = True
+
+        #data_table.add_column("Name")
+        #data_table.add_column("State")
+        #data_table.add_column("Worker ID")
+        #data_table.add_column("Type")
+        self.connectors = {i: i for i in await self.hook.alist()}
+        for i in self.connectors.values():
+            try:
+                data_table.add_row(i, key=i)
+            except DuplicateKey:
+                data_table.remove_row(row_key=i)
+                data_table.add_row(i, key=i)
+
         data_table.loading = False
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
