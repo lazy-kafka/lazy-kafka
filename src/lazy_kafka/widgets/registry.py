@@ -3,23 +3,25 @@ from __future__ import annotations
 import logging
 import time
 from typing import Any
-
+from textual.containers import Container, Grid
+from textual import events
 from textual import work
 from textual.containers import Vertical
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import Reactive, reactive
+from textual.screen import ModalScreen
 from textual.widgets import (
     DataTable,
     Label,
     Pretty,
 )
 from textual.widgets.data_table import DuplicateKey
-
+from textual.widgets import Button
 from lazy_kafka import registry
 from lazy_kafka.widgets._status import Status
-from lazy_kafka.widgets.common import Details, MyContainer, MyScrollableContainer
-
+from lazy_kafka.widgets.common import MyContainer, MyScrollableContainer
+from textual.app import ComposeResult
 logging.basicConfig(level=logging.INFO)
 
 _LOGGER = logging.getLogger(__name__)
@@ -27,6 +29,68 @@ _LOGGER = logging.getLogger(__name__)
 
 def get_current_time() -> str:
     return time.strftime("%H:%M:%S", time.localtime())
+
+#class CreateScreen(ModalScreen):
+#    """Modal to display on creating new schema."""
+#
+#    def compose(self) -> ComposeResult:
+#        yield Grid(
+#            Label("Are you sure you want to quit?", id="question"),
+#            Button("Create", variant="success", id="create"),
+#            Button("Cancel", variant="primary", id="cancel"),
+#            id="dialog",
+#        )
+#
+#    def on_button_pressed(self, event: Button.Pressed) -> None:
+#        if event.button.id == "create":
+#            self.dismiss(True)
+#        else:
+#            self.dismiss(False)
+
+
+class DeleteDialog(Container, can_focus=True):
+    """Modal to display on creating new schema."""
+    BINDINGS = [
+        ("y", "yes", "yes"),
+        ("n", "no", "no"),
+    ]
+
+    class Delete(Message):
+        """Color selected message."""
+
+        def __init__(self, selected_id: str) -> None:
+            self.selected_id = selected_id
+            super().__init__()
+
+    def __init__(self, selected_id: registry.Subject, *args, **kwargs):
+        self.selected_id = selected_id
+        super(Container, self).__init__(*args, **kwargs)
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "delete":
+            self.post_message(self.Delete(self.selected_id))
+        await self.remove()
+
+    async def on_key(self, event: events.Key) -> None:
+        """Handle D as button press."""
+        if event.key == "y":
+            self.post_message(self.Delete(self.selected_id))
+            await self.remove()
+        elif event.key == "n":
+            await self.remove()
+
+        event.stop()
+
+    def compose(self) -> ComposeResult:
+        yield Grid(
+            Label(f":warning: Delete [italic]{self.selected_id}[/]?", id="question"),
+            Button("Yes (y)", variant="error", id="delete"),
+            Button("No (n)", variant="primary", id="cancel"),
+            id="dialog",
+        )
+
+
+
 
 
 class SchemaRegistryPanel(MyContainer):
@@ -40,15 +104,38 @@ class SchemaRegistryPanel(MyContainer):
         ("s", "stop_refresh", "prev"),
         ("t", "start_refresh", "prev"),
         ("escape", "unset_topic", "close"),
+        ("c", "create", "create"),
+        ("d", "delete", "delete"),
     ]
 
-    details: Reactive[str] = reactive(str)
+    selected_id: Reactive[str] = reactive(str)
+    details = reactive(registry.SubjectDetails)
 
     def action_next_widget_item(self):
         self.query_one(DataTable).action_cursor_down()
 
     def action_previous_widget_item(self):
         self.query_one(DataTable).action_cursor_up()
+
+    async def action_delete(self):
+        """Action to display the delete dialog."""
+        try:
+           await self.query_one("#details").remove()
+        except NoMatches:
+            pass
+
+        self.mount(DeleteDialog(self.selected_id, id="delete-dialog"))
+        # looks like I cannot set app focus from here, so I bubble the event
+        self.post_message(self.DialogOpen(self.selected_id))
+
+    @work(exclusive=True)
+    async def on_delete_dialog_delete(self, message: DeleteDialog.Delete):
+        r = await self.hook.asubjects_delete(message.selected_id, version=self.details["version"])
+        _LOGGER.info("Topic deleted %s", r)
+
+    def action_create(self):
+        """Action to display the quit dialog."""
+        self.app.push_screen(CreateScreen())
 
     def action_stop_refresh(self):
         self.update_timer.pause()
@@ -74,8 +161,15 @@ class SchemaRegistryPanel(MyContainer):
     class Selected(Message):
         """Color selected message."""
 
-        def __init__(self, details: str) -> None:
-            self.details = details
+        def __init__(self, selected_id: str) -> None:
+            self.selected_id = selected_id
+            super().__init__()
+
+    class DialogOpen(Message):
+        """Color selected message."""
+
+        def __init__(self, selected_id: str) -> None:
+            self.selected_id = selected_id
             super().__init__()
 
     def compose(self) -> Any:
@@ -89,15 +183,20 @@ class SchemaRegistryPanel(MyContainer):
         data_table.add_column("Subjects")
         self.update_timer = self.set_interval(2, self.action_load_data, pause=True)
 
-    def on_schemaregistry_panel_selected(
+    @work(exclusive=True)
+    async def on_schema_registry_panel_selected(
         self, message: SchemaRegistryPanel.Selected
     ) -> None:
         """Set reactive attribute.
 
         Currently -> Message() -> Reactive() -> watch_topic()
         """
-        _LOGGER.debug(message.details)
-        self.details = message.details
+        _LOGGER.info("HELLOOO %s", message)
+        _LOGGER.debug(message.selected_id)
+        # Note, this should be in the init method ...
+        self.selected_id = message.selected_id
+        self.details = await self.hook.asubject_latest(message.selected_id)
+        _LOGGER.debug(self.details)
 
     def on_data_table_focused(self, event):
         _LOGGER.debug("DATA TABLE FOC %s", f"{event!r}")
@@ -114,14 +213,13 @@ class SchemaRegistryPanel(MyContainer):
             topic:
         """
         try:
-            details_panel = self.query_one(Details)
+            details_panel = self.query_one(Pretty)
         except NoMatches as _:
             details_panel = MyScrollableContainer(
-                Details(), Pretty([]), id="details", classes="box initial"
+                Pretty([]), id="details", classes="box initial"
             )
             self.mount(details_panel)
             return
-        details_panel.detail_name = "[b]connector: [/b]" + str(details)
         self.query_one(Pretty).update(details)
         self.log(f"{details}")
 
@@ -129,6 +227,9 @@ class SchemaRegistryPanel(MyContainer):
     async def load_data(self, data_table: DataTable) -> None:
         data_table.loading = True
         self.subjects = {i: i for i in await self.hook.asubjects()}
+        # For now, clearing the whole table looks viable...
+        # problem is that it resets the highlighted row - annoying
+        data_table.clear()
         for i in self.subjects.values():
             try:
                 data_table.add_row(i, key=i)
@@ -143,7 +244,6 @@ class SchemaRegistryPanel(MyContainer):
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         # The post_message method sends an event to be handled in the DOM
         _LOGGER.debug(f"selected: {event}")
-        # log(f"selected: {self.connectors[event.value]}")
         if event.row_key.value is None:
             _LOGGER.error("False event")
             return
@@ -160,9 +260,7 @@ class SchemaRegistryPanel(MyContainer):
 
         Should be handled inside the details widget at least...
         """
-        details = self.details
-        if details is None:
+        selected_id = self.selected_id
+        if selected_id is None:
             raise ValueError
-        details_panel = self.query_one(Details)
-        details_panel.detail_name = "[b]connector: [/b]" + str(details)
-        self.query_one(Pretty).update(details)
+        self.query_one(Pretty).update(self.details)

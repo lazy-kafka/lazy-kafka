@@ -123,6 +123,15 @@ class LazyKafka(App):
         except NoMatches:
             logging.error("No DataTable component in %s", event.tab.id)
 
+    def on_schema_registry_panel_dialog_open(self, message: SchemaRegistryPanel.DialogOpen):
+        logging.debug("------------------------------")
+        logging.debug(message)
+        d = self.query_one("#delete")
+        logging.debug(f"found {d}")
+        logging.debug(f"focused {self.focused}")
+        self.set_focus(d)
+        logging.debug(f"focused after {self.focused}")
+
 app = LazyKafka()
 
 if __name__ == "__main__":

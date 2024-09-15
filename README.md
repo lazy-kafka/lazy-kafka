@@ -50,3 +50,32 @@ The docker compose will:
 curl -s -XGET http://localhost:8083/connector-plugins | jq '.[].class'
 
 curl -XGET http://localhost:8083/connectors
+
+# Roadmap
+
+## v1.0
+Generate client code from openapi
+- deprecate confluent-kafka in favor of [kafka-rest api](https://github.com/confluentinc/kafka-rest/blob/master/api/v3/openapi.yaml)
+    - [docker](https://hub.docker.com/r/confluentinc/cp-kafka-rest)
+- kakfa-connect
+-schema-registy
+
+
+## 09-15
+- schema listing and browsing
+  x multiple versions of stuff (-> always show the latest)
+  x ** it is cumbersome to go from subject to schema (human exploration) **
+    ** it is easy to look up `id` -> schema (how the messages are serialized) **
+    0. request to list subjects
+    1. request to `subjects/<subject>/versions` to list versions
+    2. request to `subjects/<subjects>/versions/-1` to get the latest schema info
+    3. request to `schemas/ids/{id}/schema`
+  -> can delete schema with a dialog popping up
+  -> The design philosophy is to handle events as close to the source as possible. 
+
+
+- create modal screens to create schema, connector, topic (?)
+- create settings management from config file
+- create a screen for settings
+- add delete action
+- 

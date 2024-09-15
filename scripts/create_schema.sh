@@ -16,6 +16,12 @@ done
 
 response=$(curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" \
     --write-out '%{http_code}' --output /dev/null \
+    --data '{"type":"object", "properties":{"id":{"type":"string"},"amount":{"type":"number"} }}' \
+    $SCHEMA_REGISTRY_URL/subjects/test-value/versions
+)
+
+response=$(curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" \
+    --write-out '%{http_code}' --output /dev/null \
     --data '{"schema": "{\"type\": \"string\"}"}' \
     $SCHEMA_REGISTRY_URL/subjects/$SUBJECT/versions
 )

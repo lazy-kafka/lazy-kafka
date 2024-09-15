@@ -88,6 +88,7 @@ $success: #0b6e0b;
 Screen {
     layout: vertical;
     background: #000000;
+    layers: below above;
 }
 
 Tabs {
@@ -113,6 +114,7 @@ Tabs .underline--bar {
 DataTable {
     height: 90%;
     width: 1fr;
+    background: #000000;
 }
 
 DataTable > .datatable--odd-row {
@@ -122,9 +124,6 @@ DataTable > .datatable--even-row {
     background: #0f1525;
 }
 
-DataTable > .datatable--cursor {
-    color: auto;
-}
 
 .datatable--header {
     background: transparent;
@@ -145,6 +144,9 @@ MyScrollableContainer {
     background: transparent;
 }
 
+Pretty {
+    layer: below;
+}
 
 Details {
    width: 1fr;
@@ -186,9 +188,15 @@ Topic:focus {
 Status {
     height: 1;
 }
+Header {
+	height: 1;
+	dock: top;
+}
 
 Footer {
-    background: $background;
+  background: $background;
+  dock: top;
+  height: 1;
 }
 
 FooterKey {
@@ -197,5 +205,43 @@ FooterKey {
 
 FooterKey .footer-key--key {
     background: $background;
+}
+
+CreateScreen {
+    align: center middle;
+}
+
+
+Widget {
+    layer: below;
+}
+
+DeleteDialog {
+    align: center middle;
+}
+
+#delete-dialog {
+    layer: above;
+    border: round $primary;
+    padding: 1 1;
+	margin: 3 3;
+    width: 0.8fr;
+    height: 1fr;
+    background: #121212;
+	outline: round $warning;
+}
+#delete-dialog > #dialog {
+    grid-size: 2;
+    grid-gutter: 1 2;
+    grid-rows: 1fr 3;
+    width: 50%;
+    height: 10;
+}
+
+#question {
+    column-span: 2;
+    height: 1fr;
+    width: 1fr;
+    content-align: center middle;
 }
 
