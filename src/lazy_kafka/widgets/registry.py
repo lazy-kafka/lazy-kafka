@@ -10,11 +10,11 @@ from textual.containers import Vertical
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import Reactive, reactive
-from textual.screen import ModalScreen
 from textual.widgets import (
     DataTable,
     Label,
     Pretty,
+    TextArea,
 )
 from textual.widgets.data_table import DuplicateKey
 from textual.widgets import Button
@@ -30,22 +30,55 @@ _LOGGER = logging.getLogger(__name__)
 def get_current_time() -> str:
     return time.strftime("%H:%M:%S", time.localtime())
 
-#class CreateScreen(ModalScreen):
-#    """Modal to display on creating new schema."""
-#
-#    def compose(self) -> ComposeResult:
-#        yield Grid(
-#            Label("Are you sure you want to quit?", id="question"),
-#            Button("Create", variant="success", id="create"),
-#            Button("Cancel", variant="primary", id="cancel"),
-#            id="dialog",
-#        )
-#
-#    def on_button_pressed(self, event: Button.Pressed) -> None:
-#        if event.button.id == "create":
-#            self.dismiss(True)
-#        else:
-#            self.dismiss(False)
+class CreateDialog(Container, can_focus=True):
+    """Modal to display on creating new schema."""
+
+    BORDER_TITLE = "Create new schema"
+    BORDER_SUBTITLE = "edit"
+
+    _tt = """{
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "description": "A Confluent Kafka Python User",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "User's name",
+          "type": "string"
+        },
+        "favorite_number": {
+          "description": "User's favorite number",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "favorite_color": {
+          "description": "User's favorite color",
+          "type": "string"
+        }
+      },
+      "required": [ "name", "favorite_number", "favorite_color" ]
+    }"""
+
+    def compose(self) -> ComposeResult:
+        text_area = TextArea(show_line_numbers=True, id="editor").code_editor(CreateDialog._tt)
+        text_area.cursor_blink = False
+        text_area.indent_width = 2
+        # Register the json and highlight query
+        #text_area.register_language(java_language, java_highlight_query)
+        # Switch to Java
+        text_area.language = "json"
+        yield Grid(
+            text_area,
+            Button("Create", variant="success", id="create"),
+            Button("Cancel", variant="primary", id="cancel"),
+            id="dialog",
+        )
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "create":
+            await self.remove()
+        else:
+            await self.remove()
 
 
 class DeleteDialog(Container, can_focus=True):
@@ -126,16 +159,22 @@ class SchemaRegistryPanel(MyContainer):
 
         self.mount(DeleteDialog(self.selected_id, id="delete-dialog"))
         # looks like I cannot set app focus from here, so I bubble the event
-        self.post_message(self.DialogOpen(self.selected_id))
+        self.post_message(self.DialogOpen("#delete"))
 
     @work(exclusive=True)
     async def on_delete_dialog_delete(self, message: DeleteDialog.Delete):
         r = await self.hook.asubjects_delete(message.selected_id, version=self.details["version"])
         _LOGGER.info("Topic deleted %s", r)
 
-    def action_create(self):
+    async def action_create(self):
         """Action to display the quit dialog."""
-        self.app.push_screen(CreateScreen())
+        try:
+           await self.query_one("#details").remove()
+        except NoMatches:
+            pass
+        self.mount(CreateDialog(id="create-dialog"))
+        # TODO: debug self.post_message(self.DialogOpen("#editor"))
+        self.post_message(self.DialogOpen("TextArea"))
 
     def action_stop_refresh(self):
         self.update_timer.pause()

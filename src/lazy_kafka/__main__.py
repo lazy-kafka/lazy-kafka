@@ -126,7 +126,7 @@ class LazyKafka(App):
     def on_schema_registry_panel_dialog_open(self, message: SchemaRegistryPanel.DialogOpen):
         logging.debug("------------------------------")
         logging.debug(message)
-        d = self.query_one("#delete")
+        d = self.query_one(message.selected_id)
         logging.debug(f"found {d}")
         logging.debug(f"focused {self.focused}")
         self.set_focus(d)
