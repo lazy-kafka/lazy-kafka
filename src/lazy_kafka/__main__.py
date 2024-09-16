@@ -59,11 +59,7 @@ class PluginManager:
         return _tabs
 
 
-# TODO: on tab change set the focus to the Tab widget.
-# 1. this will solve the locality of bindings
-# 1. done - will offload a lot of logic to the widgets from the main app - yay!
-#    ref: https://textual.textualize.io/api/app/#textual.app.App.set_focus
-# 1. done - Modes will be used for settings and help screen, which are global
+# TODO: Modes will be used for settings and help screen, which are global
 #           maybe screens and mode_switch are better suited
 #           ref: https://textual.textualize.io/guide/screens/#modes
 

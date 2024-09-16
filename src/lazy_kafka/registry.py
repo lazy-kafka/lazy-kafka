@@ -15,8 +15,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional, TypedDict
 import httpx
-from enum import StrEnum, auto
-from functools import partialmethod
+from enum import StrEnum, auto, EnumMeta
+from functools import cached_property, partialmethod
 import json
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,6 +24,15 @@ _LOGGER = logging.getLogger(__name__)
 Subject = str
 list_schemas = "schemas/types"
 
+class MetaEnum(EnumMeta):
+    """Implement `in`."""
+
+    def __contains__(cls, item):
+        try:
+            cls(item)
+        except ValueError:
+            return False
+        return True 
 
 class SubjectDetails(TypedDict):
     id: int
@@ -43,7 +52,7 @@ class SubjectNew(TypedDict):
     """
 
     schema: str
-    schemaType: str
+    schemaType: SchemaTypes
     references: Optional[Any]
     metadata: Optional[Any]
     ruleSet: Optional[Any]
@@ -53,7 +62,7 @@ class SchemaRegistryAPI(StrEnum):
     SUBJECTS = auto()
     SCHEMAS = auto()
 
-class SchemaTypes(StrEnum):
+class SchemaTypes(StrEnum, metaclass=MetaEnum):
     JSON = auto()
     PROTOBUF = auto()
     AVRO = auto()
@@ -120,8 +129,7 @@ class SchemaRegistry:
             base_url=SchemaRegistry.DEFAULT_HOST,
             headers={"Content-Type": SchemaRegistry._CONTENT_TYPE},
         ) as client:
-            response = await client.post(_url, data=data)
-            return response
+            return await client.post(_url, json=data)
 
 
     def _serialize_json_schema(self, schema: object) -> str:
@@ -142,9 +150,11 @@ async def test_async_api():
         schemaType="JSONSchema",
     )
     res = await sr.asubjects_create(
-        "other", data=json.dumps({"schema": schema, "schemaType": "JSON"})
+            #TODO remove the dumps form here
+        "other", data={"schema": schema, "schemaType": "JSONSchema"}
     )
     print(res)
+    return res
 
 
 if __name__ == "__main__":
@@ -158,7 +168,7 @@ if __name__ == "__main__":
     # Compatibility mode (/cont
     # global mode?
 
-    asyncio.run(test_async_api())
+    r = asyncio.run(test_async_api())
 # >>> t = {"type": "string"}
 # >>> s2 = json.dumps({"schemaType":"JSON", "schema": json.dumps(t) })
 # >>> r = httpx.post("http://localhost:8081/subjects/kakadu/versions",headers={"Content-Type": "application/vnd.schemaregistry.v1+json"} ,data=s2)

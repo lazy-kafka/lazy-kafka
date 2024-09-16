@@ -12,6 +12,7 @@ from textual.message import Message
 from textual.reactive import Reactive, reactive
 from textual.widgets import (
     DataTable,
+    Input,
     Label,
     Pretty,
     TextArea,
@@ -22,6 +23,9 @@ from lazy_kafka import registry
 from lazy_kafka.widgets._status import Status
 from lazy_kafka.widgets.common import MyContainer, MyScrollableContainer
 from textual.app import ComposeResult
+import json
+from textual.validation import Function, Number, ValidationResult, Validator
+
 logging.basicConfig(level=logging.INFO)
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,6 +33,20 @@ _LOGGER = logging.getLogger(__name__)
 
 def get_current_time() -> str:
     return time.strftime("%H:%M:%S", time.localtime())
+
+class ValidSchemaType(Validator):  
+    """A custom validator"""
+
+    def validate(self, value: str) -> ValidationResult:
+        """Check a string is equal to its reverse."""
+        if self.is_valid_schema_type(value):
+            return self.success()
+        else:
+            return self.failure("That's not a palindrome :/")
+
+    @staticmethod
+    def is_valid_schema_type(value: str) -> bool:
+        return value.lower() in registry.SchemaTypes
 
 class CreateDialog(Container, can_focus=True):
     """Modal to display on creating new schema."""
@@ -59,15 +77,30 @@ class CreateDialog(Container, can_focus=True):
       "required": [ "name", "favorite_number", "favorite_color" ]
     }"""
 
+    class Create(Message):
+        """Color selected message."""
+
+        def __init__(
+            self, subject_name: str, schema_type: registry.SchemaTypes, schema: str
+        ) -> None:
+            self.subject_name = subject_name
+            self.schema_type = schema_type
+            self.schema = schema
+            super().__init__()
+
     def compose(self) -> ComposeResult:
-        text_area = TextArea(show_line_numbers=True, id="editor").code_editor(CreateDialog._tt)
+        text_area = TextArea(show_line_numbers=True, id="editor").code_editor(
+            CreateDialog._tt
+        )
         text_area.cursor_blink = False
         text_area.indent_width = 2
         # Register the json and highlight query
-        #text_area.register_language(java_language, java_highlight_query)
+        # text_area.register_language(java_language, java_highlight_query)
         # Switch to Java
         text_area.language = "json"
         yield Grid(
+            Input(placeholder="Subject name", id="subject-name"),
+            Input(placeholder="JSON | AVRO | PROTOBUF", id="schema-type", validators=[ValidSchemaType()]),
             text_area,
             Button("Create", variant="success", id="create"),
             Button("Cancel", variant="primary", id="cancel"),
@@ -76,6 +109,15 @@ class CreateDialog(Container, can_focus=True):
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "create":
+            subject_name = self.query_one("#subject-name").value
+            schema_type = self.query_one("#schema-type").value
+            schema = self.query_one(TextArea).text
+            # TODO: add json validator in the future?
+            # NOTE: first the schema is parsed to get rid of oddities
+            schema = json.dumps(json.loads(schema))
+            _LOGGER.debug(f"{subject_name=} {schema_type=}")
+            _LOGGER.debug(f"{schema=}")
+            self.post_message(self.Create(subject_name, schema_type, schema))
             await self.remove()
         else:
             await self.remove()
@@ -83,6 +125,7 @@ class CreateDialog(Container, can_focus=True):
 
 class DeleteDialog(Container, can_focus=True):
     """Modal to display on creating new schema."""
+
     BINDINGS = [
         ("y", "yes", "yes"),
         ("n", "no", "no"),
@@ -123,9 +166,6 @@ class DeleteDialog(Container, can_focus=True):
         )
 
 
-
-
-
 class SchemaRegistryPanel(MyContainer):
     """KafkaConnect widget."""
 
@@ -153,27 +193,38 @@ class SchemaRegistryPanel(MyContainer):
     async def action_delete(self):
         """Action to display the delete dialog."""
         try:
-           await self.query_one("#details").remove()
+            await self.query_one("#details").remove()
         except NoMatches:
             pass
 
         self.mount(DeleteDialog(self.selected_id, id="delete-dialog"))
-        # looks like I cannot set app focus from here, so I bubble the event
         self.post_message(self.DialogOpen("#delete"))
 
     @work(exclusive=True)
     async def on_delete_dialog_delete(self, message: DeleteDialog.Delete):
-        r = await self.hook.asubjects_delete(message.selected_id, version=self.details["version"])
+        r = await self.hook.asubjects_delete(
+            message.selected_id, version=self.details["version"]
+        )
         _LOGGER.info("Topic deleted %s", r)
+
+    @work(exclusive=True)
+    async def on_create_dialog_create(self, message: CreateDialog.Create):
+        r = await self.hook.asubjects_create(
+            message.subject_name,
+            data={"schema": message.schema, "schemaType": message.schema_type}
+        )
+        if r.is_success:
+            _LOGGER.info("Topic created %s", r)
+        else:
+            _LOGGER.error("%s", r.content.decode("utf8"))
 
     async def action_create(self):
         """Action to display the quit dialog."""
         try:
-           await self.query_one("#details").remove()
+            await self.query_one("#details").remove()
         except NoMatches:
             pass
         self.mount(CreateDialog(id="create-dialog"))
-        # TODO: debug self.post_message(self.DialogOpen("#editor"))
         self.post_message(self.DialogOpen("TextArea"))
 
     def action_stop_refresh(self):

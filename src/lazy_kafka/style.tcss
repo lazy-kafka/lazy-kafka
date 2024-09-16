@@ -225,7 +225,7 @@ CreateDialog {
     layer: above;
     margin: 1 1;
     background: #121212;
-	border: round $warning;
+	border: round #121212;
     border-title-style: italic;
     border-title-color: $secondary;
 }
@@ -233,21 +233,38 @@ CreateDialog {
 CreateDialog Grid {
     grid-size: 2 5;
     grid-rows: 1fr;
-    grid-gutter: 1;
+    grid-gutter: 0 1;
+}
+
+CreateDialog Input {
+    column-span: 1;
+    align: center middle;
+}
+
+CreateDialog Input.-valid {
+        border: tall $success 60%;
+    }
+CreateDialog Input.-valid:focus {
+    border: tall $success;
+}
+
+CreateDialog Input.-valid:focus {
+    border: tall $success;
 }
 
 CreateDialog TextArea {
     column-span: 2;
-    row-span: 4;
+    row-span: 3;
     min-height: 3fr;
     max-height: 100vh;
+    border: none;
 }
 
 CreateDialog Button {
-   height: 1;
    row-span: 1;
    column-span: 1;
-    }
+   align: center middle;
+}
 
 #delete-dialog {
     layer: above;
