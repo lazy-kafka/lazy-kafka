@@ -15,7 +15,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional, TypedDict
 import httpx
-from enum import StrEnum, auto, EnumMeta
+from enum import auto, StrEnum, EnumMeta
 from functools import cached_property, partialmethod
 import json
 
@@ -63,9 +63,9 @@ class SchemaRegistryAPI(StrEnum):
     SCHEMAS = auto()
 
 class SchemaTypes(StrEnum, metaclass=MetaEnum):
-    JSON = auto()
-    PROTOBUF = auto()
-    AVRO = auto()
+    JSON = "JSON"
+    PROTOBUF = "PROTOBUF"
+    AVRO = "AVRO"
 
 class SchemaRegistry:
     DEFAULT_HOST = "http://localhost:8081/"

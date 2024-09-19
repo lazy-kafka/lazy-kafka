@@ -46,7 +46,7 @@ class ValidSchemaType(Validator):
 
     @staticmethod
     def is_valid_schema_type(value: str) -> bool:
-        return value.lower() in registry.SchemaTypes
+        return value in registry.SchemaTypes
 
 class CreateDialog(Container, can_focus=True):
     """Modal to display on creating new schema."""
