@@ -114,7 +114,13 @@ class CreateDialog(Container, can_focus=True):
             schema = self.query_one(TextArea).text
             # TODO: add json validator in the future?
             # NOTE: first the schema is parsed to get rid of oddities
-            schema = json.dumps(json.loads(schema))
+            try:
+                schema = json.dumps(json.loads(schema))
+            except json.JSONDecodeError as e:
+                _LOGGER.error(e.msg, exc_info=e)
+                # TODO: dispatch invalid schema action
+                return
+
             _LOGGER.debug(f"{subject_name=} {schema_type=}")
             _LOGGER.debug(f"{schema=}")
             self.post_message(self.Create(subject_name, schema_type, schema))
