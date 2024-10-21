@@ -9,14 +9,14 @@ import logging
 from dataclasses import asdict, dataclass
 from enum import Enum
 from functools import partialmethod
-from typing import TYPE_CHECKING, Any, Optional, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import httpx
 from requests import delete, get, post, put  # noqa
 from requests.exceptions import ConnectionError, HTTPError
 
 if TYPE_CHECKING:
-     from collections.abc import Coroutine
+    from collections.abc import Coroutine
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,20 +37,20 @@ __all__ = ["list", "status"]
 class ConnectorData:
     """
 
-    Attributes: 
-        name: 
-        state: 
-        worker_id: 
-        type: 
+    Attributes:
+        name:
+        state:
+        worker_id:
+        type:
     """
 
-    name: Optional[str] = None
-    state: Optional[str] = None #TODO: enum RUNNING | FAILED
-    worker_id: Optional[str] = None
-    type: Optional[str] = None
+    name: str | None = None
+    state: str | None = None  # TODO: enum RUNNING | FAILED
+    worker_id: str | None = None
+    type: str | None = None
 
     def to_dict(self: Self) -> dict[str, Any]:
-        """Return contents as dict"""
+        """Return contents as dict."""
         return asdict(self)
 
     def to_tuple(self: Self) -> tuple[str, str, str, str]:
@@ -103,7 +103,7 @@ class NeoConnect:
         _ageneric_get_json, "connectors?expand=status"
     )
     alist.__doc__ = """Get a list of active connectiors.
-    
+
     [Reference](https://docs.confluent.io/platform/current/connect/references/restapi.html#connectors)
     """
     # TODO: Post connector [Ref](https://docs.confluent.io/platform/current/connect/references/restapi.html#post--connectors)
@@ -129,7 +129,7 @@ class Connect:
     def __init__(self, connect_url: str) -> None:
         self._connect_url = connect_url
 
-    def _request(self, method: HTTPMethod, uri: str, data: Optional[str] = None) -> str:
+    def _request(self, method: HTTPMethod, uri: str, data: str | None = None) -> str:
         """Make HTTP requests.
 
         Parameters

@@ -16,17 +16,9 @@ from textual.widgets import (
 )
 from textual.widgets.data_table import DuplicateKey
 
+from lazy_kafka import connect
 from lazy_kafka.widgets._status import Status
 from lazy_kafka.widgets.common import Details, MyContainer, MyScrollableContainer
-
-logging.basicConfig(level=logging.INFO)
-
-_LOGGER = logging.getLogger(__name__)
-
-
-import logging
-
-from lazy_kafka import connect
 
 logging.basicConfig(level=logging.INFO)
 
