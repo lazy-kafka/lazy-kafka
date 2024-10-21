@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from lazy_kafka.__main__ import LazyKafka
 
 

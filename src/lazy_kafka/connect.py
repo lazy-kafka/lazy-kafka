@@ -4,17 +4,16 @@
 from __future__ import annotations
 
 import asyncio
-from functools import partialmethod
-from typing import TYPE_CHECKING, Any, Self
 import json
-from dataclasses import dataclass, asdict
-from enum import Enum
-from typing import Optional
 import logging
-from requests import delete, get, post, put  # noqa
-from requests.exceptions import ConnectionError, HTTPError
+from dataclasses import asdict, dataclass
+from enum import Enum
+from functools import partialmethod
+from typing import TYPE_CHECKING, Any, Optional, Self
 
 import httpx
+from requests import delete, get, post, put  # noqa
+from requests.exceptions import ConnectionError, HTTPError
 
 if TYPE_CHECKING:
      from collections.abc import Coroutine
@@ -44,7 +43,8 @@ class ConnectorData:
         worker_id: 
         type: 
     """
-    name: Optional[str] = None 
+
+    name: Optional[str] = None
     state: Optional[str] = None #TODO: enum RUNNING | FAILED
     worker_id: Optional[str] = None
     type: Optional[str] = None

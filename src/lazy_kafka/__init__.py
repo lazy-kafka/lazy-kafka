@@ -2,7 +2,9 @@
 #
 # SPDX-License-Identifier: MIT
 from __future__ import annotations
+
 import logging
+
 from textual.logging import TextualHandler
 
 logging.basicConfig(level="NOTSET", handlers=[TextualHandler()])

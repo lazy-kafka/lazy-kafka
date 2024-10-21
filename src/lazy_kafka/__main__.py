@@ -7,7 +7,6 @@ import rich.console
 import textual
 from rich.text import Text
 from textual.app import App, ComposeResult
-from textual.containers import Container
 from textual.css.query import NoMatches
 from textual.logging import TextualHandler
 from textual.reactive import Reactive, reactive
@@ -19,11 +18,11 @@ from textual.widgets import (
     Tabs,
 )
 
-from textual.widgets import (
-    DataTable,
-)
-
-from lazy_kafka.widgets.common import MyContainer
+from lazy_kafka.connect import ConnectorData
+from lazy_kafka.widgets.kconnect import KConnectPanel
+from lazy_kafka.widgets.registry import SchemaRegistryPanel
+from lazy_kafka.widgets.switcher import ContentSwitcher
+from lazy_kafka.widgets.topic import TopicPanel
 
 logging.basicConfig(level="NOTSET", handlers=[TextualHandler()])
 
@@ -31,17 +30,14 @@ CONSOLE = rich.console.Console()
 print(textual.__version__)
 
 
-from lazy_kafka.connect import ConnectorData
-from lazy_kafka.widgets.kconnect import KConnectPanel
-from lazy_kafka.widgets.registry import SchemaRegistryPanel
-from lazy_kafka.widgets.switcher import ContentSwitcher
-from lazy_kafka.widgets.topic import TopicPanel
+
 
 class ConnectorDetails(Widget):
     connector = reactive("")
 
     def render(self) -> str:
         return f"[b]CONNECTOR:[/b] {self.connector}"
+
 
 class PluginManager:
     # TODO: read these from plugins folder
@@ -119,7 +115,9 @@ class LazyKafka(App):
         except NoMatches:
             logging.error("No DataTable component in %s", event.tab.id)
 
-    def on_schema_registry_panel_dialog_open(self, message: SchemaRegistryPanel.DialogOpen):
+    def on_schema_registry_panel_dialog_open(
+        self, message: SchemaRegistryPanel.DialogOpen
+    ):
         logging.debug("------------------------------")
         logging.debug(message)
         d = self.query_one(message.selected_id)
@@ -127,6 +125,7 @@ class LazyKafka(App):
         logging.debug(f"focused {self.focused}")
         self.set_focus(d)
         logging.debug(f"focused after {self.focused}")
+
 
 app = LazyKafka()
 

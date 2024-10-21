@@ -25,7 +25,6 @@ _LOGGER = logging.getLogger(__name__)
 
 
 import logging
-from typing import Generator
 
 from lazy_kafka import connect
 

@@ -12,12 +12,14 @@ Schemas API: https://docs.confluent.io/cloud/current/api.html#tag/Modes-(v1)/ope
 """
 
 from __future__ import annotations
-import logging
-from typing import Any, Optional, TypedDict
-import httpx
-from enum import auto, StrEnum, EnumMeta
-from functools import cached_property, partialmethod
+
 import json
+import logging
+from enum import EnumMeta, StrEnum, auto
+from functools import partialmethod
+from typing import Any, Optional, TypedDict
+
+import httpx
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +34,7 @@ class MetaEnum(EnumMeta):
             cls(item)
         except ValueError:
             return False
-        return True 
+        return True
 
 class SubjectDetails(TypedDict):
     id: int
@@ -117,7 +119,7 @@ class SchemaRegistry:
 
     async def asubjects_delete(self, subject: Subject, version: int):
         return await self._client.delete(url=f"subjects/{subject}/versions/{version}")
-        
+
     async def aschema_versions(self, subject: Subject):
         _url = SchemaRegistryAPI.SUBJECTS + f"/{subject}/versions"
         return await self._ageneric_get_json(_url)

@@ -1,16 +1,19 @@
 from __future__ import annotations
 
+import json
 import logging
 import time
 from typing import Any
-from textual.containers import Container, Grid
-from textual import events
-from textual import work
-from textual.containers import Vertical
+
+from textual import events, work
+from textual.app import ComposeResult
+from textual.containers import Container, Grid, Vertical
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import Reactive, reactive
+from textual.validation import ValidationResult, Validator
 from textual.widgets import (
+    Button,
     DataTable,
     Input,
     Label,
@@ -18,13 +21,10 @@ from textual.widgets import (
     TextArea,
 )
 from textual.widgets.data_table import DuplicateKey
-from textual.widgets import Button
+
 from lazy_kafka import registry
 from lazy_kafka.widgets._status import Status
 from lazy_kafka.widgets.common import MyContainer, MyScrollableContainer
-from textual.app import ComposeResult
-import json
-from textual.validation import Function, Number, ValidationResult, Validator
 
 logging.basicConfig(level=logging.INFO)
 
@@ -34,7 +34,7 @@ _LOGGER = logging.getLogger(__name__)
 def get_current_time() -> str:
     return time.strftime("%H:%M:%S", time.localtime())
 
-class ValidSchemaType(Validator):  
+class ValidSchemaType(Validator):
     """A custom validator"""
 
     def validate(self, value: str) -> ValidationResult:
