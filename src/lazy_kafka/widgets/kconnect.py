@@ -132,6 +132,10 @@ class KConnectPanel(MyContainer):
         self.connectors = connect.ConnectorData.from_response(_resp)
         for connector in self.connectors.values():
             try:
+                # TODO: add `cell` based styling:
+                # if state == "running": color: success
+                # if state == "error": color: error
+                # else: color: warning
                 data_table.add_row(*connector.to_tuple(), key=connector.name)
             except DuplicateKey:
                 data_table.remove_row(row_key=connector.name)
