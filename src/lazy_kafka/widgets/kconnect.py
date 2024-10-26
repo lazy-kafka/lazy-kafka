@@ -24,6 +24,41 @@ logging.basicConfig(level=logging.INFO)
 
 _LOGGER = logging.getLogger(__name__)
 
+
+def _apply_styling(d: connect.ConnectorData) -> connect.ConnectorData:
+    """
+
+    Possible states:
+        RUNNING
+        FAILED
+        RESTARTING
+
+    Args:
+        d:
+
+    Returns:
+
+    """
+    if d.state == "RUNNING":
+        state = f"[italic green]{d.state}[/italic green]"
+    elif d.state == "FAILED":
+        state = f"[italic red]{d.state}[/italic red]"
+    else:
+        state = d.state
+
+    _d2 = connect.ConnectorData(
+        d.name,
+        state,
+        d.worker_id,
+        d.type,
+    )
+    return _d2
+
+
+def connector_to_data_table_row(data: connect.ConnectorData) -> tuple:
+    return _apply_styling(data).to_tuple()
+
+
 def get_current_time() -> str:
     return time.strftime("%H:%M:%S", time.localtime())
 
@@ -101,7 +136,6 @@ class KConnectPanel(MyContainer):
         _LOGGER.debug("%s", message.details)
         self.details = message.details
 
-
     async def on_focus(self, event):
         """Perform a single refresh on focus."""
         for data_table in self.query(DataTable):
@@ -132,14 +166,23 @@ class KConnectPanel(MyContainer):
         self.connectors = connect.ConnectorData.from_response(_resp)
         for connector in self.connectors.values():
             try:
-                # TODO: add `cell` based styling:
-                # if state == "running": color: success
-                # if state == "error": color: error
-                # else: color: warning
-                data_table.add_row(*connector.to_tuple(), key=connector.name)
+                data_table.add_row(
+                    *connector_to_data_table_row(connector), key=connector.name
+                )
             except DuplicateKey:
+                _current_row_index = data_table.cursor_row
+                _current_row_key = data_table.get_row_at(_current_row_index)[0]
                 data_table.remove_row(row_key=connector.name)
-                data_table.add_row(*connector.to_tuple(), key=connector.name)
+                data_table.add_row(
+                    *connector_to_data_table_row(connector), key=connector.name
+                )
+                try:
+                    #TODO: move one up if the row was removed
+                    _new_index_of_old_row = data_table.get_row_index(_current_row_key)
+                except ValueError:
+                    pass
+                data_table.move_cursor(row=_new_index_of_old_row)
+
 
         data_table.loading = False
         label = self.query_one("#time", Label)
@@ -171,4 +214,3 @@ class KConnectPanel(MyContainer):
         details_panel = self.query_one(Details)
         details_panel.detail_name = "[b]connector: [/b]" + str(details.name)
         self.query_one(Pretty).update(details.to_dict())
-

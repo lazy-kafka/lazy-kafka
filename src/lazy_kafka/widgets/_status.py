@@ -18,7 +18,10 @@ _LOGGER = logging.getLogger(__name__)
 class Status(Widget, can_focus=False):
     """Display a greeting.
 
-    # use U+23FA
+    The symbol is:
+        ⬤ BLACK LARGE CIRCLE 2B24
+    alternative:
+        ● BLACK CIRCLE 25CF
     """
 
     DEFAULT_CSS = """
@@ -29,7 +32,8 @@ class Status(Widget, can_focus=False):
 
     def compose(self):
         yield Horizontal(
-            Label("⏺ ", id="icon", classes="status-text"),
+            Label(" ⬤ ", id="icon", classes="status-text"),
             Label("[i]Updated:[/] ", id="text"),
             Label("--:--:--", id="time", classes="status-text"),
         )
+
