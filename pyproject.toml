@@ -152,7 +152,6 @@ exclude = ["**/__pycache__",
 ]
 ignore = ["src/hatcht/newfragments"]
 defineConstant = { DEBUG = true }
-stubPath = "src/stubs"
 
 typeCheckingMode = "standard"
 reportMissingImports = true
@@ -164,7 +163,7 @@ pythonPlatform = "Linux"
 executionEnvironments = [
   { root = "src" }
 ]
-venvPath = ".hatch"
+venvPath = ".venv"
 venv = "dev"
 
 [tool.ruff]

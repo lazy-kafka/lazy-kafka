@@ -28,6 +28,7 @@ class MyContainer(Container, can_focus=True):
 
 class MyScrollableContainer(ScrollableContainer):
     """Used for the details panel"""
+
     class Completed(Message):
         """Color selected message."""
 

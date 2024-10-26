@@ -16,18 +16,9 @@ from textual.widgets import (
 )
 from textual.widgets.data_table import DuplicateKey
 
+from lazy_kafka import connect
 from lazy_kafka.widgets._status import Status
 from lazy_kafka.widgets.common import Details, MyContainer, MyScrollableContainer
-
-logging.basicConfig(level=logging.INFO)
-
-_LOGGER = logging.getLogger(__name__)
-
-
-import logging
-from typing import Generator
-
-from lazy_kafka import connect
 
 logging.basicConfig(level=logging.INFO)
 
@@ -141,6 +132,10 @@ class KConnectPanel(MyContainer):
         self.connectors = connect.ConnectorData.from_response(_resp)
         for connector in self.connectors.values():
             try:
+                # TODO: add `cell` based styling:
+                # if state == "running": color: success
+                # if state == "error": color: error
+                # else: color: warning
                 data_table.add_row(*connector.to_tuple(), key=connector.name)
             except DuplicateKey:
                 data_table.remove_row(row_key=connector.name)
