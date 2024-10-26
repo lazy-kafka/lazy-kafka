@@ -53,6 +53,9 @@ curl -XGET http://localhost:8083/connectors
 
 # Roadmap
 
+## v0.1.0
+- settings management
+- k-connect continuous update (like watch)
 ## v1.0
 Generate client code from openapi
 - deprecate confluent-kafka in favor of [kafka-rest api](https://github.com/confluentinc/kafka-rest/blob/master/api/v3/openapi.yaml)
