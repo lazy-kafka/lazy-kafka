@@ -76,6 +76,9 @@ class NeoConnect:
     _CONTENT_TYPE = "application/json"
 
     def __init__(self, host: str = DEFAULT_HOST) -> None:
+        _debug_info = httpx.get(host)
+        _LOGGER.debug("Connect info: %s", _debug_info)
+        assert _debug_info.status_code == 200
         self.host = host
 
     def __repr__(self):
