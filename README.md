@@ -56,8 +56,10 @@ curl -XGET http://localhost:8083/connectors
 ## v0.1.0
 - settings management
 - k-connect continuous update (like watch)
-  - [>] Color the State column based on the value
-  - [ ] Fix currently highlighted connector selection on update
+  - [x] Color the State column based on the value
+  - [>] Fix currently highlighted connector selection on update
+    - [x] Load from config file
+    - [>] Add file watcher - get inspiration from watchdog or [toolong](https://github.com/Textualize/toolong/blob/main/src/toolong/watcher.py)
 
 ## v1.0
 Generate client code from openapi
