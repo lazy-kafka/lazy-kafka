@@ -1,0 +1,10 @@
+request_time_out = 1001
+
+[kafka]
+bootstrap_server = "localhost:9092"
+
+[registry]
+host = "http://localhost:8083/"
+
+[connect]
+host = "http://localhost:8083/"

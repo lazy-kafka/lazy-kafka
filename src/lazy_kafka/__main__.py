@@ -5,6 +5,7 @@ from typing import Self
 
 import rich.console
 import textual
+from pathlib import Path
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.css.query import NoMatches
@@ -18,6 +19,7 @@ from textual.widgets import (
     Tabs,
 )
 
+from lazy_kafka.config import Configuration
 from lazy_kafka.connect import ConnectorData
 from lazy_kafka.widgets.kconnect import KConnectPanel
 from lazy_kafka.widgets.registry import SchemaRegistryPanel
@@ -28,8 +30,6 @@ logging.basicConfig(level="NOTSET", handlers=[TextualHandler()])
 
 CONSOLE = rich.console.Console()
 print(textual.__version__)
-
-
 
 
 class ConnectorDetails(Widget):
@@ -60,8 +60,8 @@ class PluginManager:
 #           ref: https://textual.textualize.io/guide/screens/#modes
 
 
-class LazyKafka(App):
-    """A Textual app to manage stopwatches."""
+class LazyKafka(App[None]):
+    """A Textual app to browse kafka related stuff'n such."""
 
     #    topic: Reactive[TopicData] = reactive(TopicData())
     connector: Reactive[ConnectorData] = reactive(ConnectorData())
@@ -72,6 +72,23 @@ class LazyKafka(App):
         ("l", "next_tab", "Next"),
         ("h", "previous_tab", "Previous"),
     ]
+
+    def __init__(
+        self,
+        driver_class: Type[Driver] | None = None,
+        css_path: CSSPathType | None = None,
+        watch_css: bool = False,
+        ansi_color: bool = False,
+    ):
+        self.lazy_kafka_config = Configuration()
+        super().__init__(driver_class, css_path, watch_css, ansi_color)
+
+    def on_load(self):
+        """Load action before anything visible happens."""
+        logging.critical("HERE")
+        _p = Path(__file__).parent / "default_config.toml"
+        self.lazy_kafka_config = Configuration.from_toml(_p)
+        logging.debug(f"app config: {self.lazy_kafka_config}")
 
     def on_mount(self):
         pass
