@@ -101,7 +101,7 @@ class KConnectPanel(MyContainer):
     def __init__(self, *args: Any, **kwargs: Any):
         self.connectors: dict[str, connect.ConnectorData] = {}
         # NOTE: maybe fetching config from App is not the best design
-        self.hook = connect.NeoConnect(self.app.lazy_kafka_config.connect["host"])
+        self.hook = connect.Connect(self.app.lazy_kafka_config.connect["host"])
         self.data_auto_refresh = False
         super().__init__(*args, **kwargs)
         _LOGGER.debug(self.connectors)
