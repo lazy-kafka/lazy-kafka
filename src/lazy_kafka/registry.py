@@ -75,6 +75,16 @@ class SchemaRegistry:
     _CONTENT_TYPE = "application/vnd.schemaregistry.v1+json"
 
     def __init__(self, host: str = DEFAULT_HOST) -> None:
+        """Initialise client.
+
+        Performs a sanity 'get' request, before creating a client.
+
+        Args:
+            host: 
+        """
+        _debug_info = httpx.get(host)
+        _LOGGER.debug("Registry info: %s", _debug_info)
+        assert _debug_info.status_code == 200
         self.host = host
         self._client = httpx.AsyncClient(
             base_url=SchemaRegistry.DEFAULT_HOST,
