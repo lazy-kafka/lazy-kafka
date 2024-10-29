@@ -178,13 +178,12 @@ class SchemaRegistryPanel(MyContainer):
     BORDER_TITLE = "Subjects"
     BORDER_SUBTITLE = "status"
     BINDINGS = [
-        ("j", "next_widget_item", "next"),
-        ("k", "previous_widget_item", "prev"),
-        ("s", "stop_refresh", "prev"),
-        ("t", "start_refresh", "prev"),
-        ("escape", "unset_topic", "close"),
+        ("j", "next_widget_item", "↓"),
+        ("k", "previous_widget_item","↑"),
+        ("f", "toggle_refresh", "Toggle follow"),
         ("c", "create", "create"),
         ("d", "delete", "delete"),
+        ("escape", "unset_topic", "close"),
     ]
 
     selected_id: Reactive[str] = reactive(str)
@@ -195,6 +194,24 @@ class SchemaRegistryPanel(MyContainer):
 
     def action_previous_widget_item(self):
         self.query_one(DataTable).action_cursor_up()
+
+    def action_stop_refresh(self):
+        self.update_timer.pause()
+        label = self.query_one("#icon", Label)
+        label.remove_class("-live")
+        self.data_auto_refresh = False
+
+    def action_start_refresh(self):
+        self.update_timer.resume()
+        label = self.query_one("#icon", Label)
+        label.add_class("-live")
+        self.data_auto_refresh = True
+
+    def action_toggle_refresh(self):
+        if self.data_auto_refresh:
+            self.action_stop_refresh()
+        else:
+            self.action_start_refresh()
 
     async def action_delete(self):
         """Action to display the delete dialog."""
@@ -232,16 +249,6 @@ class SchemaRegistryPanel(MyContainer):
             pass
         self.mount(CreateDialog(id="create-dialog"))
         self.post_message(self.DialogOpen("TextArea"))
-
-    def action_stop_refresh(self):
-        self.update_timer.pause()
-        label = self.query_one("#icon", Label)
-        label.remove_class("-live")
-
-    def action_start_refresh(self):
-        self.update_timer.resume()
-        label = self.query_one("#icon", Label)
-        label.add_class("-live")
 
     async def action_load_data(self):
         for data_table in self.query(DataTable):

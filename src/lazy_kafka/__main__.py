@@ -11,8 +11,10 @@ from textual.app import App, ComposeResult
 from textual.css.query import NoMatches
 from textual.logging import TextualHandler
 from textual.reactive import Reactive, reactive
+from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import (
+    Placeholder,
     Footer,
     Header,
     Tab,
@@ -60,38 +62,21 @@ class PluginManager:
 #           ref: https://textual.textualize.io/guide/screens/#modes
 
 
-class LazyKafka(App[None]):
-    """A Textual app to browse kafka related stuff'n such."""
+class SettingsScreen(Screen):
+    """Screen to display settings."""
 
-    #    topic: Reactive[TopicData] = reactive(TopicData())
-    connector: Reactive[ConnectorData] = reactive(ConnectorData())
+    def compose(self) -> ComposeResult:
+        yield Placeholder("Settings Screen")
+        yield Footer()
 
-    CSS_PATH = "style.tcss"
+
+class DashboardScreen(Screen):
+    """Content screens."""
+
     BINDINGS = [
-        ("d", "toggle_dark", "Toggle dark mode"),
         ("l", "next_tab", "Next"),
         ("h", "previous_tab", "Previous"),
     ]
-
-    def __init__(
-        self,
-        driver_class: Type[Driver] | None = None,
-        css_path: CSSPathType | None = None,
-        watch_css: bool = False,
-        ansi_color: bool = False,
-    ):
-        self.lazy_kafka_config = Configuration()
-        super().__init__(driver_class, css_path, watch_css, ansi_color)
-
-    def on_load(self):
-        """Load action before anything visible happens."""
-        logging.critical("HERE")
-        _p = Path(__file__).parent / "default_config.toml"
-        self.lazy_kafka_config = Configuration.from_toml(_p)
-        logging.debug(f"app config: {self.lazy_kafka_config}")
-
-    def on_mount(self):
-        pass
 
     def action_next_tab(self):
         self.query_one("#tabs").action_next_tab()
@@ -100,7 +85,6 @@ class LazyKafka(App[None]):
         self.query_one("#tabs").action_previous_tab()
 
     def compose(self) -> ComposeResult:
-        """Called to add widgets to the app."""
         yield Header()
 
         yield Tabs(
@@ -132,16 +116,43 @@ class LazyKafka(App[None]):
         except NoMatches:
             logging.error("No DataTable component in %s", event.tab.id)
 
-    def on_schema_registry_panel_dialog_open(
-        self, message: SchemaRegistryPanel.DialogOpen
+
+class LazyKafka(App[None]):
+    """A Textual app to browse kafka related stuff'n such."""
+
+    BINDINGS = [
+        ("d", "switch_mode('dashboard')", "Dashboard"),
+        ("s", "switch_mode('settings')", "Settings"),
+        ("h", "switch_mode('help')", "Help"),
+    ]
+    MODES = {
+        "dashboard": DashboardScreen,
+        "settings": SettingsScreen,
+    }
+    # TODO: remove this reactive component
+    connector: Reactive[ConnectorData] = reactive(ConnectorData())
+
+    CSS_PATH = "style.tcss"
+
+    def __init__(
+        self,
+        driver_class: Type[Driver] | None = None,
+        css_path: CSSPathType | None = None,
+        watch_css: bool = False,
+        ansi_color: bool = False,
     ):
-        logging.debug("------------------------------")
-        logging.debug(message)
-        d = self.query_one(message.selected_id)
-        logging.debug(f"found {d}")
-        logging.debug(f"focused {self.focused}")
-        self.set_focus(d)
-        logging.debug(f"focused after {self.focused}")
+        self.lazy_kafka_config = Configuration()
+        super().__init__(driver_class, css_path, watch_css, ansi_color)
+
+    def on_load(self):
+        """Load action before anything visible happens."""
+        logging.critical("HERE")
+        _p = Path(__file__).parent / "default_config.toml"
+        self.lazy_kafka_config = Configuration.from_toml(_p)
+        logging.debug(f"app config: {self.lazy_kafka_config}")
+
+    def on_mount(self) -> None:
+        self.switch_mode("dashboard")
 
 
 app = LazyKafka()

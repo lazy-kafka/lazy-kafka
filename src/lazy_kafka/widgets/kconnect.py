@@ -69,11 +69,10 @@ class KConnectPanel(MyContainer):
     BORDER_TITLE = "Connectors"
     BORDER_SUBTITLE = "status"
     BINDINGS = [
-        ("j", "next_widget_item", "next"),
-        ("k", "previous_widget_item", "prev"),
-        ("s", "stop_refresh", "prev"),
-        ("t", "start_refresh", "prev"),
-        ("escape", "unset_topic", "close"),
+        ("j", "next_widget_item", "↓"),
+        ("k", "previous_widget_item","↑"),
+        ("f", "toggle_refresh", "Toggle follow"),
+        ("escape", "unset_topic", "Close"),
     ]
 
     details: Reactive[connect.ConnectorData] = reactive(connect.ConnectorData())
@@ -88,11 +87,20 @@ class KConnectPanel(MyContainer):
         self.update_timer.pause()
         label = self.query_one("#icon", Label)
         label.remove_class("-live")
+        self.data_auto_refresh = False
 
     def action_start_refresh(self):
         self.update_timer.resume()
         label = self.query_one("#icon", Label)
         label.add_class("-live")
+        self.data_auto_refresh = True
+
+    def action_toggle_refresh(self):
+        if self.data_auto_refresh:
+            self.action_stop_refresh()
+        else:
+            self.action_start_refresh()
+
 
     async def action_load_data(self):
         for data_table in self.query(DataTable):
