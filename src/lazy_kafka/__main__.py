@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import cached_property
 import logging
 from typing import Self
 
@@ -14,11 +15,12 @@ from textual.reactive import Reactive, reactive
 from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import (
-    Placeholder,
     Footer,
     Header,
+    Label,
     Tab,
     Tabs,
+    Pretty,
 )
 
 from lazy_kafka.config import Configuration
@@ -66,7 +68,10 @@ class SettingsScreen(Screen):
     """Screen to display settings."""
 
     def compose(self) -> ComposeResult:
-        yield Placeholder("Settings Screen")
+        assert self.app.lazy_kafka_config
+        yield Label("Default configuration file: ")
+        yield Label(f"  [yellow]{self.app.default_configuration_file.absolute()}[/]")
+        yield Pretty(self.app.lazy_kafka_config)
         yield Footer()
 
 
@@ -142,12 +147,15 @@ class LazyKafka(App[None]):
         self.lazy_kafka_config = Configuration()
         super().__init__(driver_class, css_path, watch_css, ansi_color)
 
+    @cached_property
+    def default_configuration_file(self) -> Path:
+        return Path(__file__).parent / "default_config.toml"
+
     def on_load(self):
         """Load action before anything visible happens."""
-        logging.critical("HERE")
-        _p = Path(__file__).parent / "default_config.toml"
-        self.lazy_kafka_config = Configuration.from_toml(_p)
-        logging.debug(f"app config: {self.lazy_kafka_config}")
+        logging.debug("Configuration file: %s", self.default_configuration_file)
+        self.lazy_kafka_config = Configuration.from_toml(self.default_configuration_file)
+        logging.debug("app config: %s", f"{self.lazy_kafka_config}")
 
     def on_mount(self) -> None:
         self.switch_mode("dashboard")
