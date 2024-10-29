@@ -100,9 +100,8 @@ class SchemaRegistry:
 
     async def _ageneric_get_json(self, url: str):
         _LOGGER.debug("%s request: %s", self, url)
-        async with httpx.AsyncClient() as client:
-            response = await client.get(self.host + url)
-            return response.json()
+        response = await self._client.get(self.host + url)
+        return response.json()
 
     asubjects = partialmethod(_ageneric_get_json, SchemaRegistryAPI.SUBJECTS)
     subjects = partialmethod(_generic_get_json, SchemaRegistryAPI.SUBJECTS)
