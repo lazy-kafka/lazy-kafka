@@ -129,8 +129,6 @@ class LazyKafka(App[None]):
         "dashboard": DashboardScreen,
         "settings": SettingsScreen,
     }
-    # TODO: remove this reactive component
-    connector: Reactive[ConnectorData] = reactive(ConnectorData())
 
     CSS_PATH = "style.tcss"
 
