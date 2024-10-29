@@ -245,7 +245,7 @@ class SchemaRegistryPanel(MyContainer):
 
     async def action_load_data(self):
         for data_table in self.query(DataTable):
-            self.load_data(data_table)
+            self.load_data(data_table, display_load=False)
 
     def __init__(self, *args: Any, **kwargs: Any):
         self.subjects: dict[str, str] = {"": ""}
@@ -320,8 +320,14 @@ class SchemaRegistryPanel(MyContainer):
         self.log(f"{details}")
 
     @work(exclusive=True)
-    async def load_data(self, data_table: DataTable) -> None:
-        data_table.loading = True
+    async def load_data(self, data_table: DataTable, display_load=True) -> None:
+        """Load data.
+
+        Args:
+            display_load (bool): set to false to disable loading animation.
+            data_table: DataTable instance to be updated.
+        """
+        data_table.loading = display_load
         self.subjects = {i: i for i in await self.hook.asubjects()}
         # For now, clearing the whole table looks viable...
         # problem is that it resets the highlighted row - annoying

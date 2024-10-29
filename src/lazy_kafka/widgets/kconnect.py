@@ -96,7 +96,7 @@ class KConnectPanel(MyContainer):
 
     async def action_load_data(self):
         for data_table in self.query(DataTable):
-            self.load_data(data_table)
+            self.load_data(data_table, display_load=False)
 
     def __init__(self, *args: Any, **kwargs: Any):
         self.connectors: dict[str, connect.ConnectorData] = {}
@@ -161,8 +161,8 @@ class KConnectPanel(MyContainer):
         self.log(f"{details}")
 
     @work(exclusive=True)
-    async def load_data(self, data_table: DataTable) -> None:
-        data_table.loading = True
+    async def load_data(self, data_table: DataTable, display_load=True) -> None:
+        data_table.loading = display_load
         _resp = await self.hook.alist()
         self.connectors = connect.ConnectorData.from_response(_resp)
         for connector in self.connectors.values():
