@@ -26,7 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "confluent-kafka[avro,json,protobuf]>=2.4.0",
-    "textual>=0.70.0",
+    "textual>=0.85.1",
     "rich",
     "click>=8.0.0",
     "httpx",
