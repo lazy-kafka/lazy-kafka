@@ -13,9 +13,9 @@ from textual.widgets import (
 
 from lazy_kafka.topic import TopicData, list_topics, topic_data_to_dict
 from lazy_kafka.widgets.common import Details, MyContainer, MyScrollableContainer
+from lazy_kafka.widgets.topic_details import TopicDetails
 
 _LOGGER = logging.getLogger(__name__)
-
 
 class TopicPanel(MyContainer):
     """Topics widget."""
@@ -25,6 +25,7 @@ class TopicPanel(MyContainer):
     BINDINGS = [
         ("j", "next_widget_item", "next"),
         ("k", "previous_widget_item", "prev"),
+        ("enter", "details", "Details"),
         ("escape", "unset_topic", "close"),
     ]
 
@@ -35,6 +36,11 @@ class TopicPanel(MyContainer):
 
     def action_previous_widget_item(self):
         self.query_one(DataTable).action_cursor_up()
+
+    def action_details(self):
+        _LOGGER.info("show details:")
+        assert self.topic.topic is not None
+        self.app.push_screen(TopicDetails(topic=self.topic.topic))
 
     def __init__(self, *args, **kwargs):
         self.TOPICS = dict()
