@@ -59,7 +59,11 @@ curl -XGET http://localhost:8083/connectors
   - [x] Color the State column based on the value
   - [>] Fix currently highlighted connector selection on update
     - [x] Load from config file
-    - [>] Add file watcher - get inspiration from watchdog or [toolong](https://github.com/Textualize/toolong/blob/main/src/toolong/watcher.py)
+    - [-] Add file watcher - get inspiration from watchdog or [toolong](https://github.com/Textualize/toolong/blob/main/src/toolong/watcher.py)
+
+## v0.2.0
+- see messages in a stream
+  - extend kafka page support: AIOKafka/confluent-kafka library facade
 
 ## v1.0
 Generate client code from openapi

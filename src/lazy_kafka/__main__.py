@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from functools import cached_property
 import logging
-from typing import Self
 
 import rich.console
 import textual
@@ -11,9 +10,7 @@ from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.css.query import NoMatches
 from textual.logging import TextualHandler
-from textual.reactive import Reactive, reactive
 from textual.screen import Screen
-from textual.widget import Widget
 from textual.widgets import (
     Footer,
     Header,
@@ -24,7 +21,6 @@ from textual.widgets import (
 )
 
 from lazy_kafka.config import Configuration
-from lazy_kafka.connect import ConnectorData
 from lazy_kafka.widgets.kconnect import KConnectPanel
 from lazy_kafka.widgets.registry import SchemaRegistryPanel
 from lazy_kafka.widgets.switcher import ContentSwitcher
@@ -34,35 +30,6 @@ logging.basicConfig(level="NOTSET", handlers=[TextualHandler()])
 
 CONSOLE = rich.console.Console()
 print(textual.__version__)
-
-
-class ConnectorDetails(Widget):
-    connector = reactive("")
-
-    def render(self) -> str:
-        return f"[b]CONNECTOR:[/b] {self.connector}"
-
-
-class PluginManager:
-    # TODO: read these from plugins folder
-    # or cfg
-    TABS = [
-        ("topic", TopicPanel, "Kafka"),
-        ("schema", SchemaRegistryPanel, "Schema Registry"),
-        ("connect", KConnectPanel, Text.from_markup(":warning: K-connect")),
-    ]
-
-    def get_tabs(self: Self, id: str) -> Tabs:
-        _tabs = Tabs(id=id)
-        for t in PluginManager.TABS:
-            _tabs.add_tab(Tab(t[-1], id="tab-" + t[0]))
-        return _tabs
-
-
-# TODO: Modes will be used for settings and help screen, which are global
-#           maybe screens and mode_switch are better suited
-#           ref: https://textual.textualize.io/guide/screens/#modes
-
 
 class SettingsScreen(Screen):
     """Screen to display settings."""
@@ -93,7 +60,7 @@ class DashboardScreen(Screen):
         yield Header()
 
         yield Tabs(
-            Tab("Kafka", id="topic"),
+            Tab("Topic", id="topic"),
             Tab("Schema Registry", id="tab-schema"),
             Tab(Text.from_markup(":warning: K-connect"), id="tab-connect"),
             id="tabs",
@@ -110,8 +77,6 @@ class DashboardScreen(Screen):
         Tab activated handler customized to focus the DataTable component of
         the current tab (this saves a 'Tab' key press).
         """
-        logging.debug("tab actinvated: %s", f"{event!r}")
-        logging.debug("tab : %s", f"{event.tab!r}")
         cs: ContentSwitcher = self.query_one("#main-content-switcher")
         cs.current = event.tab.id
         if cs.visible_content is None:
