@@ -13,6 +13,7 @@ from textual.widgets import (
 
 from lazy_kafka.widgets._status import Status
 from lazy_kafka.widgets.common import MyScrollableContainer
+from lazy_kafka.topic import get_last_n_messages
 
 _LOGGER = logging.getLogger(__name__)
 import random
@@ -23,6 +24,9 @@ def _data():
 
 random.seed(73)
 data = [random.expovariate(1 / 3) for _ in range(1000)]
+
+
+
 
 ROWS = [
     ("Offset", "Key", "Message", "DateTime"),
@@ -81,5 +85,6 @@ class TopicDetails(ModalScreen):
 
     def on_mount(self) -> None:
         table = self.query_one(DataTable)
-        table.add_columns(*ROWS[0])
-        table.add_rows(ROWS[1:])
+        data = get_last_n_messages(self.topic)
+        table.add_columns(*("Offset", "Message"))
+        table.add_rows(data)
