@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -33,9 +33,9 @@ class RegistryConfiguration:
 class Configuration:
     """Lazy-kafka configuration."""
 
-    kafka: KafkaConfiguration | None = None
-    registry: RegistryConfiguration | None = None
-    connect: ConnectConfiguration | None = None
+    kafka: KafkaConfiguration = field(default_factory=KafkaConfiguration)
+    registry: RegistryConfiguration = field(default_factory=RegistryConfiguration)
+    connect: ConnectConfiguration = field(default_factory=ConnectConfiguration)
     request_time_out: int = 1000
 
     @classmethod
