@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+from textual import work
 from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import (
@@ -55,9 +56,16 @@ class TopicDetails(ModalScreen):
             classes="box has-scroll",
         )
 
-    def on_mount(self) -> None:
-        table = self.query_one(DataTable)
+    @work(exclusive=True, thread=True)
+    async def load_data(self, data_table: DataTable, display_load=True) -> None:
+        data_table.loading = display_load
+
         data = self.hook.get_last_n_messages(self.topic)
-        table.add_columns(*("Offset", "Message"))
-        table.add_rows(data)
+        data_table.add_columns(*("Offset", "Message"))
+        data_table.add_rows(data)
+        data_table.loading = False
+
+    async def on_mount(self) -> None:
+        table = self.query_one(DataTable)
+        self.load_data(table)
 
