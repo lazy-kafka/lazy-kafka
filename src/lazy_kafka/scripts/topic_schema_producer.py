@@ -1,4 +1,3 @@
-import argparse
 from uuid import uuid4
 
 from confluent_kafka import Producer
@@ -113,7 +112,7 @@ def main():
     string_serializer = StringSerializer("utf_8")
     json_serializer = JSONSerializer(schema_str, schema_registry_client, user_to_dict)
 
-    producer = Producer({"bootstrap.servers": cfg.kafka.bootstrap_server})
+    producer = Producer({"bootstrap.servers": cfg.kafka.bootstrap_servers})
 
     print("Producing user records to topic {}. ^C to exit.".format(topic))
     while True:

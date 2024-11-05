@@ -100,3 +100,11 @@ Generate client code from openapi
 - create a screen for settings
 - add delete action
 - 
+
+
+
+# NOTES
+- confluent kafka docs: https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#confluent_kafka.TopicPartition
+- detailed example of confluent kafka lib api: https://github.com/confluentinc/confluent-kafka-python/issues/1443
+
+

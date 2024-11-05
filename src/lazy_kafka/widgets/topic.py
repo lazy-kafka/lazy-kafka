@@ -11,7 +11,7 @@ from textual.widgets import (
     Pretty,
 )
 
-from lazy_kafka.topic import TopicData, list_topics, topic_data_to_dict
+from lazy_kafka.topic import TopicData, KafkaClient, topic_data_to_dict
 from lazy_kafka.widgets.common import Details, MyContainer, MyScrollableContainer
 from lazy_kafka.widgets.topic_details import TopicDetails
 
@@ -44,7 +44,8 @@ class TopicPanel(MyContainer):
 
     def __init__(self, *args, **kwargs):
         self.TOPICS = dict()
-        for k in list_topics():
+        self.hook = KafkaClient(self.app.lazy_kafka_config.kafka)
+        for k in self.hook.list_topics():
             self.TOPICS[k.topic] = k
         super().__init__(*args, **kwargs)
         self.log(self.TOPICS)
@@ -95,7 +96,7 @@ class TopicPanel(MyContainer):
     @work(exclusive=True, thread=True)
     async def load_data(self, data_table: DataTable) -> None:
         data_table.add_column("Name")
-        j = list_topics()
+        j = self.hook.list_topics()
         for t in j:
             data_table.add_row(t.topic)
         data_table.loading = False
