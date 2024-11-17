@@ -60,15 +60,15 @@ curl -XGET http://localhost:8083/connectors
   - [x] Fix currently highlighted connector selection on update
   - [x] Load from config file
     - [-] Add file watcher - get inspiration from watchdog or [toolong](https://github.com/Textualize/toolong/blob/main/src/toolong/watcher.py)
-  - [ ] Expose more configuration (kafka auth related)
+  - [x] Expose more configuration (kafka auth related)
 
 ## v0.2.0
-- see messages in a stream
-  - extend kafka page support: AIOKafka/confluent-kafka library facade
-    - implementation only with confluent-kafka, but with a facade
-- produce messages into a stream
-  - concrete producer
-  - dummy producer (agent pool pattern?)
+- [ ] see messages in a stream
+  - [ ] extend kafka page support: AIOKafka/confluent-kafka library facade
+    - [ ] implementation only with confluent-kafka, but with a facade
+- [ ] produce messages into a stream
+  - [ ] concrete producer
+  - [ ] dummy producer (agent pool pattern?)
 
 
 
