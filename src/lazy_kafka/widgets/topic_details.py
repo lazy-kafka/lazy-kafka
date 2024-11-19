@@ -61,9 +61,8 @@ class TopicDetails(ModalScreen):
         data_table.loading = display_load
 
         data = self.hook.get_last_n_messages(self.topic)
-        # TODO: add key and timestamp
         # TODO: add filtering
-        data_table.add_columns(*("Offset", "Message"))
+        data_table.add_columns(*("Timestamp", "Offset","Key", "Message"))
         data_table.add_rows(data)
         data_table.loading = False
 

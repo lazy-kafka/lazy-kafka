@@ -15,6 +15,7 @@ from confluent_kafka.admin import (
     AdminClient,
     TopicMetadata,
 )
+from datetime import datetime, timezone
 
 from lazy_kafka.config import KafkaConfiguration
 
@@ -24,6 +25,10 @@ if TYPE_CHECKING:
     from confluent_kafka.admin import TopicMetadata
 
 CONFIG = {"bootstrap.servers": "localhost:9092"}
+
+def _timestamp_to_str(timestamp: int) -> str:
+    dt = datetime.fromtimestamp(timestamp/1e3, timezone.utc)
+    return dt.isoformat()
 
 
 class KafkaClient:
@@ -78,7 +83,13 @@ class KafkaClient:
                 _LOGGER.debug(
                     "%s", f"{msg.offset():<5}, {str(msg.value()):>10}, {msg.topic():>}"
                 )
-                messages.append((msg.offset(), str(msg.value())))
+                # msg.timestamp(), msg.key(), msg.topic(), msg.partition(), msg.offset()
+                timestamp_type = msg.timestamp()
+                if timestamp_type[0] != 1:
+                    # TODO: handle all types: https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#confluent_kafka.Message.timestamp
+                    raise ValueError("Timestamp type not available")
+                timestamp = _timestamp_to_str(timestamp_type[1])
+                messages.append((timestamp, msg.offset(), msg.key(), str(msg.value())))
             # TODO: handle kafka exception
             except KeyboardInterrupt:
                 break
