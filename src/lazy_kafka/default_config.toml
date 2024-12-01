@@ -2,7 +2,8 @@ request_time_out = 1001
 
 [kafka]
 bootstrap_servers = "localhost:9092"
-group_id = "config_file"
+group_id = "this_config_file"
+enable_auto_commit=false
 
 [registry]
 host = "http://localhost:8083/"
