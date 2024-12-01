@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
@@ -9,6 +10,7 @@ from typing import TYPE_CHECKING, Optional
 from confluent_kafka import (
     OFFSET_BEGINNING,
     Consumer,
+    Message,
     TopicPartition,
 )
 from confluent_kafka.admin import (
@@ -26,14 +28,44 @@ if TYPE_CHECKING:
 
 CONFIG = {"bootstrap.servers": "localhost:9092"}
 
+
+class NoMessagesError(Exception):
+    """No message retrieved by consumer."""
+
+    pass
+
+
+class ConsumerPollError(Exception):
+    """Too many poll() calls and no message retrieved."""
+
+    pass
+
+
 def _timestamp_to_str(timestamp: int) -> str:
-    dt = datetime.fromtimestamp(timestamp/1e3, timezone.utc)
+    dt = datetime.fromtimestamp(timestamp / 1e3, timezone.utc)
     return dt.isoformat()
 
 
+def _get_last_n_offset(high_mark, last_n):
+    if last_n > high_mark:
+        # offset beginning is -2
+        return OFFSET_BEGINNING
+    else:
+        return high_mark - last_n
+
 class KafkaClient:
+
+    MESSAGE_POLL_TIMEOUT_SECONDS = 1.0
+    WATERMARK_TIMEOUT_SECONDS = 10.0
+    MAX_CONSUMER_POLL = 100
+
     def __init__(self, config: KafkaConfiguration):
         self.config = config
+        _LOGGER.debug(f"{self.config=}")
+        _LOGGER.debug("Instantiate Consumer")
+        self._client = Consumer(self.config.to_config())
+        assert self._client is not None
+        _LOGGER.debug("Consumer ready")
 
     def list_topics(self) -> list[TopicMetadata]:
         """AdminClient"""
@@ -43,58 +75,137 @@ class KafkaClient:
         )
         return raw_topics
 
-    def get_last_n_messages(self, topic: str, last_n_messages: int = 10) -> list[tuple[int, str]]:
+    def aget_last_messages(self, topic):
+        """Retrieve a single message from `topic`.
+
+
+        Args:
+            topic (): name of the topic
+
+        Raises:
+            ConsumerPollError: Too many polling trials.
+            ValueError: Timestamp did not have a valid value.
+
+        Returns:
+            future (tuple of timestamp, key, offset and payload)
+        """
+        # get event loop
+        loop = asyncio.get_running_loop()
+        assert loop is not None
+        return loop.run_in_executor(None, self._consume, topic)
+
+    def _consume(self, topic:str) -> list[tuple[str, int, bytes, str]]:
+        # This consume uses subscribe to watch for changes
+        # guard against infinite polling
+        # mutates _client state subscribe -> close
+        self._client.subscribe([topic])
+        _msg = None
+        messages = []
+        _c = 0
+        try:
+            # shitfuck
+            while _msg is None:
+                _c += 1
+                if _c >= self.MAX_CONSUMER_POLL:
+                    raise ConsumerPollError("Too many polling.")
+                # Message | None
+                _msg: Message | None = self._client.poll(
+                    self.MESSAGE_POLL_TIMEOUT_SECONDS
+                )
+                if _msg is None:
+                    continue
+                if _msg.error() and _msg.error().retriable():
+                    continue
+                timestamp_type = _msg.timestamp()
+                if timestamp_type[0] != 1:
+                    raise ValueError("Timestamp type not available")
+                timestamp = _timestamp_to_str(timestamp_type[1])
+                messages.append(
+                    (timestamp, _msg.offset(), _msg.key(), str(_msg.value()))
+                )
+        finally:
+            self._client.close()
+
+        return messages
+
+    def _consume_n(self, topic: str, n: int = 1) -> tuple[str, int, bytes, str]:
+        # this consume uses assign API to read specific offset/timestamps
+        # this is horrible, but just shove everything into the coro
+
+        # TODO: partition should not be hardcoded
+        t = TopicPartition(topic, partition=0, offset=OFFSET_BEGINNING)
+        (lo, hi) = self._client.get_watermark_offsets(
+            t, timeout=self.WATERMARK_TIMEOUT_SECONDS, cached=False
+        )
+
+        _LOGGER.debug(f"{lo=} {hi=}")
+        offset = _get_last_n_offset(hi, n)
+        _LOGGER.debug("reading from offset=%s", offset)
+
+        #TODO: Do something about offset
+        #TODO: partition should not be hardcoded
+        t = TopicPartition(topic, partition=0, offset=offset)
+        self._client.assign([t])
+        _LOGGER.debug("%s", f"{self._client.assignment()=}")
+        # compensate with 1, because we cnt-- at start
+        messages = []
+        i = n + 1
+        try:
+            while i := i - 1:
+                try:
+                    # SIGINT can't be handled when polling, limit timeout to 1 second.
+                    _msg = self._client.poll(self.MESSAGE_POLL_TIMEOUT_SECONDS)
+                    if _msg is None:
+                        continue
+                    _LOGGER.debug(
+                        "%s",
+                        f"{_msg.offset():<5}, {str(_msg.value()):>10}, {_msg.topic():>}",
+                    )
+                    # msg.timestamp(), msg.key(), msg.topic(), msg.partition(), msg.offset()
+                    timestamp_type = _msg.timestamp()
+                    if timestamp_type[0] != 1:
+                        # TODO: handle all types: https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#confluent_kafka.Message.timestamp
+                        raise ValueError("Timestamp type not available")
+                    timestamp = _timestamp_to_str(timestamp_type[1])
+                    messages.append(
+                        (timestamp, _msg.offset(), _msg.key(), str(_msg.value()))
+                    )
+                # TODO: handle kafka exception
+                except KeyboardInterrupt:
+                    break
+        finally:
+            self._client.close()
+        return messages  # noqa
+
+    def aget_last_n_messages(
+        self, topic: str, last_n_messages: int = 10
+    ) -> asyncio.Future:
         """Retrieve last n messages from `topic`.
 
         Consumer instantiated.
         """
+        loop = asyncio.get_running_loop()
+        assert loop is not None
+        return loop.run_in_executor(None, self._consume_n, topic, last_n_messages)
+
+
+
+    def get_last_messages(self, topic):
         MESSAGE_POLL_TIMEOUT_SECONDS = 1.0
-        WATERMARK_TIMEOUT_SECONDS = 10.0
-        READ_LAST_N_MESSAGES = 10
 
+        _LOGGER.debug("reading message")
         consumer = Consumer(self.config.to_config())
-
-        def get_last_n_offset(high_mark, last_n):
-            if last_n > high_mark:
-                # offset beginning is -2
-                return OFFSET_BEGINNING
-            else:
-                return high_mark - last_n
-
-        t = TopicPartition(topic, partition=0, offset=-2)
-        (lo, hi) = consumer.get_watermark_offsets(
-            t, timeout=WATERMARK_TIMEOUT_SECONDS, cached=False
-        )
-
-        offset = get_last_n_offset(READ_LAST_N_MESSAGES, hi)
-        _LOGGER.debug("reading from offset=%s", offset)
-        consumer.assign([t])
-        _LOGGER.debug("%s", f"{consumer.assignment()=}")
-
         # compensate with 1, because we cnt-- at start
-        messages = []
-        i = READ_LAST_N_MESSAGES + 1
-        while i := i - 1:
-            try:
-                # SIGINT can't be handled when polling, limit timeout to 1 second.
-                msg = consumer.poll(MESSAGE_POLL_TIMEOUT_SECONDS)
-                if msg is None:
-                    continue
-                _LOGGER.debug(
-                    "%s", f"{msg.offset():<5}, {str(msg.value()):>10}, {msg.topic():>}"
-                )
-                # msg.timestamp(), msg.key(), msg.topic(), msg.partition(), msg.offset()
-                timestamp_type = msg.timestamp()
-                if timestamp_type[0] != 1:
-                    # TODO: handle all types: https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#confluent_kafka.Message.timestamp
-                    raise ValueError("Timestamp type not available")
-                timestamp = _timestamp_to_str(timestamp_type[1])
-                messages.append((timestamp, msg.offset(), msg.key(), str(msg.value())))
-            # TODO: handle kafka exception
-            except KeyboardInterrupt:
-                break
-
-        return messages
+        consumer.subscribe([topic])
+        msg = consumer.poll(MESSAGE_POLL_TIMEOUT_SECONDS)
+        if msg is None:
+            _LOGGER.debug("msg was None")
+            raise NoMessagesError
+        timestamp_type = msg.timestamp()
+        if timestamp_type[0] != 1:
+            raise ValueError("Timestamp type not available")
+        timestamp = _timestamp_to_str(timestamp_type[1])
+        return (timestamp, msg.offset(), msg.key(), str(msg.value()))
 
 
 @dataclass
@@ -134,7 +245,7 @@ if __name__ == "__main__":
     READ_LAST_N_MESSAGES = 10
 
     settings = {
-        "bootstrap.servers": cfg.kafka.bootstrap_server,
+        "bootstrap.servers": cfg.kafka.bootstrap_servers,
         "group.id": "my-work-group-testicle-farts",
         "auto.offset.reset": "earliest",
         "security.protocol": "plaintext",
@@ -154,8 +265,9 @@ if __name__ == "__main__":
     (lo, hi) = consumer.get_watermark_offsets(
         t, timeout=WATERMARK_TIMEOUT_SECONDS, cached=False
     )
+    _LOGGER.debug(f"{lo=} {hi=}")
 
-    offset = get_last_n_offset(READ_LAST_N_MESSAGES, hi)
+    offset = get_last_n_offset(hi, READ_LAST_N_MESSAGES)
     _LOGGER.debug("reading from offset=%s", offset)
     consumer.assign([t])
     _LOGGER.debug("%s", f"{consumer.assignment()=}")

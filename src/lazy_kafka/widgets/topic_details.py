@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from textual import work
@@ -7,9 +8,10 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import (
     DataTable,
-    Placeholder,
     Sparkline,
+    Static,
 )
+from textual.worker import get_current_worker
 
 from lazy_kafka.topic import KafkaClient
 from lazy_kafka.widgets._status import Status
@@ -45,28 +47,32 @@ class TopicDetails(ModalScreen):
     ) -> None:
         super().__init__(name, id, classes)
         self.hook = KafkaClient(self.app.lazy_kafka_config.kafka)
+        self.offset_value = (self.app.lazy_kafka_config.kafka.auto_offset_reset,)
         self.topic = topic
 
     def compose(self) -> ComposeResult:
         yield Vertical(
             Status(),
             Sparkline(data, summary_function=max),
+            Static("Offset: ", id="initial-read-offset-label"),
+            Static(f"{self.offset_value}", id="initial-read-offset"),
             DataTable(cursor_type="row"),
-            Placeholder(f"This is a custom label for {self.topic}.", id="p1"),
             classes="box has-scroll",
         )
 
-    @work(exclusive=True, thread=True)
-    async def load_data(self, data_table: DataTable, display_load=True) -> None:
-        data_table.loading = display_load
-
-        data = self.hook.get_last_n_messages(self.topic)
-        # TODO: add filtering
-        data_table.add_columns(*("Timestamp", "Offset","Key", "Message"))
-        data_table.add_rows(data)
-        data_table.loading = False
+    @work(exclusive=True)
+    async def load_data_gen(self, data_table: DataTable) -> None:
+        worker = get_current_worker()
+        # use the aget_last_message for follow logic
+        # data = await self.hook.aget_last_messages(self.topic)
+        data = await self.hook.aget_last_n_messages(self.topic)
+        if not worker.is_cancelled:
+            for i in data:
+                data_table.add_row(*i)
 
     async def on_mount(self) -> None:
         table = self.query_one(DataTable)
-        self.load_data(table)
+        table.add_columns(*("Timestamp", "Offset", "Key", "Message"))
+        # for _ in range(10):
+        self.load_data_gen(table)
 
