@@ -201,6 +201,8 @@ Footer {
   background: $background;
   dock: top;
   height: 1;
+  width: 1fr;
+  overflow: hidden hidden;
 }
 
 FooterKey {

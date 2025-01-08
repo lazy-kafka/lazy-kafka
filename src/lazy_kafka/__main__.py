@@ -69,7 +69,7 @@ class DashboardScreen(Screen):
             yield TopicPanel(id="topic", classes="box")
             yield SchemaRegistryPanel(id="tab-schema", classes="box")
             yield KConnectPanel(id="tab-connect", classes="box")
-        yield Footer()
+        yield Footer(show_command_palette=False)
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
         """Handle TabActivated message sent by Tabs.
