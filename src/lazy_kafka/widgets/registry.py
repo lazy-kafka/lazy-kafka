@@ -173,7 +173,7 @@ class DeleteDialog(Container, can_focus=True):
 
 
 class SchemaRegistryPanel(MyContainer):
-    """KafkaConnect widget."""
+    """Schema Registry widget."""
 
     BORDER_TITLE = "Subjects"
     BORDER_SUBTITLE = "status"

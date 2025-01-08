@@ -96,8 +96,8 @@ class TopicPanel(MyContainer):
     @work(exclusive=True, thread=True)
     async def load_data(self, data_table: DataTable) -> None:
         data_table.add_column("Name")
-        j = self.hook.list_topics()
-        for t in j:
+
+        for t in self.hook.list_topics():
             data_table.add_row(t.topic)
         data_table.loading = False
 

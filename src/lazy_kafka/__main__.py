@@ -67,8 +67,8 @@ class DashboardScreen(Screen):
         )
         with ContentSwitcher(initial="topic", id="main-content-switcher"):
             yield TopicPanel(id="topic", classes="box")
-            yield SchemaRegistryPanel(id="tab-schema")
-            yield KConnectPanel(id="tab-connect")
+            yield SchemaRegistryPanel(id="tab-schema", classes="box")
+            yield KConnectPanel(id="tab-connect", classes="box")
         yield Footer()
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
