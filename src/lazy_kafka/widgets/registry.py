@@ -256,7 +256,7 @@ class SchemaRegistryPanel(MyContainer):
 
     def __init__(self, *args: Any, **kwargs: Any):
         self.subjects: dict[str, str] = {"": ""}
-        self.hook = registry.SchemaRegistry()
+        self.hook = registry.SchemaRegistry(self.app.lazy_kafka_config.registry.host)
         self.data_auto_refresh = False
         super().__init__(*args, **kwargs)
         _LOGGER.debug(self.subjects)

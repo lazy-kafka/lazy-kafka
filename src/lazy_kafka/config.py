@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
@@ -49,6 +50,8 @@ class ConnectConfiguration:
 @dataclass(frozen=True)
 class RegistryConfiguration:
     host: str = "http://localhost:8081/"
+    username: str | None = None
+    password: str | None = None
 
 
 # TODO: @from_file(Path.home() / ".lazy-kafka.toml")
@@ -60,6 +63,7 @@ class Configuration:
     registry: RegistryConfiguration = field(default_factory=RegistryConfiguration)
     connect: ConnectConfiguration = field(default_factory=ConnectConfiguration)
     request_time_out: int = 1000
+    _file: Path = Path(__file__).parent / "default_config.toml"
 
     def __post_init__(self):
         if not isinstance(self.kafka, KafkaConfiguration):
@@ -77,7 +81,7 @@ class Configuration:
     ):
         with open(file_path, **kwargs) as _f:
             config = file_reader(_f)
-        return cls(**config)
+        return cls(**config, _file = file_path)
 
     @classmethod
     def from_toml(cls, file_path: Path):
@@ -86,6 +90,17 @@ class Configuration:
     @classmethod
     def from_json(cls, file_path: Path):
         return cls.from_file(file_path, json.load)
+
+    @classmethod
+    def from_local_config(cls):
+        # NOTE XDG_HOME is ignored
+        _p = Path.home() / ".config" / ".lazy-kafka.toml"
+        logging.debug("Configfile path: %s", _p)
+        try:
+            return cls.from_toml(Path.home() / ".config" / ".lazy-kafka.toml")
+        except FileNotFoundError as exc:
+            logging.error("No user configuration file.", exc_info=exc)
+            return cls()
 
 
 if __name__ == "__main__":
