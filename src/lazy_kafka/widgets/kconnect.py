@@ -126,7 +126,7 @@ class KConnectPanel(MyContainer):
     def compose(self) -> Any:
         yield Vertical(
             Status(),
-            DataTable(cursor_type="row", fixed_columns=4),
+            DataTable(cursor_type="row", zebra_stripes=True),
         )
 
     def on_mount(self):

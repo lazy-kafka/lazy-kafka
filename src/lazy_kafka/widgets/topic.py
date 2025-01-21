@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from textual import work
+from textual.containers import Vertical
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import Reactive, reactive
@@ -59,7 +60,9 @@ class TopicPanel(MyContainer):
             super().__init__()
 
     def compose(self):
-        yield DataTable()
+        yield Vertical(
+                DataTable(zebra_stripes=True),
+        )
 
     def on_mount(self):
         for data_table in self.query(DataTable):

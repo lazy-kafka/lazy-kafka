@@ -18,74 +18,6 @@ $success: #0b6e0b;
     overflow-y: hidden;
 }
 
-#base00 {
-    color: #000000;
-}
-
-#base00 {
-    color: #000000;
-}
-
-#base01 {
-    color: #121212;
-}
-
-#base02 {
-    color: #222222;
-}
-
-#base03 {
-    color: #333333;
-}
-
-#base04 {
-    color: #999999;
-}
-
-#base05 {
-    color: #c1c1c1;
-}
-
-#base06 {
-    color: #999999;
-}
-
-#base07 {
-    color: #c1c1c1;
-}
-
-#base08 {
-    color: #5f8787;
-}
-
-#base09 {
-    color: #aaaaaa;
-}
-
-#base0A {
-    color: #e78a53;
-}
-
-#base0B {
-    color: #fbcb97;
-}
-
-#base0C {
-    color: #aaaaaa;
-}
-
-#base0D {
-    color: #888888;
-}
-
-#base0E {
-    color: #999999;
-}
-
-#base0F {
-    color: #444444;
-}
-
 Screen {
     layout: vertical;
     background: #000000;
@@ -113,22 +45,26 @@ Tabs .underline--bar {
 
 
 DataTable {
-    height: 90%;
-    width: 1fr;
-    background: #000000;
+    background: transparent;
 }
-
-DataTable > .datatable--odd-row {
-    background: #000000;
-}
-DataTable > .datatable--even-row {
-    background: #0f1525;
-}
-
 
 .datatable--header {
     background: transparent;
     color: $primary;
+    text-style: bold;
+}
+
+.datatable--odd-row {
+    background: $surface-lighten-1;
+}
+
+.datatable--even-row {
+    background: $surface-lighten-3;
+}
+
+.datatable--cursor {
+    color: $accent;
+    background: $primary;
     text-style: bold;
 }
 
@@ -167,7 +103,7 @@ Topic:focus {
     border: round $primary;
     border-subtitle-style: italic;
     border-title-color: $secondary;
-    border-subtitle-color: $secondary-darken-1;
+    border-subtitle-color: $secondary;
 }
 
 .initial {
