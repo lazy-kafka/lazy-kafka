@@ -20,6 +20,8 @@ from textual.widgets import (
     Tabs,
 )
 
+# services
+from lazy_kafka import registry
 from lazy_kafka.config import Configuration
 from lazy_kafka.widgets.kconnect import KConnectPanel
 from lazy_kafka.widgets.registry import SchemaRegistryPanel
@@ -30,6 +32,7 @@ logging.basicConfig(level="NOTSET", handlers=[TextualHandler()])
 
 CONSOLE = rich.console.Console()
 print(textual.__version__)
+
 
 class SettingsScreen(Screen):
     """Screen to display settings."""
@@ -67,7 +70,18 @@ class DashboardScreen(Screen):
         )
         with ContentSwitcher(initial="topic", id="main-content-switcher"):
             yield TopicPanel(id="topic", classes="box")
-            yield SchemaRegistryPanel(id="tab-schema", classes="box")
+
+            try:
+                _hook = registry.SchemaRegistry(
+                    self.app.lazy_kafka_config.registry
+                )
+                yield SchemaRegistryPanel(id="tab-schema", classes="box", hook=_hook)
+            # TODO: implement service init error
+            except AssertionError:
+                # display error message
+                # handled in compose
+                _hook = None
+                yield Label("Error", id="tab-schema")
             yield KConnectPanel(id="tab-connect", classes="box")
         yield Footer(show_command_palette=False)
 
@@ -129,5 +143,10 @@ class LazyKafka(App[None]):
 app = LazyKafka()
 
 if __name__ == "__main__":
+#    _cfg = Configuration.from_local_config().registry
+#    logging.debug("%s", _cfg)
+#    _hook = registry.SchemaRegistry(
+#        _cfg
+#    )
     app = LazyKafka()
     app.run()

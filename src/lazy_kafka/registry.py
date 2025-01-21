@@ -21,10 +21,13 @@ from typing import Any, Optional, TypedDict
 
 import httpx
 
+from lazy_kafka.config import RegistryConfiguration
+
 _LOGGER = logging.getLogger(__name__)
 
 Subject = str
 list_schemas = "schemas/types"
+
 
 class MetaEnum(EnumMeta):
     """Implement `in`."""
@@ -35,6 +38,7 @@ class MetaEnum(EnumMeta):
         except ValueError:
             return False
         return True
+
 
 class SubjectDetails(TypedDict):
     id: int
@@ -60,35 +64,38 @@ class SubjectNew(TypedDict):
     ruleSet: Optional[Any]
 
 
-class SchemaRegistryAPI(StrEnum):
-    SUBJECTS = auto()
-    SCHEMAS = auto()
-
 class SchemaTypes(StrEnum, metaclass=MetaEnum):
     JSON = "JSON"
     PROTOBUF = "PROTOBUF"
     AVRO = "AVRO"
 
+
 class SchemaRegistry:
-    DEFAULT_HOST = "http://localhost:8081/"
     # Reference: https://docs.confluent.io/platform/current/schema-registry/develop/api.html#content-types
     _CONTENT_TYPE = "application/vnd.schemaregistry.v1+json"
 
-    def __init__(self, host: str = DEFAULT_HOST) -> None:
+    def __init__(self, config: RegistryConfiguration = RegistryConfiguration()) -> None:
         """Initialise client.
 
         Performs a sanity 'get' request, before creating a client.
 
         Args:
-            host: 
+            host:
         """
-        _debug_info = httpx.get(host)
+
+        _auth = None
+        if config.username and config.password:
+            # Basic authentication
+            _auth = httpx.BasicAuth(username=config.username, password=config.password)
+
+        _debug_info = httpx.get(config.host, auth = _auth)
         _LOGGER.debug("Registry info: %s", _debug_info)
         assert _debug_info.status_code == 200
-        self.host = host
+        self.host = config.host
         self._client = httpx.AsyncClient(
-            base_url=SchemaRegistry.DEFAULT_HOST,
+            base_url=self.host,
             headers={"Content-Type": SchemaRegistry._CONTENT_TYPE},
+            auth = _auth
         )
 
     def __repr__(self):
@@ -103,8 +110,8 @@ class SchemaRegistry:
         response = await self._client.get(self.host + url)
         return response.json()
 
-    asubjects = partialmethod(_ageneric_get_json, SchemaRegistryAPI.SUBJECTS)
-    subjects = partialmethod(_generic_get_json, SchemaRegistryAPI.SUBJECTS)
+    asubjects = partialmethod(_ageneric_get_json, "/subjects")
+    subjects = partialmethod(_generic_get_json, "/subjects")
     subjects.__doc__ = """List subjects.
 
         The subjects resource provides a list of all registered subjects across 
@@ -118,33 +125,25 @@ class SchemaRegistry:
 
     async def asubject_versions(self, subject: Subject):
         """Get all versions of `subject`."""
-        _url = SchemaRegistryAPI.SUBJECTS + f"/{subject}/versions"
-        return await self._ageneric_get_json(_url)
+        return await self._ageneric_get_json(url=f"/subjects/{subject}/versions")
 
     async def asubject_latest(self, subject: Subject) -> SubjectDetails:
         """Get latest version of subject."""
-        _url = SchemaRegistryAPI.SUBJECTS + f"/{subject}/versions/-1"
-        return await self._ageneric_get_json(_url)
+        return await self._ageneric_get_json(url=f"/subjects/{subject}/versions/-1")
 
     async def asubjects_delete(self, subject: Subject, version: int):
-        return await self._client.delete(url=f"subjects/{subject}/versions/{version}")
+        return await self._client.delete(url=f"/subjects/{subject}/versions/{version}")
 
     async def aschema_versions(self, subject: Subject):
-        _url = SchemaRegistryAPI.SUBJECTS + f"/{subject}/versions"
-        return await self._ageneric_get_json(_url)
+        return await self._ageneric_get_json(url=f"/subjects/{subject}/versions")
 
     async def asubjects_create(self, subject: Subject, data: SubjectNew):
-        _url = SchemaRegistryAPI.SUBJECTS + "/" + subject + "/versions"
-        print(_url)
-        async with httpx.AsyncClient(
-            base_url=SchemaRegistry.DEFAULT_HOST,
-            headers={"Content-Type": SchemaRegistry._CONTENT_TYPE},
-        ) as client:
-            return await client.post(_url, json=data)
-
+        async with self._client as client:
+            return await client.post(url=f"/subjects/{subject}/versions", json=data)
 
     def _serialize_json_schema(self, schema: object) -> str:
         return json.dumps(schema)
+
 
 async def test_async_api():
     import json
@@ -161,8 +160,9 @@ async def test_async_api():
         schemaType="JSONSchema",
     )
     res = await sr.asubjects_create(
-            #TODO remove the dumps form here
-        "other", data={"schema": schema, "schemaType": "JSONSchema"}
+        # TODO remove the dumps form here
+        "other",
+        data={"schema": schema, "schemaType": "JSONSchema"},
     )
     print(res)
     return res

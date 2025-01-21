@@ -1,2 +1,12 @@
--r requirements.txt
-ruff==0.4.10
+click>=8.0.0
+confluent-kafka[avro,json,protobuf]<=2.5.3,>=2.4.0
+httpx
+rich
+textual>=1.0.0
+textual-dev
+pre-commit == 3.7.*
+ruff == 0.4.4
+mypy == 1.10.*
+versioningit>=3.1.2
+towncrier == 23.11.*
+hypothesis == 6.115.*

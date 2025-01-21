@@ -49,7 +49,7 @@ class ConnectConfiguration:
 
 @dataclass(frozen=True)
 class RegistryConfiguration:
-    host: str = "http://localhost:8081/"
+    host: str = "http://localhost:8081"
     username: str | None = None
     password: str | None = None
 

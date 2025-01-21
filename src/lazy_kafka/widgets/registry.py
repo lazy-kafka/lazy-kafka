@@ -35,7 +35,7 @@ def get_current_time() -> str:
     return time.strftime("%H:%M:%S", time.localtime())
 
 class ValidSchemaType(Validator):
-    """A custom validator"""
+    """A custom validator."""
 
     def validate(self, value: str) -> ValidationResult:
         """Check a string is equal to its reverse."""
@@ -223,7 +223,7 @@ class SchemaRegistryPanel(MyContainer):
         self.mount(DeleteDialog(self.selected_id, id="delete-dialog"))
         self.post_message(self.DialogOpen("#delete"))
 
-    @work(exclusive=True)
+    @work(exclusive=True, exit_on_error=False)
     async def on_delete_dialog_delete(self, message: DeleteDialog.Delete):
         r = await self.hook.asubjects_delete(
             message.selected_id, version=self.details["version"]
@@ -254,9 +254,10 @@ class SchemaRegistryPanel(MyContainer):
         for data_table in self.query(DataTable):
             self.load_data(data_table, display_load=False)
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, hook: registry.SchemaRegistry, *args: Any, **kwargs: Any):
+        _LOGGER.critical("INIT")
         self.subjects: dict[str, str] = {"": ""}
-        self.hook = registry.SchemaRegistry(self.app.lazy_kafka_config.registry.host)
+        self.hook = hook
         self.data_auto_refresh = False
         super().__init__(*args, **kwargs)
         _LOGGER.debug(self.subjects)
@@ -276,17 +277,17 @@ class SchemaRegistryPanel(MyContainer):
             super().__init__()
 
     def compose(self) -> Any:
-        yield Vertical(
-            Status(),
-            DataTable(cursor_type="row", fixed_columns=4),
-        )
+            yield Vertical(
+                Status(),
+                DataTable(cursor_type="row", fixed_columns=4),
+            )
 
     def on_mount(self):
         data_table = self.query_one(DataTable)
         data_table.add_column("Subjects")
         self.update_timer = self.set_interval(2, self.action_load_data, pause=True)
 
-    @work(exclusive=True)
+    @work(exclusive=True, exit_on_error=False)
     async def on_schema_registry_panel_selected(
         self, message: SchemaRegistryPanel.Selected
     ) -> None:
@@ -295,7 +296,7 @@ class SchemaRegistryPanel(MyContainer):
         Currently -> Message() -> Reactive() -> watch_topic()
         """
         _LOGGER.info("HELLOOO %s", message)
-        _LOGGER.debug(message.selected_id)
+        _LOGGER.debug(f"{message.selected_id=}")
         # Note, this should be in the init method ...
         self.selected_id = message.selected_id
         self.details = await self.hook.asubject_latest(message.selected_id)

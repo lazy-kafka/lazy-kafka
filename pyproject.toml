@@ -165,7 +165,7 @@ pythonPlatform = "Linux"
 executionEnvironments = [
   { root = "src" }
 ]
-venvPath = ".venv"
+venvPath = "venv"
 venv = "dev"
 
 [tool.ruff]
