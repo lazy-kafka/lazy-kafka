@@ -20,7 +20,7 @@ from textual.widgets import (
     Pretty,
     TextArea,
 )
-from textual.widgets.data_table import DuplicateKey
+from textual.widgets.data_table import DuplicateKey, RowDoesNotExist
 
 from lazy_kafka import registry
 from lazy_kafka.widgets._status import Status
@@ -33,6 +33,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def get_current_time() -> str:
     return time.strftime("%H:%M:%S", time.localtime())
+
 
 class ValidSchemaType(Validator):
     """A custom validator."""
@@ -47,6 +48,7 @@ class ValidSchemaType(Validator):
     @staticmethod
     def is_valid_schema_type(value: str) -> bool:
         return value in registry.SchemaTypes
+
 
 class CreateDialog(Container, can_focus=True):
     """Modal to display on creating new schema."""
@@ -100,7 +102,11 @@ class CreateDialog(Container, can_focus=True):
         text_area.language = "json"
         yield Grid(
             Input(placeholder="Subject name", id="subject-name"),
-            Input(placeholder="JSON | AVRO | PROTOBUF", id="schema-type", validators=[ValidSchemaType()]),
+            Input(
+                placeholder="JSON | AVRO | PROTOBUF",
+                id="schema-type",
+                validators=[ValidSchemaType()],
+            ),
             text_area,
             Button("Create", variant="success", id="create"),
             Button("Cancel", variant="primary", id="cancel"),
@@ -179,7 +185,7 @@ class SchemaRegistryPanel(MyContainer):
     BORDER_SUBTITLE = "status"
     BINDINGS = [
         ("j", "next_widget_item", "↓"),
-        ("k", "previous_widget_item","↑"),
+        ("k", "previous_widget_item", "↑"),
         ("f", "toggle_refresh", "Toggle follow"),
         ("c", "create", "create"),
         ("d", "delete", "delete"),
@@ -234,7 +240,7 @@ class SchemaRegistryPanel(MyContainer):
     async def on_create_dialog_create(self, message: CreateDialog.Create):
         r = await self.hook.asubjects_create(
             message.subject_name,
-            data={"schema": message.schema, "schemaType": message.schema_type}
+            data={"schema": message.schema, "schemaType": message.schema_type},
         )
         if r.is_success:
             _LOGGER.info("Topic created %s", r)
@@ -277,10 +283,10 @@ class SchemaRegistryPanel(MyContainer):
             super().__init__()
 
     def compose(self) -> Any:
-            yield Vertical(
-                Status(),
-                DataTable(cursor_type="row", zebra_stripes=True),
-            )
+        yield Vertical(
+            Status(),
+            DataTable(cursor_type="row", zebra_stripes=True),
+        )
 
     def on_mount(self):
         data_table = self.query_one(DataTable)
@@ -339,13 +345,20 @@ class SchemaRegistryPanel(MyContainer):
         self.subjects = {i: i for i in await self.hook.asubjects()}
         # For now, clearing the whole table looks viable...
         # problem is that it resets the highlighted row - annoying
-        data_table.clear()
         for i in self.subjects.values():
             try:
                 data_table.add_row(i, key=i)
             except DuplicateKey:
-                data_table.remove_row(row_key=i)
-                data_table.add_row(i, key=i)
+                # No details are shown in rows, so it's ok to just pass
+                continue
+        # Set the cursor to the same row
+        # TODO: emit data-loaded event and react to that with "move_cursor"
+        try:
+            _new_index_of_old_row = data_table.get_row_index(self.selected_id)
+        except RowDoesNotExist:
+            _new_index_of_old_row = None
+        if _new_index_of_old_row:
+            data_table.move_cursor(row=_new_index_of_old_row)
 
         data_table.loading = False
         label = self.query_one("#time", Label)

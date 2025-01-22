@@ -180,6 +180,9 @@ class KConnectPanel(MyContainer):
                     *connector_to_data_table_row(connector), key=connector.name
                 )
             except DuplicateKey:
+                # This is useful, if I do not maintain the internal state of
+                # currently selected "subject". I use the other approach on the
+                # registry screen.
                 _current_row_index = data_table.cursor_row
                 _current_row_key = data_table.get_row_at(_current_row_index)[0]
                 data_table.remove_row(row_key=connector.name)
