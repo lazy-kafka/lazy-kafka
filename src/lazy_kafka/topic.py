@@ -210,8 +210,8 @@ class KafkaClient:
 
 @dataclass
 class TopicData:
-    topic: Optional[str] = None
-    partitions: Optional[object] = None
+    topic: str
+    partitions: object
 
 
 def topic_data_to_dict(topic: TopicData):

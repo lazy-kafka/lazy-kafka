@@ -11,12 +11,14 @@ from textual.widgets import (
     DataTable,
     Pretty,
 )
+from textual.widgets.data_table import RowDoesNotExist
 
-from lazy_kafka.topic import TopicData, KafkaClient, topic_data_to_dict
+from lazy_kafka.topic import KafkaClient, TopicData, topic_data_to_dict
 from lazy_kafka.widgets.common import Details, MyContainer, MyScrollableContainer
 from lazy_kafka.widgets.topic_details import TopicDetails
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class TopicPanel(MyContainer):
     """Topics widget."""
@@ -30,7 +32,7 @@ class TopicPanel(MyContainer):
         ("escape", "unset_topic", "close"),
     ]
 
-    topic: Reactive[TopicData] = reactive(TopicData())
+    topic: Reactive[TopicData | None] = reactive(None)
 
     def action_next_widget_item(self):
         self.query_one(DataTable).action_cursor_down()
@@ -40,7 +42,7 @@ class TopicPanel(MyContainer):
 
     def action_details(self):
         _LOGGER.info("show details:")
-        assert self.topic.topic is not None
+        assert self.topic is not None
         self.app.push_screen(TopicDetails(topic=self.topic.topic))
 
     def __init__(self, *args, **kwargs):
@@ -56,12 +58,12 @@ class TopicPanel(MyContainer):
 
         def __init__(self, topic: TopicData) -> None:
             self.topic = topic
-            _LOGGER.debug(f"INIT: {self.topic!r}")
+            _LOGGER.debug("%s", f"INIT: {self.topic!r}")
             super().__init__()
 
     def compose(self):
         yield Vertical(
-                DataTable(zebra_stripes=True),
+            DataTable(zebra_stripes=True),
         )
 
     def on_mount(self):
@@ -101,7 +103,18 @@ class TopicPanel(MyContainer):
         data_table.add_column("Name")
 
         for t in self.hook.list_topics():
-            data_table.add_row(t.topic)
+            data_table.add_row(t.topic, key=t.topic)
+
+        if self.topic is None:
+            data_table.loading = False
+            return
+
+        try:
+            _new_index_of_old_row = data_table.get_row_index(self.topic.topic)
+        except RowDoesNotExist:
+            _new_index_of_old_row = None
+        if _new_index_of_old_row:
+            data_table.move_cursor(row=_new_index_of_old_row)
         data_table.loading = False
 
     def on_data_table_cell_highlighted(self, event: DataTable.CellHighlighted) -> None:
@@ -121,7 +134,7 @@ class TopicPanel(MyContainer):
         Should be handled inside the details widget at least...
         """
         topic = self.topic
-        if topic.topic is None:
+        if topic is None:
             raise ValueError
         topic_details = self.query_one(Details)
         topic_details.detail_name = (
