@@ -7,6 +7,7 @@ from typing import Any
 
 from textual import events, work
 from textual.app import ComposeResult
+from textual.binding import Binding, BindingType
 from textual.containers import Container, Grid, Vertical
 from textual.css.query import NoMatches
 from textual.message import Message
@@ -190,6 +191,7 @@ class SchemaRegistryPanel(MyContainer):
         ("c", "create", "create"),
         ("d", "delete", "delete"),
         ("escape", "unset_topic", "close"),
+        Binding("slash", "search_subject", "Search", False),
     ]
 
     selected_id: Reactive[str] = reactive(str)
@@ -259,6 +261,18 @@ class SchemaRegistryPanel(MyContainer):
     async def action_load_data(self):
         for data_table in self.query(DataTable):
             self.load_data(data_table, display_load=False)
+
+    async def action_search_subject(self) -> None:
+        try:
+            res = self.query_one(Input)
+            await res.remove()
+        except NoMatches:
+            res = await self.mount(
+                Input(placeholder="Search..."), before=self.query_one(DataTable)
+            )
+            # self.set_focus(res)
+            res = self.query_one(Input)
+            self.app.set_focus(res)
 
     def __init__(self, hook: registry.SchemaRegistry, *args: Any, **kwargs: Any):
         _LOGGER.critical("INIT")
@@ -387,3 +401,23 @@ class SchemaRegistryPanel(MyContainer):
         if selected_id is None:
             raise ValueError
         self.query_one(Pretty).update(self.details)
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        logging.debug(event)
+        TOKEN = event.value
+        table = self.query_one(DataTable)
+        table.loading = True
+        table.clear()
+        _rows = {
+            k: v.replace(TOKEN, f"[dark_orange]{TOKEN}[/dark_orange]")
+            for k, v in self.subjects.items()
+            if TOKEN in v.lower()
+        }
+        for k, v in _rows.items():
+            table.add_row(v, key=k)
+#        for k, v in self.subjects.items():
+#            if token in v.lower():
+#                v.replace(token, f"[dark_orange]{token}[/dark_orange]")
+#                table.add_row(v, key=k)
+
+        table.loading = False
