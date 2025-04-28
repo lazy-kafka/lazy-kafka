@@ -21,6 +21,8 @@ from lazy_kafka.widgets._status import Status
 from lazy_kafka.widgets.common import Details, MyContainer, MyScrollableContainer
 from lazy_kafka.widgets.topic_details import TopicDetails
 
+from lazy_kafka.utils import get_current_time
+
 logging.basicConfig(level=logging.INFO)
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,10 +60,6 @@ def _apply_styling(d: connect.ConnectorData) -> connect.ConnectorData:
 
 def connector_to_data_table_row(data: connect.ConnectorData) -> tuple:
     return _apply_styling(data).to_tuple()
-
-
-def get_current_time() -> str:
-    return time.strftime("%H:%M:%S", time.localtime())
 
 
 class KConnectPanel(MyContainer):

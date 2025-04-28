@@ -53,7 +53,7 @@ def main():
     cfg = Configuration()
 
     settings = {
-        "bootstrap.servers": cfg.kafka.bootstrap_server,
+        "bootstrap.servers": cfg.kafka.bootstrap_servers,
         "group.id": "my-work-group-testicle",
         "auto.offset.reset": "latest",
         "security.protocol": "plaintext",

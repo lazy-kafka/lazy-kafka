@@ -23,8 +23,8 @@ pip install lazy-kafka
 # dev
 run:
 - 🐳 docker environment `$ scripts/start-up`
-- 📃 `$ hatch run dev:console`
-- 💾 `$ hatch run dev:app`
+- 📃 `$ hatch run dev:console` -> `🐣 lazy-kafka/scripts ➜ textual console -x EVENT -x SYSTEM --port 7342`
+- 💾 `$ hatch run dev:app` -> `🐣 lazy-kafka ❯ python src/lazy_kafka/__main__.py`
 
 If you are using pip:
 - `pip install -e .`
@@ -81,6 +81,16 @@ Generate client code from openapi
 - kakfa-connect
 -schema-registy
 
+## 04-28
+- [x] kafka consume feature
+- [ ] kafka consume UI with message table
+- [ ] CLI
+  - [x] initial set up
+  - [ ] factor into own module
+  - [x] consume command to follow topic
+  - [ ] produce command (de-scope e.g.: schemathesis like test data generation)
+- [ ] tests
+  - [-] :( 
 
 ## 09-15
 - schema listing and browsing

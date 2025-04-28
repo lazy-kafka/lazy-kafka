@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from functools import cached_property
 from pathlib import Path
+import sys
 
 import rich.console
 import textual
@@ -28,10 +29,10 @@ from lazy_kafka.widgets.registry import SchemaRegistryPanel
 from lazy_kafka.widgets.switcher import ContentSwitcher
 from lazy_kafka.widgets.topic import TopicPanel
 
-logging.basicConfig(level="NOTSET", handlers=[TextualHandler()])
+# logging.basicConfig(level="NOTSET", handlers=[TextualHandler()])
 
-CONSOLE = rich.console.Console()
-print(textual.__version__)
+# CONSOLE = rich.console.Console()
+# print(textual.__version__)
 
 
 class SettingsScreen(Screen):
@@ -143,10 +144,16 @@ class LazyKafka(App[None]):
 app = LazyKafka()
 
 if __name__ == "__main__":
+# TODO: config will have to be read earlier so the CLI can handle it.
 #    _cfg = Configuration.from_local_config().registry
 #    logging.debug("%s", _cfg)
 #    _hook = registry.SchemaRegistry(
 #        _cfg
 #    )
-    app = LazyKafka()
-    app.run()
+    if len(sys.argv) <= 1:
+        app = LazyKafka()
+        app.run()
+    else:
+        from lazy_kafka.cli import app
+
+        app()

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 from typing import Any
 
 from textual import events, work
@@ -26,14 +25,12 @@ from textual.widgets.data_table import DuplicateKey, RowDoesNotExist
 from lazy_kafka import registry
 from lazy_kafka.widgets._status import Status
 from lazy_kafka.widgets.common import MyContainer, MyScrollableContainer
+from lazy_kafka.utils import get_current_time
 
 logging.basicConfig(level=logging.INFO)
 
 _LOGGER = logging.getLogger(__name__)
 
-
-def get_current_time() -> str:
-    return time.strftime("%H:%M:%S", time.localtime())
 
 
 class ValidSchemaType(Validator):

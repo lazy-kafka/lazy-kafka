@@ -31,6 +31,10 @@ class KafkaConfiguration:
     enable_auto_commit: str = "false"
     sasl_username: str = ""
     sasl_password: str = ""
+    logger: logging.Handler | None = None
+    # Note: log_queue has to go together with the logger param, so spotaneous logging from
+    #   (non-python) threads is avoided.
+    log_queue: bool = True
 
     def to_config(self, flavor: str = "librdkafka"):
         match flavor:
