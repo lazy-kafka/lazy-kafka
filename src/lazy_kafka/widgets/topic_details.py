@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import json
 
 from textual import work
 from textual.containers import Vertical
@@ -13,11 +14,35 @@ from textual.widgets import (
 )
 from textual.worker import get_current_worker
 
-from lazy_kafka.topic import KafkaClient
+from textual.reactive import Reactive, reactive
+
+from lazy_kafka.topic import KafkaClient, LazyKafkaMessage
 from lazy_kafka.widgets._status import Status
 
 from lazy_kafka.utils import get_current_time
 
+from textual import events, work
+from textual.app import ComposeResult
+from textual.binding import Binding, BindingType
+from textual.containers import Container, Grid, Vertical
+from textual.css.query import NoMatches
+from textual.message import Message
+from textual.reactive import Reactive, reactive
+from textual.validation import ValidationResult, Validator
+from textual.widgets import (
+    Button,
+    DataTable,
+    Input,
+    Label,
+    Pretty,
+    TextArea,
+)
+from textual.widgets.data_table import DuplicateKey, RowDoesNotExist
+
+from lazy_kafka import registry
+from lazy_kafka.widgets._status import Status
+from lazy_kafka.widgets.common import MyContainer, MyScrollableContainer
+from lazy_kafka.utils import get_current_time
 _LOGGER = logging.getLogger(__name__)
 import random
 from typing import TYPE_CHECKING
@@ -37,9 +62,19 @@ data = [random.expovariate(1 / 3) for _ in range(1000)]
 
 class TopicDetails(ModalScreen):
     BINDINGS = [
+        ("j", "next_widget_item", "next"),
+        ("k", "previous_widget_item", "prev"),
         ("f", "toggle_refresh", "Toggle follow"),
         ("escape", "dismiss", "X"),
     ]
+
+    details: Reactive[LazyKafkaMessage | None] = reactive(None)
+
+    def action_next_widget_item(self):
+        self.query_one(DataTable).action_cursor_down()
+
+    def action_previous_widget_item(self):
+        self.query_one(DataTable).action_cursor_up()
 
     def action_stop_refresh(self):
         self.update_timer.pause()
@@ -80,21 +115,59 @@ class TopicDetails(ModalScreen):
         yield Vertical(
             Status(),
             Sparkline(data, summary_function=max),
-            Static("Offset: ", id="initial-read-offset-label"),
-            Static(f"{self.offset_value}", id="initial-read-offset"),
+            Static(f"Topic: {self.topic}", id="topic-label"),
             DataTable(cursor_type="row"),
             classes="box has-scroll",
         )
+
+    def watch_details(self, details: LazyKafkaMessage):
+        """Callback on topic changed.
+
+        Args:
+            topic:
+        """
+        try:
+            details_panel = self.query_one(Pretty)
+        except NoMatches as _:
+            details_panel = MyScrollableContainer(
+                Pretty([]), id="details", classes="box initial"
+            )
+            self.mount(details_panel)
+            return
+        self.log(f"{details}")
+        self.query_one(Pretty).update(details)
+
+    class Selected(Message):
+        """Color selected message."""
+
+        def __init__(self, message: LazyKafkaMessage) -> None:
+            self.message = message
+            super().__init__()
+
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        # The post_message method sends an event to be handled in the DOM
+        _LOGGER.debug(f"selected: {event=}")
+        _LOGGER.debug(f"selected: {event!r}")
+        if event.row_key.value is None:
+            _LOGGER.error("False event")
+            return
+        self.post_message(self.Selected(self.subjects[event.row_key.value]))
+
+    def on_topic_details_selected(self, message: TopicDetails.Selected):
+        _LOGGER.debug(f"{message.message=}")
+        _msg = json.loads("{" + str(message.message).split(sep="{")[1].rsplit("}")[0] + "}")
+        self.details=_msg
+
 
     @work(exclusive=True)
     async def load_data(self, data_table: DataTable, display_load=True) -> None:
         data_table.loading = display_load
         worker = get_current_worker()
         # use the aget_last_message for follow logic
-        data = await self.hook.aget_last_n_messages(self.topic)
+        self.subjects = {str(i.offset): i for i in await self.hook.aget_last_n_messages(self.topic)}
         if not worker.is_cancelled:
-            for i in data:
-                data_table.add_row(*i)
+            for k,v in self.subjects.items():
+                data_table.add_row(*v, key=k)
 
         data_table.loading = False
         label = self.query_one("#time", Label)

@@ -342,7 +342,7 @@ class KafkaClient:
 
     def aget_last_n_messages(
         self, topic: str, last_n_messages: int = 10
-    ) -> asyncio.Future:
+    ) -> asyncio.Future[list[LazyKafkaMessage]]:
         """Retrieve last n messages from `topic`.
 
         Consumer instantiated.

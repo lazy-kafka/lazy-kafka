@@ -412,9 +412,5 @@ class SchemaRegistryPanel(MyContainer):
         }
         for k, v in _rows.items():
             table.add_row(v, key=k)
-#        for k, v in self.subjects.items():
-#            if token in v.lower():
-#                v.replace(token, f"[dark_orange]{token}[/dark_orange]")
-#                table.add_row(v, key=k)
 
         table.loading = False
