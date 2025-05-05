@@ -6,12 +6,7 @@ import json
 from textual import work
 from textual.containers import Vertical
 from textual.screen import ModalScreen
-from textual.widgets import (
-    DataTable,
-    Sparkline,
-    Static,
-    Label
-)
+from textual.widgets import DataTable, Header, Sparkline, Static, Label, Footer
 from textual.worker import get_current_worker
 
 from textual.reactive import Reactive, reactive
@@ -24,7 +19,7 @@ from lazy_kafka.utils import get_current_time
 from textual import events, work
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
-from textual.containers import Container, Grid, Vertical
+from textual.containers import Container, Grid, Vertical, Horizontal
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import Reactive, reactive
@@ -43,6 +38,7 @@ from lazy_kafka import registry
 from lazy_kafka.widgets._status import Status
 from lazy_kafka.widgets.common import MyContainer, MyScrollableContainer
 from lazy_kafka.utils import get_current_time
+
 _LOGGER = logging.getLogger(__name__)
 import random
 from typing import TYPE_CHECKING
@@ -112,13 +108,16 @@ class TopicDetails(ModalScreen):
         self.data_auto_refresh = False
 
     def compose(self) -> ComposeResult:
-        yield Vertical(
-            Status(),
-            Sparkline(data, summary_function=max),
-            Static(f"Topic: {self.topic}", id="topic-label"),
-            DataTable(cursor_type="row"),
-            classes="box has-scroll",
-        )
+        yield Header()
+
+        with Vertical(classes="box has-scroll"):
+            yield Status()
+            yield Sparkline(data, summary_function=max)
+            yield Static(f"Topic: {self.topic}", id="topic-label")
+            with Horizontal(id="main-content"):
+                yield DataTable(cursor_type="row")
+            
+        yield Footer(show_command_palette=False)
 
     def watch_details(self, details: LazyKafkaMessage):
         """Callback on topic changed.
@@ -132,10 +131,11 @@ class TopicDetails(ModalScreen):
             details_panel = MyScrollableContainer(
                 Pretty([]), id="details", classes="box initial"
             )
-            self.mount(details_panel)
+            _h = self.query_one("#main-content", Horizontal)
+            _h.mount(details_panel)
             return
-        self.log(f"{details}")
         self.query_one(Pretty).update(details)
+        self.log(f"{details}")
 
     class Selected(Message):
         """Color selected message."""
@@ -155,18 +155,22 @@ class TopicDetails(ModalScreen):
 
     def on_topic_details_selected(self, message: TopicDetails.Selected):
         _LOGGER.debug(f"{message.message=}")
-        _msg = json.loads("{" + str(message.message).split(sep="{")[1].rsplit("}")[0] + "}")
-        self.details=_msg
-
+        _msg = json.loads(
+            "{" + str(message.message).split(sep="{")[1].rsplit("}")[0] + "}"
+        )
+        self.details = _msg
+        _LOGGER.debug("details updated")
 
     @work(exclusive=True)
     async def load_data(self, data_table: DataTable, display_load=True) -> None:
         data_table.loading = display_load
         worker = get_current_worker()
         # use the aget_last_message for follow logic
-        self.subjects = {str(i.offset): i for i in await self.hook.aget_last_n_messages(self.topic)}
+        self.subjects = {
+            str(i.offset): i for i in await self.hook.aget_last_n_messages(self.topic)
+        }
         if not worker.is_cancelled:
-            for k,v in self.subjects.items():
+            for k, v in self.subjects.items():
                 data_table.add_row(*v, key=k)
 
         data_table.loading = False
@@ -181,3 +185,6 @@ class TopicDetails(ModalScreen):
         self.load_data(table)
         self.update_timer = self.set_interval(2, self.action_load_data, pause=True)
 
+
+    def on_my_scrollable_container_completed(self):
+        self.query_one(Pretty).update(self.details)
