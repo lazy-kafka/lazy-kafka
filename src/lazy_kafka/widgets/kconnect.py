@@ -159,7 +159,7 @@ class KConnectPanel(MyContainer):
             details_panel = self.query_one(Details)
         except NoMatches as _:
             details_panel = MyScrollableContainer(
-                Details(), Pretty([]), id="details", classes="box initial"
+                Details(), Pretty([]), id="details", classes="has-border initial"
             )
             self.mount(details_panel)
             return

@@ -88,7 +88,7 @@ class TopicPanel(MyContainer):
             topic_details = self.query_one(Details)
         except NoMatches as _:
             details_panel = MyScrollableContainer(
-                Details(), Pretty([]), id="details", classes="box initial"
+                Details(), Pretty([]), id="details", classes="has-border"
             )
             self.mount(details_panel)
             return

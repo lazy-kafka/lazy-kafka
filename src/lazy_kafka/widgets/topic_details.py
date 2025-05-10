@@ -110,7 +110,7 @@ class TopicDetails(ModalScreen):
     def compose(self) -> ComposeResult:
         yield Header()
 
-        with Vertical(classes="box has-scroll"):
+        with Vertical(classes="has-border has-scroll"):
             yield Status()
             yield Sparkline(data, summary_function=max)
             yield Static(f"Topic: {self.topic}", id="topic-label")
@@ -129,7 +129,7 @@ class TopicDetails(ModalScreen):
             details_panel = self.query_one(Pretty)
         except NoMatches as _:
             details_panel = MyScrollableContainer(
-                Pretty([]), id="details", classes="box initial"
+                Pretty([]), id="details", classes="has-border initial"
             )
             _h = self.query_one("#main-content", Horizontal)
             _h.mount(details_panel)

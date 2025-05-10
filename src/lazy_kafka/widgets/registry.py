@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from textual import events, work
-from textual.app import ComposeResult
-from textual.binding import Binding, BindingType
-from textual.containers import Container, Grid, Vertical
+from textual.containers import Container, Grid
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import Reactive, reactive
@@ -17,20 +15,21 @@ from textual.widgets import (
     DataTable,
     Input,
     Label,
-    Pretty,
     TextArea,
 )
-from textual.widgets.data_table import DuplicateKey, RowDoesNotExist
 
 from lazy_kafka import registry
 from lazy_kafka.widgets._status import Status
-from lazy_kafka.widgets.common import MyContainer, MyScrollableContainer
-from lazy_kafka.utils import get_current_time
+from lazy_kafka.widgets.common import (
+    WidgetWithDataTable,
+)
+
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
 
 logging.basicConfig(level=logging.INFO)
 
 _LOGGER = logging.getLogger(__name__)
-
 
 
 class ValidSchemaType(Validator):
@@ -176,47 +175,26 @@ class DeleteDialog(Container, can_focus=True):
         )
 
 
-class SchemaRegistryPanel(MyContainer):
+class DialogOpen(Message):
+    """Color selected message."""
+
+    def __init__(self, selected_id: str) -> None:
+        self.selected_id = selected_id
+        super().__init__()
+
+
+class SchemaRegistryPanel(WidgetWithDataTable):
     """Schema Registry widget."""
 
     BORDER_TITLE = "Subjects"
     BORDER_SUBTITLE = "status"
     BINDINGS = [
-        ("j", "next_widget_item", "↓"),
-        ("k", "previous_widget_item", "↑"),
-        ("f", "toggle_refresh", "Toggle follow"),
         ("c", "create", "create"),
         ("d", "delete", "delete"),
-        ("escape", "unset_topic", "close"),
-        Binding("slash", "search_subject", "Search", False),
     ]
 
     selected_id: Reactive[str] = reactive(str)
     details = reactive(registry.SubjectDetails)
-
-    def action_next_widget_item(self):
-        self.query_one(DataTable).action_cursor_down()
-
-    def action_previous_widget_item(self):
-        self.query_one(DataTable).action_cursor_up()
-
-    def action_stop_refresh(self):
-        self.update_timer.pause()
-        label = self.query_one("#icon", Label)
-        label.remove_class("-live")
-        self.data_auto_refresh = False
-
-    def action_start_refresh(self):
-        self.update_timer.resume()
-        label = self.query_one("#icon", Label)
-        label.add_class("-live")
-        self.data_auto_refresh = True
-
-    def action_toggle_refresh(self):
-        if self.data_auto_refresh:
-            self.action_stop_refresh()
-        else:
-            self.action_start_refresh()
 
     async def action_delete(self):
         """Action to display the delete dialog."""
@@ -226,7 +204,7 @@ class SchemaRegistryPanel(MyContainer):
             pass
 
         self.mount(DeleteDialog(self.selected_id, id="delete-dialog"))
-        self.post_message(self.DialogOpen("#delete"))
+        self.post_message(DialogOpen("#delete"))
 
     @work(exclusive=True, exit_on_error=False)
     async def on_delete_dialog_delete(self, message: DeleteDialog.Delete):
@@ -234,6 +212,15 @@ class SchemaRegistryPanel(MyContainer):
             message.selected_id, version=self.details["version"]
         )
         _LOGGER.info("Topic deleted %s", r)
+
+    async def action_create(self):
+        """Action to display the quit dialog."""
+        try:
+            await self.query_one("#details").remove()
+        except NoMatches:
+            pass
+        self.mount(CreateDialog(id="create-dialog"))
+        self.post_message(DialogOpen("TextArea"))
 
     @work(exclusive=True)
     async def on_create_dialog_create(self, message: CreateDialog.Create):
@@ -246,30 +233,9 @@ class SchemaRegistryPanel(MyContainer):
         else:
             _LOGGER.error("%s", r.content.decode("utf8"))
 
-    async def action_create(self):
-        """Action to display the quit dialog."""
-        try:
-            await self.query_one("#details").remove()
-        except NoMatches:
-            pass
-        self.mount(CreateDialog(id="create-dialog"))
-        self.post_message(self.DialogOpen("TextArea"))
-
     async def action_load_data(self):
         for data_table in self.query(DataTable):
             self.load_data(data_table, display_load=False)
-
-    async def action_search_subject(self) -> None:
-        try:
-            res = self.query_one(Input)
-            await res.remove()
-        except NoMatches:
-            res = await self.mount(
-                Input(placeholder="Search..."), before=self.query_one(DataTable)
-            )
-            # self.set_focus(res)
-            res = self.query_one(Input)
-            self.app.set_focus(res)
 
     def __init__(self, hook: registry.SchemaRegistry, *args: Any, **kwargs: Any):
         _LOGGER.critical("INIT")
@@ -279,138 +245,12 @@ class SchemaRegistryPanel(MyContainer):
         super().__init__(*args, **kwargs)
         _LOGGER.debug(self.subjects)
 
-    class Selected(Message):
-        """Color selected message."""
-
-        def __init__(self, selected_id: str) -> None:
-            self.selected_id = selected_id
-            super().__init__()
-
-    class DialogOpen(Message):
-        """Color selected message."""
-
-        def __init__(self, selected_id: str) -> None:
-            self.selected_id = selected_id
-            super().__init__()
-
     def compose(self) -> Any:
-        yield Vertical(
-            Status(),
-            DataTable(cursor_type="row", zebra_stripes=True),
-        )
+        yield Status()
+        yield DataTable(cursor_type="row", zebra_stripes=True)
 
     def on_mount(self):
         data_table = self.query_one(DataTable)
         data_table.add_column("Subjects")
-        self.update_timer = self.set_interval(2, self.action_load_data, pause=True)
-
-    @work(exclusive=True, exit_on_error=False)
-    async def on_schema_registry_panel_selected(
-        self, message: SchemaRegistryPanel.Selected
-    ) -> None:
-        """Set reactive attribute.
-
-        Currently -> Message() -> Reactive() -> watch_topic()
-        """
-        _LOGGER.info("HELLOOO %s", message)
-        _LOGGER.debug(f"{message.selected_id=}")
-        # Note, this should be in the init method ...
-        self.selected_id = message.selected_id
-        self.details = await self.hook.asubject_latest(message.selected_id)
-        _LOGGER.debug(self.details)
-
-    def on_data_table_focused(self, event):
-        _LOGGER.debug("DATA TABLE FOC %s", f"{event!r}")
-
-    async def on_focus(self, event):
-        """Perform a single refresh on focus."""
-        for data_table in self.query(DataTable):
-            self.load_data(data_table)
-
-    def watch_details(self, details: str):
-        """Callback on topic changed.
-
-        Args:
-            topic:
-        """
-        try:
-            details_panel = self.query_one(Pretty)
-        except NoMatches as _:
-            details_panel = MyScrollableContainer(
-                Pretty([]), id="details", classes="box initial"
-            )
-            self.mount(details_panel)
-            return
-        self.query_one(Pretty).update(details)
-        self.log(f"{details}")
-
-    @work(exclusive=True)
-    async def load_data(self, data_table: DataTable, display_load=True) -> None:
-        """Load data.
-
-        Args:
-            display_load (bool): set to false to disable loading animation.
-            data_table: DataTable instance to be updated.
-        """
-        data_table.loading = display_load
-        self.subjects = {i: i for i in await self.hook.asubjects()}
-        # For now, clearing the whole table looks viable...
-        # problem is that it resets the highlighted row - annoying
-        for i in self.subjects.values():
-            try:
-                data_table.add_row(i, key=i)
-            except DuplicateKey:
-                # No details are shown in rows, so it's ok to just pass
-                continue
-        # Set the cursor to the same row
-        # TODO: emit data-loaded event and react to that with "move_cursor"
-        try:
-            _new_index_of_old_row = data_table.get_row_index(self.selected_id)
-        except RowDoesNotExist:
-            _new_index_of_old_row = None
-        if _new_index_of_old_row:
-            data_table.move_cursor(row=_new_index_of_old_row)
-
-        data_table.loading = False
-        label = self.query_one("#time", Label)
-        label.update(f"{get_current_time()}")
-
-    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
-        # The post_message method sends an event to be handled in the DOM
-        _LOGGER.debug(f"selected: {event}")
-        if event.row_key.value is None:
-            _LOGGER.error("False event")
-            return
-        self.post_message(self.Selected(self.subjects[event.row_key.value]))
-
-    def on_my_scrollable_container_completed(self):
-        """This is quite ugly.
-
-        I don't have anything quick to fix it up. It's not truly reactive
-        as I need to wait for the animation to finish first. Then pull the values
-        from the state and send attributes down.
-
-        In that sense, it's reactive, but not 'data' reactive.
-
-        Should be handled inside the details widget at least...
-        """
-        selected_id = self.selected_id
-        if selected_id is None:
-            raise ValueError
-        self.query_one(Pretty).update(self.details)
-
-    def on_input_changed(self, event: Input.Changed) -> None:
-        logging.debug(event)
-        TOKEN = event.value
-        table = self.query_one(DataTable)
-        table.loading = True
-        table.clear()
-        _rows = {
-            k: v.replace(TOKEN, f"[dark_orange]{TOKEN}[/dark_orange]")
-            for k, v in self.subjects.items()
-            if TOKEN in v.lower()
-        }
-        for k, v in _rows.items():
-            table.add_row(v, key=k)
-
-        table.loading = False
+        _LOGGER.debug("HAAARE IN CHILD MOUNT")
+        super().on_mount()

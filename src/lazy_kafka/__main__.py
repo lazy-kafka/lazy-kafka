@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 import logging
+import sys
 from functools import cached_property
 from pathlib import Path
-import sys
 
-import rich.console
-import textual
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.css.query import NoMatches
-from textual.logging import TextualHandler
 from textual.screen import Screen
 from textual.widgets import (
     Footer,
@@ -24,6 +21,7 @@ from textual.widgets import (
 # services
 from lazy_kafka import registry
 from lazy_kafka.config import Configuration
+from lazy_kafka.theme import frog_theme
 from lazy_kafka.widgets.kconnect import KConnectPanel
 from lazy_kafka.widgets.registry import SchemaRegistryPanel
 from lazy_kafka.widgets.switcher import ContentSwitcher
@@ -64,26 +62,27 @@ class DashboardScreen(Screen):
         yield Header()
 
         yield Tabs(
+            # TODO: these widgets should be lazy mounted so e.g.: load_data only runs when they are first visited by the user.
             Tab("Topic", id="topic"),
             Tab("Schema Registry", id="tab-schema"),
             Tab(Text.from_markup(":warning: K-connect"), id="tab-connect"),
             id="tabs",
         )
         with ContentSwitcher(initial="topic", id="main-content-switcher"):
-            yield TopicPanel(id="topic", classes="box")
+            yield TopicPanel(id="topic", classes="has-border")
 
             try:
                 _hook = registry.SchemaRegistry(
                     self.app.lazy_kafka_config.registry
                 )
-                yield SchemaRegistryPanel(id="tab-schema", classes="box", hook=_hook)
+                yield SchemaRegistryPanel(id="tab-schema", classes="has-border", hook=_hook)
             # TODO: implement service init error
             except AssertionError:
                 # display error message
                 # handled in compose
                 _hook = None
                 yield Label("Error", id="tab-schema")
-            yield KConnectPanel(id="tab-connect", classes="box")
+            yield KConnectPanel(id="tab-connect", classes="has-border")
         yield Footer(show_command_palette=False)
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
@@ -138,6 +137,8 @@ class LazyKafka(App[None]):
         logging.debug("app config: %s", f"{self.lazy_kafka_config}")
 
     def on_mount(self) -> None:
+        self.register_theme(frog_theme)
+        self.theme = "frog"
         self.switch_mode("dashboard")
 
 
