@@ -138,8 +138,7 @@ class SchemaRegistry:
         return await self._ageneric_get_json(url=f"/subjects/{subject}/versions")
 
     async def asubjects_create(self, subject: Subject, data: SubjectNew):
-        async with self._client as client:
-            return await client.post(url=f"/subjects/{subject}/versions", json=data)
+        return await self._client.post(url=f"/subjects/{subject}/versions", json=data)
 
     def _serialize_json_schema(self, schema: object) -> str:
         return json.dumps(schema)
