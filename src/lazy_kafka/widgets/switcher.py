@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from textual.await_complete import AwaitComplete
 from textual.containers import Container
 from textual.css.query import NoMatches
-from textual.events import Mount
 from textual.reactive import reactive
-from textual.widget import Widget
+
+if TYPE_CHECKING:
+    from textual.events import Mount
+    from textual.widget import Widget
 
 
 class ContentSwitcher(Container):

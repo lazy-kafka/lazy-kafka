@@ -78,7 +78,6 @@ class Connect:
         Args:
             host:
         """
-
         _auth = None
         if config.username and config.password:
             # Basic authentication

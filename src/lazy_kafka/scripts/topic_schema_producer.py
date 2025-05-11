@@ -1,24 +1,28 @@
+from __future__ import annotations
+
+from functools import partial
+from time import sleep
 from uuid import uuid4
 
 from confluent_kafka import Producer
-from confluent_kafka.serialization import (
-    StringSerializer,
-    SerializationContext,
-    MessageField,
-)
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.json_schema import JSONSerializer
+from confluent_kafka.serialization import (
+    MessageField,
+    SerializationContext,
+    StringSerializer,
+)
 from hypothesis.strategies import text
-from functools import partial
-from time import sleep
+
 from lazy_kafka.config import Configuration
+
 
 def phone_number():
     return partial(text, alphabet=[chr(i) for i in range(48,58)])
 
-class User(object):
+class User:
     """
-    User record
+    User record.
 
     Args:
         name (str): User's name
@@ -51,7 +55,6 @@ def user_to_dict(user, ctx):
     Returns:
         dict: Dict populated with user attributes to be serialized.
     """
-
     # User._address must not be serialized; omit from dict
     return dict(
         name=user.name,
@@ -68,14 +71,11 @@ def delivery_report(err, msg):
         err (KafkaError): The error that occurred on None on success.
         msg (Message): The message that was produced or failed.
     """
-
     if err is not None:
-        print("Delivery failed for User record {}: {}".format(msg.key(), err))
+        print(f"Delivery failed for User record {msg.key()}: {err}")
         return
     print(
-        "User record {} successfully produced to {} [{}] at offset {}".format(
-            msg.key(), msg.topic(), msg.partition(), msg.offset()
-        )
+        f"User record {msg.key()} successfully produced to {msg.topic()} [{msg.partition()}] at offset {msg.offset()}"
     )
 
 
@@ -114,7 +114,7 @@ def main():
 
     producer = Producer({"bootstrap.servers": cfg.kafka.bootstrap_servers})
 
-    print("Producing user records to topic {}. ^C to exit.".format(topic))
+    print(f"Producing user records to topic {topic}. ^C to exit.")
     while True:
         # Serve on_delivery callbacks from previous calls to produce()
         producer.poll(0.0)

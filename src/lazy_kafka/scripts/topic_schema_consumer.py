@@ -1,6 +1,6 @@
+from __future__ import annotations
+
 from confluent_kafka import OFFSET_END, Consumer
-
-
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.json_schema import JSONDeserializer
 
@@ -17,7 +17,6 @@ def dict_to_user(obj, ctx):
             operation.
         obj (dict): Object literal(dict)
     """
-
     if obj is None:
         return None
 

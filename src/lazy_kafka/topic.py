@@ -1,34 +1,35 @@
-"""Kafka topics interface. (lib confluent_kafka)"""
+"""Kafka topics interface. (lib confluent_kafka)."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Mapping, Self, NamedTuple, Protocol
+from datetime import datetime, timezone
+from typing import (
+    Any,
+    Mapping,
+    NamedTuple,
+    Self,
+    override,
+)
 
 from confluent_kafka import (
     OFFSET_BEGINNING,
     OFFSET_INVALID,
     Consumer,
+    KafkaError,
     Message,
     TopicPartition,
-    KafkaError,
 )
 from confluent_kafka.admin import (
     AdminClient,
-    TopicMetadata,
+    TopicMetadata as ConfluentTopicMetadata,
 )
-from datetime import datetime, timezone
 
 from lazy_kafka.config import KafkaConfiguration
 
 _LOGGER = logging.getLogger(__name__)
-
-if TYPE_CHECKING:
-    from confluent_kafka.admin import TopicMetadata
-
-CONFIG = {"bootstrap.servers": "localhost:9092"}
 
 def _timestamp_to_str(timestamp: int) -> str:
     dt = datetime.fromtimestamp(timestamp / 1e3, timezone.utc)
@@ -55,10 +56,12 @@ class OffsetInvalidError(Exception):
 
     [ref](https://github.com/confluentinc/confluent-kafka-python/blob/master/examples/get_watermark_offsets.py)
     """
+
     pass
 
 class LazyKafkaMessage(NamedTuple):
-    """LazyKafka internal message type"""
+    """LazyKafka internal message type."""
+
     timestamp: str
     offset: int
     key: bytes
@@ -67,7 +70,6 @@ class LazyKafkaMessage(NamedTuple):
     @classmethod
     def from_confluent_kafka(cls, msg: Message) -> Self:
         """Alternative constructor from confluent kafka native Message type."""
-
         timestamp_type = msg.timestamp()
         #TODO: handle timestamps properly:
         # https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#confluent_kafka.Message.timestamp
@@ -80,16 +82,33 @@ class LazyKafkaMessage(NamedTuple):
             msg.key(),
             str(msg.value())
         )
-        
 
-class LazyKafkaConsumerProtocol(Protocol):
-    """Protocol that has to be respected by consumer engines."""
-    def subscribe(self, topic: str):
-        ...
 
-    def consume_n(self, n: int):
-        ...
+class TopicMetadata(ConfluentTopicMetadata):
+    topic: str | None
+    partition: Mapping[Any, Any]
+    error: Any
 
+    def to_table_values(self):
+        return self.__dict__()
+
+class Topic(str):
+    """Custom type to represent the selected `subject`.
+
+    The class has to support the `unpack` operator to play nice with
+    textual `DataTable.add_rows`.
+
+
+    """
+
+    def to_table_values(self):
+        return self
+
+    @override
+    def __iter__(self):
+        yield str(self)
+
+# TOOD: assigne aget_details and aget_subjects to implement Protocol
 class KafkaClient:
     """Confluent Kafka based Client."""
 
@@ -113,14 +132,24 @@ class KafkaClient:
     def assign(self, partitions: list[TopicPartition]):
         self._client.assign(partitions)
 
-    def list_topics(self) -> list[TopicMetadata]:
-        """AdminClient"""
+    def list_topics(self) -> dict[Topic, TopicMetadata]:
+        """Using AdminClient get metadata about all topics."""
         admin_client = AdminClient(self.config.to_config())
-        # TODO: maybe typing is wrong here list[Mapping[str,TopicMetadata]]
         raw_topics: list[TopicMetadata] = list(
             admin_client.list_topics(timeout=1000).topics.values()
         )
-        return raw_topics
+        _LOGGER.debug(f"{raw_topics=}")
+        return {Topic(i.topic) : i for i in raw_topics if i.topic is not None}
+
+    def asubjects(self) -> asyncio.Future[dict[Topic, TopicMetadata]]:
+        loop = asyncio.get_running_loop()
+        assert loop is not None
+        return loop.run_in_executor(None, self.list_topics)
+
+    def aget_details(self, topic: Topic):
+        loop = asyncio.get_running_loop()
+        assert loop is not None
+        return loop.run_in_executor(None, self.get_topic_information, topic)
 
     def get_topic_information(self, topic: str) -> TopicMetadata:
         """Return metadata about single topic."""
@@ -131,17 +160,17 @@ class KafkaClient:
         return topic_metadata[topic]
 
     def get_topic_partitions(self, topic: str) -> list[TopicPartition]:
-        """Get all partitions for a topic"""
+        """Get all partitions for a topic."""
         metadata = self.get_topic_information(topic)
 
         partitions = []
         for partition_id in metadata.partitions:
             partitions.append(TopicPartition(topic, partition_id))
-        
+
         return partitions
 
     def get_watermark_offsets(self, partition: TopicPartition) -> tuple[int, int]:
-        """Get the low and high watermark offsets for a partition"""
+        """Get the low and high watermark offsets for a partition."""
         return self._client.get_watermark_offsets(partition, timeout=self.WATERMARK_TIMEOUT_SECONDS, cached=False)
 
     def poll(self):
@@ -164,7 +193,7 @@ class KafkaClient:
                 raise OffsetInvalidError
             raise NoMessagesError
         if msg.error() and msg.error().retriable():
-            raise MessageRetriableError("%s %s".format(msg.error()))
+            raise MessageRetriableError("%s %s".format())
 
         return msg
 
@@ -173,7 +202,8 @@ class KafkaClient:
 
         Usually this is not necessary, however in case the offset was invalid or
         not committed it can be necessary to increase the offset by calling this
-        method."""
+        method.
+        """
         current_partition_assignment = self.position(self._client.assignment())
         assert len(current_partition_assignment) == 1
         current_partition = current_partition_assignment[0]
@@ -186,7 +216,6 @@ class KafkaClient:
 
     def aget_last_messages(self, topic):
         """Retrieve a single message from `topic`.
-
 
         Args:
             topic (): name of the topic
@@ -269,7 +298,6 @@ class KafkaClient:
         This method takes a naive approach and reads equal number of messages,
         from each partition.
         """
-
         partitions = self.get_topic_partitions(topic)
         # Set up offsets for each partition to read the last N messages
         partition_offsets = self.get_partition_offsets(partitions, n)
@@ -281,20 +309,20 @@ class KafkaClient:
                 continue
             tp = TopicPartition(partition.topic, partition.partition, start_offset)
             partition_assignments.append(tp)
-        
+
         self.assign(partition_assignments)
-        
+
         # Collect messages
         messages: list[LazyKafkaMessage] = []
         message_count = 0
         max_messages_total = n
-        
-        
+
+
         while message_count < max_messages_total:
             # Poll for message
             try:
                 msg = self.poll()
-            except NoMessagesError: 
+            except NoMessagesError:
                 # No message within timeout - check if we've reached the end of all partitions
                 # TODO: move this into a member function -> all_done vs not
                 #       can be challenging, should partition state be attached to the KafkaClient???
@@ -308,12 +336,12 @@ class KafkaClient:
                     if current_offset < high_offset:
                         all_done = False
                         break
-                
+
                 # NOTE: break out of the loop here
                 if all_done:
                     break
                 continue
-            
+
             if msg.error():
                 print("---Message---")
                 print(f"{msg.value()}")
@@ -326,17 +354,17 @@ class KafkaClient:
                 else:
                     print(f"Consumer error: {msg.error()}")
                     continue
-            
+
             # Process message
             messages.append(
                 LazyKafkaMessage.from_confluent_kafka(msg)
             )
             message_count += 1
-        
+
         # Sort messages by timestamp if available
         _LOGGER.debug("%s", f"{len(messages)=}")
         messages.sort(key=lambda m: m.timestamp)
-        
+
         # Return the latest N messages
         return messages[-n:] if len(messages) > n else messages
 

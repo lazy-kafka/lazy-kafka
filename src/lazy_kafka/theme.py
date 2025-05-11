@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from textual.theme import Theme
 
 """$background: #000000;   /*base00*/

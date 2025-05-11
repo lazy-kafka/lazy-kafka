@@ -15,9 +15,9 @@ from __future__ import annotations
 
 import json
 import logging
-from enum import EnumMeta, StrEnum, auto
+from enum import EnumMeta, StrEnum
 from functools import partialmethod
-from typing import Any, Optional, TypedDict, override
+from typing import Any, TypedDict, override
 
 import httpx
 
@@ -29,12 +29,13 @@ list_schemas = "schemas/types"
 
 class Subject(str):
     """Custom type to represent the selected `subject`.
-    
+
     The class has to support the `unpack` operator to play nice with
     textual `DataTable.add_rows`.
 
 
     """
+
     def to_table_values(self):
         return self
 
@@ -73,9 +74,9 @@ class SubjectNew(TypedDict):
 
     schema: str
     schemaType: SchemaTypes
-    references: Optional[Any]
-    metadata: Optional[Any]
-    ruleSet: Optional[Any]
+    references: Any | None
+    metadata: Any | None
+    ruleSet: Any | None
 
 
 class SchemaTypes(StrEnum, metaclass=MetaEnum):
@@ -96,7 +97,6 @@ class SchemaRegistry:
         Args:
             host:
         """
-
         _auth = None
         if config.username and config.password:
             # Basic authentication
@@ -128,12 +128,12 @@ class SchemaRegistry:
     subjects = partialmethod(_generic_get_json, "/subjects")
     subjects.__doc__ = """List subjects.
 
-        The subjects resource provides a list of all registered subjects across 
-        all contexts in your Schema Registry. A subject refers to the name under 
+        The subjects resource provides a list of all registered subjects across
+        all contexts in your Schema Registry. A subject refers to the name under
         which the schema is registered. If you are using Schema Registry for Kafka
-        , then a subject refers to either a “<topic>-value” or “<topic>-key” 
-        depending on whether you are registering the value schema for that topic 
-        or the key schema. To learn more about subject name strategies, see 
+        , then a subject refers to either a “<topic>-value” or “<topic>-key”
+        depending on whether you are registering the value schema for that topic
+        or the key schema. To learn more about subject name strategies, see
         [How the naming strategies work](https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/index.html#sr-schemas-subject-name-strategies-work).
         """
 
@@ -170,7 +170,7 @@ async def test_async_api():
             "properties": {"amount": {"type": "number"}, "id": {"type": "number"}},
         }
     )
-    data = SubjectNew(
+    SubjectNew(
         schema=schema,
         schemaType="JSONSchema",
     )

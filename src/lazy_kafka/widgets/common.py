@@ -1,49 +1,63 @@
 from __future__ import annotations
 
-from abc import abstractmethod
 import logging
+from abc import abstractmethod
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    Mapping,
+    Protocol,
+    Sequence,
+    TypeVar,
+    Union,
+)
 
-from typing import Any, Generic, Mapping, Self, TypeVar
-
-from textual import events, work
+from textual import work
+from textual.binding import Binding
 from textual.containers import Container, ScrollableContainer
 from textual.css.query import NoMatches
 from textual.message import Message
-from textual.reactive import reactive
 from textual.widget import Widget
-from textual.binding import Binding
-from textual.widgets import DataTable, Label, Input, Pretty
-
+from textual.widgets import DataTable, Input, Label, Pretty
 from textual.widgets.data_table import DuplicateKey, RowDoesNotExist
 
-from lazy_kafka.types import ProviderProtocol
 from lazy_kafka.utils import get_current_time
+
+if TYPE_CHECKING:
+    from lazy_kafka.types import ProviderProtocol, StrLike
 
 logging.basicConfig(level=logging.INFO)
 
 _LOGGER = logging.getLogger(__name__)
 
-T = TypeVar("T")
-S = TypeVar("S")
+class CanConvertToTable(Protocol):
+    def to_table_values(self) -> Sequence[Any]:
+        ...
+
+T = TypeVar("T", bound=Union[str, None])
+"""Used for the DataTable content and HashMap keys."""
+
+S = TypeVar("S", bound=CanConvertToTable)
+"""Used for Details content and HashMap values."""
 
 
 class SubjectDetails(Widget):
     """Display subject details next to the main table."""
+
     DEFAULT_CSS = """
       SubjectDetails {
+        layer: below;
+        align-vertical:bottom;
         ScrollableContainer {
           layout: vertical;
           width: 1fr;
-          max-height: 90%;
-          height: auto; 
+          height: auto;
           Pretty {
             color: $secondary;
           }
         }
-        align-vertical: bottom;
-        content-align-vertical: bottom;
         width: 1fr;
-        margin-bottom: 8;
       }
     """
     def compose(self):
@@ -61,18 +75,19 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
     The class is generic over:
         `T` - the type used for the `DataTable` content
         `S` - the type used for the `details`
-    
+
     Messages:
         Selected: emitted on new item selected from data table
 
     Instance members:
-        subjects: various subjects populated the data table
+        subjects: a Mapping[str,S] or Mapping[T,S] used as store
 
     Reactive members:
        selected_id: currently selected id (see Messages)
        details: more displayable information about subject corresponding to selected_id
 
     """
+
     BINDINGS = [
         ("j", "next_widget_item", "↓"),
         ("k", "previous_widget_item", "↑"),
@@ -109,6 +124,15 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
       }
     }
     """
+
+    hook: ProviderProtocol[T,S]
+    subjects: Mapping[T,S]
+
+    def __init__(self, *args, **kwargs):
+        assert self.hook is not None
+        assert self.subjects is not None
+        assert self.data_auto_refresh is not None
+        super().__init__(*args, **kwargs)
 
     class Selected(Message):
         """Color selected message."""
@@ -175,14 +199,6 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
     def on_data_table_focused(self, event):
         _LOGGER.debug("DATA TABLE FOC %s", f"{event!r}")
 
-    hook: ProviderProtocol[T,S]
-
-    def __init__(self, *args, **kwargs):
-        # self.subjects: dict[str, T] = dict()
-        assert self.hook is not None
-        #assert self.subjects is not None
-        #assert self.data_auto_refresh is not None
-        super().__init__(*args, **kwargs)
 
     def watch_details(self, details: str):
         """Callback on topic changed."""
@@ -195,9 +211,9 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         self.query_one(Pretty).update(details)
         self.log(f"{details}")
 
-    @abstractmethod
-    async def action_load_data(self, *args, **kwargs):
-        pass
+    async def action_load_data(self):
+        data_table = self.query_one(DataTable)
+        self.load_data(data_table, display_load=False)
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         # The post_message method sends an event to be handled in the DOM
@@ -244,6 +260,7 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         self.subjects = self.subject_to_table(_response)
         # For now, clearing the whole table looks viable...
         # problem is that it resets the highlighted row - annoying
+        _LOGGER.debug(f"self.subjects is None: {self.subjects is None}")
         for k,v in self.subjects.items():
             try:
                 data_table.add_row(*v.to_table_values(), key=k)
@@ -264,59 +281,6 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         label.update(f"{get_current_time()}")
 
     @abstractmethod
-    def subject_to_table(self, *args, **kwargs) -> Mapping[str, T]:
+    def subject_to_table(self, *args, **kwargs) -> Mapping[StrLike, S]:
         ...
-
-
-class MyContainer(Container, can_focus=True):
-    """Class which all plugins should stem from."""
-
-    def on_focus(self):
-        _LOGGER.debug("heeeyaho")
-
-    def action_unset_topic(self) -> None:
-        """Called to remove a timer."""
-        try:
-            topic_details = self.query_one("#details")
-        except NoMatches:
-            return
-        topic_details.remove()
-
-class MyScrollableContainer(ScrollableContainer):
-    """Used for the details panel"""
-
-    class Completed(Message):
-        """Color selected message."""
-
-        def __init__(self) -> None:
-            _LOGGER.debug("%s Mounted", self.__class__)
-            self.done = True
-            super().__init__()
-
-    def on_focus(self) -> None:
-        _LOGGER.debug("HERE")
-
-    def on_mount(self) -> None:
-        def comp():
-            self.post_message(self.Completed())
-
-#        self.styles.animate(
-#            "width", value=30.0, duration=1.0, easing="out_expo", on_complete=comp
-#        )
-
-
-class Details(Widget):
-    detail_name = reactive("")
-
-    def __init__(
-        self,
-        *children: Widget,
-        name: str | None = None,
-        id: str | None = "details-content",
-        classes: str | None = None,
-        disabled: bool = False,
-    ) -> None:
-        super().__init__(
-            *children, name=name, id=id, classes=classes, disabled=disabled
-        )
 

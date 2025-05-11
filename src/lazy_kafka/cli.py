@@ -1,15 +1,13 @@
 """Lazy-kafka CLI."""
+from __future__ import annotations
 
-from confluent_kafka import OFFSET_END, Consumer
-
+import rich.progress
 import typer
+from confluent_kafka import Consumer
+from confluent_kafka.serialization import MessageField, SerializationContext
 from typing_extensions import Annotated
 
 from lazy_kafka.config import Configuration
-
-from confluent_kafka import Consumer
-from confluent_kafka.serialization import SerializationContext, MessageField
-import rich.progress
 
 app = typer.Typer()
 
@@ -59,7 +57,7 @@ def consume_follow(topic: Annotated[str, typer.Argument(help="Name of the topic"
         rich.progress.TimeElapsedColumn(),
         transient=True,
     ) as prog:
-        task1 = prog.add_task("[green]Consuming")
+        prog.add_task("[green]Consuming")
         while True:
             try:
                 msg = next(consumer_iterable)

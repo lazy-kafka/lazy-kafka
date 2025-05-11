@@ -1,29 +1,18 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, override
+from typing import Any
 
-from textual import work
-from textual.containers import Vertical
-from textual.css.query import NoMatches
-from textual.message import Message
 from textual.reactive import Reactive, reactive
 from textual.widgets import (
     DataTable,
-    Label,
-    Pretty,
 )
-from textual.widgets.data_table import DuplicateKey
 
 from lazy_kafka import connect
 from lazy_kafka.widgets._status import Status
-from lazy_kafka.widgets.common import Details, MyContainer, MyScrollableContainer
-from lazy_kafka.widgets.topic_details import TopicDetails
-
 from lazy_kafka.widgets.common import (
     WidgetWithDataTable,
 )
-from lazy_kafka.utils import get_current_time
 
 logging.basicConfig(level=logging.INFO)
 
@@ -36,7 +25,7 @@ def _apply_styling(d: connect.ConnectorData) -> connect.ConnectorData:
     Possible states:
         RUNNING
         FAILED
-        RESTARTING
+        RESTARTING.
 
     Args:
         d:
@@ -79,12 +68,8 @@ class KConnectPanel(WidgetWithDataTable[connect.ConnectorData, Any]):
     details: Reactive[connect.ConnectorData] = reactive(connect.ConnectorData())
 
 
-    async def action_load_data(self):
-        for data_table in self.query(DataTable):
-            self.load_data(data_table, display_load=False)
-
     def __init__(self, hook: connect.Connect, *args: Any, **kwargs: Any):
-        self.subjects = {}
+        self.subjects = dict()
         self.hook = hook
         self.data_auto_refresh = False
         super().__init__(*args, **kwargs)
@@ -95,7 +80,7 @@ class KConnectPanel(WidgetWithDataTable[connect.ConnectorData, Any]):
         yield DataTable(cursor_type="row", zebra_stripes=True)
 
     def on_mount(self):
-        """Initialize data table with columns"""
+        """Initialize data table with columns."""
         data_table = self.query_one(DataTable)
         data_table.add_column("Name")
         data_table.add_column("State")
@@ -103,7 +88,6 @@ class KConnectPanel(WidgetWithDataTable[connect.ConnectorData, Any]):
         data_table.add_column("Type")
         super().on_mount()
 
-    @override
     def subject_to_table(self, response: dict[str, Any], *args, **kwargs):
         """Transform raw `hook.asubjects` results into DataTable dict values."""
         return connect.ConnectorData.from_response(response)

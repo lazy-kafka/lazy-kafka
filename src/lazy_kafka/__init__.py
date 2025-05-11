@@ -8,5 +8,5 @@ import logging
 from textual.logging import TextualHandler
 
 logging.basicConfig(level="NOTSET", handlers=[TextualHandler()])
-from .__main__ import app
+from lazy_kafka.__main__ import app
 

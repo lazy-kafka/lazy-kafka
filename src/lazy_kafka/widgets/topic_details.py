@@ -1,43 +1,29 @@
 from __future__ import annotations
 
-import logging
 import json
+import logging
 
 from textual import work
-from textual.containers import Vertical
-from textual.screen import ModalScreen
-from textual.widgets import DataTable, Header, Sparkline, Static, Label, Footer
-from textual.worker import get_current_worker
-
-from textual.reactive import Reactive, reactive
-
-from lazy_kafka.topic import KafkaClient, LazyKafkaMessage
-from lazy_kafka.widgets._status import Status
-
-from lazy_kafka.utils import get_current_time
-
-from textual import events, work
 from textual.app import ComposeResult
-from textual.binding import Binding, BindingType
-from textual.containers import Container, Grid, Vertical, Horizontal
+from textual.containers import Container, Horizontal, Vertical
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import Reactive, reactive
-from textual.validation import ValidationResult, Validator
+from textual.screen import ModalScreen
 from textual.widgets import (
-    Button,
     DataTable,
-    Input,
+    Footer,
+    Header,
     Label,
     Pretty,
-    TextArea,
+    Sparkline,
+    Static,
 )
-from textual.widgets.data_table import DuplicateKey, RowDoesNotExist
+from textual.worker import get_current_worker
 
-from lazy_kafka import registry
-from lazy_kafka.widgets._status import Status
-from lazy_kafka.widgets.common import MyContainer, MyScrollableContainer
+from lazy_kafka.topic import KafkaClient, LazyKafkaMessage
 from lazy_kafka.utils import get_current_time
+from lazy_kafka.widgets._status import Status
 
 _LOGGER = logging.getLogger(__name__)
 import random
@@ -116,7 +102,7 @@ class TopicDetails(ModalScreen):
             yield Static(f"Topic: {self.topic}", id="topic-label")
             with Horizontal(id="main-content"):
                 yield DataTable(cursor_type="row")
-            
+
         yield Footer(show_command_palette=False)
 
     def watch_details(self, details: LazyKafkaMessage):
@@ -128,7 +114,7 @@ class TopicDetails(ModalScreen):
         try:
             details_panel = self.query_one(Pretty)
         except NoMatches as _:
-            details_panel = MyScrollableContainer(
+            details_panel = Container(
                 Pretty([]), id="details", classes="has-border initial"
             )
             _h = self.query_one("#main-content", Horizontal)

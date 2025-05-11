@@ -1,21 +1,18 @@
-from confluent_kafka import OFFSET_END, Consumer
+from __future__ import annotations
 
-
-from confluent_kafka.schema_registry import SchemaRegistryClient
+from confluent_kafka import Consumer
 from confluent_kafka.schema_registry.json_schema import JSONDeserializer
 
 from lazy_kafka.config import Configuration
 
 TOPIC = "user-topic"
 
-from confluent_kafka import Consumer
-from confluent_kafka.serialization import SerializationContext, MessageField
-from confluent_kafka.schema_registry.json_schema import JSONDeserializer
+from confluent_kafka.serialization import MessageField, SerializationContext
 
 
-class User(object):
+class User:
     """
-    User record
+    User record.
 
     Args:
         name (str): User's name
@@ -38,7 +35,6 @@ def dict_to_user(obj, ctx):
             operation.
         obj (dict): Object literal(dict)
     """
-
     if obj is None:
         return None
 
@@ -83,7 +79,7 @@ def main():
       "required": [ "name", "favorite_number", "favorite_color" ]
     }
     """
-    json_deserializer = JSONDeserializer(schema_str, from_dict=dict_to_user)
+    JSONDeserializer(schema_str, from_dict=dict_to_user)
 
     consumer = Consumer(settings)
     consumer.subscribe([TOPIC])

@@ -19,7 +19,7 @@ from textual.widgets import (
 )
 
 # services
-from lazy_kafka import connect, registry
+from lazy_kafka import connect, registry, topic
 from lazy_kafka.config import Configuration
 from lazy_kafka.theme import frog_theme
 from lazy_kafka.widgets.kconnect import KConnectPanel
@@ -71,7 +71,16 @@ class DashboardScreen(Screen):
             id="tabs",
         )
         with ContentSwitcher(initial="topic", id="main-content-switcher"):
-            yield TopicPanel(id="topic", classes="has-border")
+            try:
+                _hook = topic.KafkaClient(
+                    self.app.lazy_kafka_config.kafka
+                )
+                yield TopicPanel(id="topic", classes="has-border", hook = _hook)
+            except AssertionError:
+                # display error message
+                # handled in compose
+                _hook = None
+                yield Label("Error", id="tab-schema")
 
             try:
                 _hook = registry.SchemaRegistry(

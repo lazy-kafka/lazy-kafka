@@ -13,6 +13,11 @@ Screen {
     layout: vertical;
     background: #000000;
     layers: below above;
+    border: heavy red;
+}
+
+Widget {
+    layer: below;
 }
 
 Tabs {
@@ -37,11 +42,6 @@ Tab.-active .underline--bar {
 
 Topic {
   width: auto;
-}
-
-MyContainer {
-  max-height: 90%;
-  layout: horizontal;
 }
 
 .tablecontainer {
@@ -100,14 +100,16 @@ FooterKey .footer-key--key {
     background: $background-lighten-3;
 }
 
+SubjectDetails {
+    height: auto;
+    dock: bottom;
+}
+
+
 CreateScreen {
     align: center middle;
 }
 
-
-Widget {
-    layer: below;
-}
 
 DeleteDialog {
     align: center middle;

@@ -233,12 +233,8 @@ class SchemaRegistryPanel(WidgetWithDataTable[registry.Subject, registry.Subject
         else:
             _LOGGER.error("%s", r.content.decode("utf8"))
 
-    async def action_load_data(self):
-        for data_table in self.query(DataTable):
-            self.load_data(data_table, display_load=False)
-
     def __init__(self, hook: registry.SchemaRegistry, *args: Any, **kwargs: Any):
-        self.subjects: dict[str, registry.Subject] = dict()
+        self.subjects = dict()
         self.hook = hook
         self.data_auto_refresh = False
         super().__init__(*args, **kwargs)
@@ -257,3 +253,4 @@ class SchemaRegistryPanel(WidgetWithDataTable[registry.Subject, registry.Subject
     def subject_to_table(self, response: dict[str, registry.Subject], *args, **kwargs):
         """Transform raw `hook.asubjects` results into DataTable dict values."""
         return {i: registry.Subject(i) for i in response}
+

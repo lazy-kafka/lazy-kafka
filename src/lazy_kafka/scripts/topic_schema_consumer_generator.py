@@ -1,21 +1,17 @@
-from confluent_kafka import OFFSET_END, Consumer
+from __future__ import annotations
 
-
-from confluent_kafka.schema_registry import SchemaRegistryClient
-from confluent_kafka.schema_registry.json_schema import JSONDeserializer
+from confluent_kafka import Consumer
 
 from lazy_kafka.config import Configuration
 
 TOPIC = "user-topic"
 
-from confluent_kafka import Consumer
-from confluent_kafka.serialization import SerializationContext, MessageField
-from confluent_kafka.schema_registry.json_schema import JSONDeserializer
+from confluent_kafka.serialization import MessageField, SerializationContext
 
 
-class User(object):
+class User:
     """
-    User record
+    User record.
 
     Args:
         name (str): User's name

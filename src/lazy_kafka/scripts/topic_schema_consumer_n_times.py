@@ -1,27 +1,17 @@
-from confluent_kafka import OFFSET_END, Consumer, KafkaError
+from __future__ import annotations
 
 from confluent_kafka import (
-    OFFSET_BEGINNING,
-    Consumer,
-    Message,
+    KafkaError,
     TopicPartition,
-    OFFSET_INVALID
 )
-from confluent_kafka.schema_registry import SchemaRegistryClient
-from confluent_kafka.schema_registry.json_schema import JSONDeserializer
 
 from lazy_kafka.config import Configuration, KafkaConfiguration
 from lazy_kafka.topic import KafkaClient, NoMessagesError, OffsetInvalidError
 
 
-from confluent_kafka import Consumer
-from confluent_kafka.serialization import SerializationContext, MessageField
-from confluent_kafka.schema_registry.json_schema import JSONDeserializer
-
-
-class User(object):
+class User:
     """
-    User record
+    User record.
 
     Args:
         name (str): User's name
@@ -53,12 +43,12 @@ def consume_generator(consumer: KafkaClient, topic: str, n:int = 10):
     pprint(partition_assignments)
 
     consumer.assign(partition_assignments)
-    
+
     # Collect messages
     messages = []
     message_count = 0
     max_messages_total = n
-    
+
     # Set a reasonable timeout for the whole operation
     while message_count < max_messages_total:
         # Check timeout
@@ -79,12 +69,12 @@ def consume_generator(consumer: KafkaClient, topic: str, n:int = 10):
                 if current_offset < high_offset:
                     all_done = False
                     break
-            
+
             # NOTE: break out of the loop here
             if all_done:
                 break
             continue
-        
+
         if msg.error():
             print("---Message---")
             print(f"{msg.value()}")
@@ -97,7 +87,7 @@ def consume_generator(consumer: KafkaClient, topic: str, n:int = 10):
             else:
                 print(f"Consumer error: {msg.error()}")
                 continue
-        
+
         # Process message
         value = { "msg": msg.value()}
         value['_kafka_metadata'] = {
@@ -108,10 +98,10 @@ def consume_generator(consumer: KafkaClient, topic: str, n:int = 10):
         }
         messages.append(value)
         message_count += 1
-    
+
     # Sort messages by timestamp if available
     messages.sort(key=lambda m: m.get('_kafka_metadata', {}).get('timestamp', 0))
-    
+
     # Return the latest N messages
     return messages[-n:] if len(messages) > n else messages
 
@@ -135,8 +125,8 @@ def main(topic: str):
 if __name__ == "__main__":
     import typer
     from rich.console import Console
-    from rich.table import Table
     from rich.pretty import pprint
+    from rich.table import Table
     app = typer.Typer()
 
 
