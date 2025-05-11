@@ -13,7 +13,6 @@ Screen {
     layout: vertical;
     background: #000000;
     layers: below above;
-    border: heavy red;
 }
 
 Widget {
