@@ -17,7 +17,7 @@ import json
 import logging
 from enum import EnumMeta, StrEnum, auto
 from functools import partialmethod
-from typing import Any, Optional, TypedDict
+from typing import Any, Optional, TypedDict, override
 
 import httpx
 
@@ -25,8 +25,22 @@ from lazy_kafka.config import RegistryConfiguration
 
 _LOGGER = logging.getLogger(__name__)
 
-Subject = str
 list_schemas = "schemas/types"
+
+class Subject(str):
+    """Custom type to represent the selected `subject`.
+    
+    The class has to support the `unpack` operator to play nice with
+    textual `DataTable.add_rows`.
+
+
+    """
+    def to_table_values(self):
+        return self
+
+    @override
+    def __iter__(self):
+        yield str(self)
 
 
 class MetaEnum(EnumMeta):
@@ -127,9 +141,11 @@ class SchemaRegistry:
         """Get all versions of `subject`."""
         return await self._ageneric_get_json(url=f"/subjects/{subject}/versions")
 
-    async def asubject_latest(self, subject: Subject) -> SubjectDetails:
+    async def asubject_latest(self, subject: tuple[Subject]) -> SubjectDetails:
         """Get latest version of subject."""
         return await self._ageneric_get_json(url=f"/subjects/{subject}/versions/-1")
+
+    aget_details = asubject_latest
 
     async def asubjects_delete(self, subject: Subject, version: int):
         return await self._client.delete(url=f"/subjects/{subject}/versions/{version}")

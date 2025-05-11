@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, override
 
 from textual import events, work
 from textual.containers import Container, Grid
@@ -183,7 +183,7 @@ class DialogOpen(Message):
         super().__init__()
 
 
-class SchemaRegistryPanel(WidgetWithDataTable):
+class SchemaRegistryPanel(WidgetWithDataTable[registry.Subject, registry.SubjectDetails]):
     """Schema Registry widget."""
 
     BORDER_TITLE = "Subjects"
@@ -238,8 +238,7 @@ class SchemaRegistryPanel(WidgetWithDataTable):
             self.load_data(data_table, display_load=False)
 
     def __init__(self, hook: registry.SchemaRegistry, *args: Any, **kwargs: Any):
-        _LOGGER.critical("INIT")
-        self.subjects: dict[str, str] = {"": ""}
+        self.subjects: dict[str, registry.Subject] = dict()
         self.hook = hook
         self.data_auto_refresh = False
         super().__init__(*args, **kwargs)
@@ -252,5 +251,9 @@ class SchemaRegistryPanel(WidgetWithDataTable):
     def on_mount(self):
         data_table = self.query_one(DataTable)
         data_table.add_column("Subjects")
-        _LOGGER.debug("HAAARE IN CHILD MOUNT")
         super().on_mount()
+
+    @override
+    def subject_to_table(self, response: dict[str, registry.Subject], *args, **kwargs):
+        """Transform raw `hook.asubjects` results into DataTable dict values."""
+        return {i: registry.Subject(i) for i in response}

@@ -19,7 +19,7 @@ from textual.widgets import (
 )
 
 # services
-from lazy_kafka import registry
+from lazy_kafka import connect, registry
 from lazy_kafka.config import Configuration
 from lazy_kafka.theme import frog_theme
 from lazy_kafka.widgets.kconnect import KConnectPanel
@@ -53,12 +53,14 @@ class DashboardScreen(Screen):
     ]
 
     def action_next_tab(self):
-        self.query_one("#tabs").action_next_tab()
+        self.query_one("#tabs", Tabs).action_next_tab()
 
     def action_previous_tab(self):
-        self.query_one("#tabs").action_previous_tab()
+        self.query_one("#tabs", Tabs).action_previous_tab()
 
     def compose(self) -> ComposeResult:
+        assert hasattr(self.app, "lazy_kafka_config"), "Application failed to load configuration."
+
         yield Header()
 
         yield Tabs(
@@ -76,13 +78,19 @@ class DashboardScreen(Screen):
                     self.app.lazy_kafka_config.registry
                 )
                 yield SchemaRegistryPanel(id="tab-schema", classes="has-border", hook=_hook)
-            # TODO: implement service init error
             except AssertionError:
                 # display error message
                 # handled in compose
                 _hook = None
                 yield Label("Error", id="tab-schema")
-            yield KConnectPanel(id="tab-connect", classes="has-border")
+            try:
+                _hook = connect.Connect(
+                    self.app.lazy_kafka_config.connect
+                )
+                yield KConnectPanel(id="tab-connect", classes="has-border", hook = _hook)
+            except AssertionError:
+                _hook = None
+                yield Label("Error", id="tab-connect")
         yield Footer(show_command_palette=False)
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:

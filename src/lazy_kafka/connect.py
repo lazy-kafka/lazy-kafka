@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Any, Self
 
 import httpx
 
+from lazy_kafka.config import ConnectConfiguration
+
 if TYPE_CHECKING:
     from collections.abc import Coroutine
 
@@ -41,6 +43,9 @@ class ConnectorData:
     def to_tuple(self: Self) -> tuple[str, str, str, str]:
         return tuple(self.to_dict().values())
 
+    def to_table_values(self):
+        return self.to_dict().values()
+
     @staticmethod
     def from_response(response: dict[str, Any]) -> dict[str, ConnectorData]:
         _LOGGER.debug("%s", response)
@@ -59,11 +64,35 @@ class Connect:
     # [Reference](https://docs.confluent.io/platform/current/connect/references/restapi.html#content-types)
     _CONTENT_TYPE = "application/json"
 
-    def __init__(self, host: str = DEFAULT_HOST) -> None:
-        _debug_info = httpx.get(host)
-        _LOGGER.debug("Connect info: %s", _debug_info)
+#    def __init__(self, host: str = DEFAULT_HOST) -> None:
+#        _debug_info = httpx.get(host)
+#        _LOGGER.debug("Connect info: %s", _debug_info)
+#        assert _debug_info.status_code == 200
+#        self.host = host
+
+    def __init__(self, config: ConnectConfiguration = ConnectConfiguration()) -> None:
+        """Initialise client.
+
+        Performs a sanity 'get' request, before creating a client.
+
+        Args:
+            host:
+        """
+
+        _auth = None
+        if config.username and config.password:
+            # Basic authentication
+            _auth = httpx.BasicAuth(username=config.username, password=config.password)
+
+        _debug_info = httpx.get(config.host, auth = _auth)
+        _LOGGER.debug("Service info: %s", _debug_info)
         assert _debug_info.status_code == 200
-        self.host = host
+        self.host = config.host
+        self._client = httpx.AsyncClient(
+            base_url=self.host,
+            headers={"Content-Type": Connect._CONTENT_TYPE},
+            auth = _auth
+        )
 
     def __repr__(self):
         return f"Connect@{self.host}"
@@ -93,6 +122,14 @@ class Connect:
 
     [Reference](https://docs.confluent.io/platform/current/connect/references/restapi.html#connectors)
     """
+
+    async def aget_details(self, connector_id: ConnectorData):
+        # todo get connector details
+        _LOGGER.debug(f"{connector_id=}")
+        return connector_id.to_dict()
+
+    asubjects = alist
+
     # TODO: Post connector [Ref](https://docs.confluent.io/platform/current/connect/references/restapi.html#post--connectors)
     # TODO: Put Connector - update config
     # TODO: Post restart

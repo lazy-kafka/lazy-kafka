@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 import logging
 
-from typing import Any, Self
+from typing import Any, Generic, Mapping, Self, TypeVar
 
 from textual import events, work
 from textual.containers import Container, ScrollableContainer
@@ -16,11 +16,16 @@ from textual.widgets import DataTable, Label, Input, Pretty
 
 from textual.widgets.data_table import DuplicateKey, RowDoesNotExist
 
+from lazy_kafka.types import ProviderProtocol
 from lazy_kafka.utils import get_current_time
 
 logging.basicConfig(level=logging.INFO)
 
 _LOGGER = logging.getLogger(__name__)
+
+T = TypeVar("T")
+S = TypeVar("S")
+
 
 class SubjectDetails(Widget):
     """Display subject details next to the main table."""
@@ -49,8 +54,13 @@ class SubjectDetails(Widget):
     def on_mount(self):
         self.query_one(ScrollableContainer).border_subtitle = "Details"
 
-class WidgetWithDataTable(Container, can_focus=True):
-    """Common functionality for core widgets.
+
+class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
+    """Template class for core widgets with a DataTable and Details.
+
+    The class is generic over:
+        `T` - the type used for the `DataTable` content
+        `S` - the type used for the `details`
     
     Messages:
         Selected: emitted on new item selected from data table
@@ -103,7 +113,7 @@ class WidgetWithDataTable(Container, can_focus=True):
     class Selected(Message):
         """Color selected message."""
 
-        def __init__(self, selected_id: str) -> None:
+        def __init__(self, selected_id: T) -> None:
             self.selected_id = selected_id
             super().__init__()
 
@@ -165,12 +175,13 @@ class WidgetWithDataTable(Container, can_focus=True):
     def on_data_table_focused(self, event):
         _LOGGER.debug("DATA TABLE FOC %s", f"{event!r}")
 
-    def __init__(self, *args, **kwargs):
-        self.subjects: dict[str, str] = {"": ""}
+    hook: ProviderProtocol[T,S]
 
+    def __init__(self, *args, **kwargs):
+        # self.subjects: dict[str, T] = dict()
         assert self.hook is not None
-        assert self.subjects is not None
-        assert self.data_auto_refresh is not None
+        #assert self.subjects is not None
+        #assert self.data_auto_refresh is not None
         super().__init__(*args, **kwargs)
 
     def watch_details(self, details: str):
@@ -194,7 +205,12 @@ class WidgetWithDataTable(Container, can_focus=True):
         if event.row_key.value is None:
             _LOGGER.error("False event")
             return
-        self.post_message(self.Selected(self.subjects[event.row_key.value]))
+        try:
+            _LOGGER.debug(f"{self.subjects=}")
+            _LOGGER.debug(f"{event.row_key.value=}")
+            self.post_message(self.Selected(self.subjects[event.row_key.value]))
+        except KeyError as e:
+            _LOGGER.error("Something went wrong.", exc_info=e)
 
     @work(exclusive=True, exit_on_error=False)
     async def on_widget_with_data_table_selected(
@@ -207,7 +223,7 @@ class WidgetWithDataTable(Container, can_focus=True):
         _LOGGER.debug(f"Row highlihghted{message.selected_id=}")
         # Note, this should be in the init method ...
         self.selected_id = message.selected_id
-        self.details = await self.hook.asubject_latest(message.selected_id)
+        self.details = await self.hook.aget_details(message.selected_id)
         _LOGGER.debug(self.details)
 
     async def on_focus(self, event):
@@ -224,12 +240,13 @@ class WidgetWithDataTable(Container, can_focus=True):
             data_table: DataTable instance to be updated.
         """
         data_table.loading = display_load
-        self.subjects = {i: i for i in await self.hook.asubjects()}
+        _response = await self.hook.asubjects()
+        self.subjects = self.subject_to_table(_response)
         # For now, clearing the whole table looks viable...
         # problem is that it resets the highlighted row - annoying
-        for i in self.subjects.values():
+        for k,v in self.subjects.items():
             try:
-                data_table.add_row(i, key=i)
+                data_table.add_row(*v.to_table_values(), key=k)
             except DuplicateKey:
                 # No details are shown in rows, so it's ok to just pass
                 continue
@@ -245,6 +262,10 @@ class WidgetWithDataTable(Container, can_focus=True):
         data_table.loading = False
         label = self.query_one("#time", Label)
         label.update(f"{get_current_time()}")
+
+    @abstractmethod
+    def subject_to_table(self, *args, **kwargs) -> Mapping[str, T]:
+        ...
 
 
 class MyContainer(Container, can_focus=True):

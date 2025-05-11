@@ -49,7 +49,8 @@ class KafkaConfiguration:
 @dataclass(frozen=True)
 class ConnectConfiguration:
     host: str = "http://localhost:8083/"
-
+    username: str | None = None
+    password: str | None = None
 
 @dataclass(frozen=True)
 class RegistryConfiguration:
