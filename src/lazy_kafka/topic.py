@@ -83,6 +83,15 @@ class LazyKafkaMessage(NamedTuple):
             str(msg.value())
         )
 
+    # TODO: this method is not used at the moment,
+    #   fix the interface implementations including this one
+    def to_table_values(self):
+        return {
+            "timestamp": self.timestamp,
+            "offset": self.offset,
+            "key": self.key,
+            "message": self.message
+        }
 
 class TopicMetadata(ConfluentTopicMetadata):
     topic: str | None
@@ -395,6 +404,30 @@ class KafkaClient:
             raise ValueError("Timestamp type not available")
         timestamp = _timestamp_to_str(timestamp_type[1])
         return (timestamp, msg.offset(), msg.key(), str(msg.value()))
+
+class KafkaTopicDetailsClient(KafkaClient):
+
+    def __init__(self, config: KafkaConfiguration, *args, **kwargs):
+        super(KafkaTopicDetailsClient, self).__init__(config)
+        # re-assign the methods to comply with the service interface:
+        # asubjects and aget_details
+        self.asubjects = self.aget_last_n_messages
+        async def _msg_converter(message):
+            import json
+            _LOGGER.debug(message)
+            try:
+                _msg = message.message
+            except AttributeError:
+                return "{}"
+
+            if _msg is None or _msg == 'None':
+                return "{}"
+            details = json.loads(
+                "{" + str(_msg).split(sep="{")[1].rsplit("}")[0] + "}"
+            )
+            return details
+        self.aget_details = _msg_converter
+        
 
 
 @dataclass

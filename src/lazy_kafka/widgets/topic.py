@@ -41,7 +41,7 @@ class TopicPanel(WidgetWithDataTable[Topic, TopicMetadata]):
     def action_details(self):
         _LOGGER.info("show details:")
         assert self.details is not None
-        self.app.push_screen(TopicDetails(topic=self.details.topic))
+        self.app.push_screen(TopicDetails(hook=self.hook, topic=self.details.topic))
 
     def __init__(self, hook: KafkaClient, *args, **kwargs):
         self.subjects = dict()

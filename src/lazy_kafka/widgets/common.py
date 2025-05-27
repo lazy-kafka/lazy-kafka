@@ -92,7 +92,7 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         ("j", "next_widget_item", "↓"),
         ("k", "previous_widget_item", "↑"),
         ("f", "toggle_refresh", "Toggle follow"),
-        ("escape", "unset_topic", "close"),
+        # TODO: remove ("escape", "unset_topic", "close"),
         Binding("slash", "search_subject", "Search", False),
     ]
     DEFAULT_CSS = """
