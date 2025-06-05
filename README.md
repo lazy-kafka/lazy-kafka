@@ -118,3 +118,6 @@ Generate client code from openapi
 - detailed example of confluent kafka lib api: https://github.com/confluentinc/confluent-kafka-python/issues/1443
 
 
+🫛 lazy-kafka ➜ textual console -x EVENT -x SYSTEM --port 7342
+🫛 lazy-kafka ➜ python src/lazy_kafka/__main__.py --help
+🫛 lazy-kafka ➜ python src/lazy_kafka/scripts/topic_schema_producer.py
