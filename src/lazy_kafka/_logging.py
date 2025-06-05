@@ -24,3 +24,9 @@ def setup_logging(
 
     logger.setLevel(level)
     logger.propagate = False
+
+def configure_base_logger(level: int = logging.DEBUG):
+    logging.basicConfig(
+        level=level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s() - %(message)s'  # Custom format
+    )

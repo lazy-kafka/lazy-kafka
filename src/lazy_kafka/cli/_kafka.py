@@ -1,4 +1,4 @@
-"""Lazy-kafka CLI."""
+"""Apache Kafka related CLI."""
 from __future__ import annotations
 import logging
 
@@ -12,36 +12,12 @@ from rich import print
 
 from lazy_kafka.config import Configuration
 
-from lazy_kafka._logging import setup_logging
 
-from lazy_kafka import __version__
-
-app = typer.Typer(rich_markup_mode="rich")
-
-def version_callback(value: bool) -> None:
-    if value:
-        print(f"LazyKafka CLI version: [green]{__version__}[/green]")
-        raise typer.Exit()
+app = typer.Typer()
 
 @app.callback()
-def callback(
-    version: Annotated[
-        Union[bool, None],
-        typer.Option(
-            "--version", help="Show the version and exit.", callback=version_callback
-        ),
-    ] = None,
-    verbose: bool = typer.Option(False, help="Enable verbose output"),
-) -> None:
-    """
-    LazyKafka CLI - Interact with message [i]streams[/i] from the terminal.
-
-    Read more in the docs: [link=https://tmon.xyz/lazy-kafka-cli/]link=https://tmon.xyz/lazy-kafka-cli/[/link].
-    """
-
-    log_level = logging.DEBUG if verbose else logging.INFO
-
-    setup_logging(level=log_level)
+def kafka():
+    """Interact with [b]Apache Kafka[/]."""
 
 def consume_generator(consumer, topic: str,  max_messages = None) :
     consumer.subscribe([topic])
@@ -66,15 +42,15 @@ def consume_generator(consumer, topic: str,  max_messages = None) :
         consumer.close()
 
 @app.command()
-def consume_follow(topic: Annotated[str, typer.Argument(help="Name of the topic", show_default=False)]):
-    """Watch for new messages in `topic` until stopped.
+def consume(topic: Annotated[str, typer.Argument(help="Name of the topic", show_default=False)]):
+    """Watch for new messages in [i]`topic`[/] until stopped.
 
     [blue]🐣 lazy-kafka ➜ python src/lazy_kafka/scripts/topic_schema_producer.py
     """
     cfg = Configuration()
     settings = {
         "bootstrap.servers": cfg.kafka.bootstrap_servers,
-        "group.id": "my-work-group-testicle",
+        "group.id": "my-work-group",
         "auto.offset.reset": "latest",
         "security.protocol": "plaintext",
     }

@@ -2,17 +2,19 @@
 
 from __future__ import annotations
 
+from enum import Enum
 import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Literal, TypeVar
 
 import tomllib
 
 if TYPE_CHECKING:
     from _typeshed import SupportsRead
 
+_LOGGER = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class KafkaConfiguration:
@@ -68,6 +70,9 @@ class Configuration:
     registry: RegistryConfiguration = field(default_factory=RegistryConfiguration)
     connect: ConnectConfiguration = field(default_factory=ConnectConfiguration)
     request_time_out: int = 1000
+    log_level: Literal["DEBUG", "INFO"] = "INFO"
+    # Run the app in development mode: logging, log-formatting etc.
+    dev_mode:bool = False
     _file: Path = Path(__file__).parent / "default_config.toml"
 
     def __post_init__(self):
@@ -100,11 +105,11 @@ class Configuration:
     def from_local_config(cls):
         # NOTE XDG_HOME is ignored
         _p = Path.home() / ".config" / ".lazy-kafka.toml"
-        logging.debug("Configfile path: %s", _p)
+        _LOGGER.debug("Configfile path: %s", _p)
         try:
             return cls.from_toml(Path.home() / ".config" / ".lazy-kafka.toml")
         except FileNotFoundError as exc:
-            logging.error("No user configuration file.", exc_info=exc)
+            _LOGGER.error("No user configuration file.", exc_info=exc)
             return cls()
 
 
