@@ -1,16 +1,47 @@
 """Lazy-kafka CLI."""
 from __future__ import annotations
+import logging
 
 import rich.progress
 import typer
 from confluent_kafka import Consumer
 from confluent_kafka.serialization import MessageField, SerializationContext
 from typing_extensions import Annotated
+from typing import Union
+from rich import print
 
 from lazy_kafka.config import Configuration
 
-app = typer.Typer()
+from lazy_kafka._logging import setup_logging
 
+from lazy_kafka import __version__
+
+app = typer.Typer(rich_markup_mode="rich")
+
+def version_callback(value: bool) -> None:
+    if value:
+        print(f"LazyKafka CLI version: [green]{__version__}[/green]")
+        raise typer.Exit()
+
+@app.callback()
+def callback(
+    version: Annotated[
+        Union[bool, None],
+        typer.Option(
+            "--version", help="Show the version and exit.", callback=version_callback
+        ),
+    ] = None,
+    verbose: bool = typer.Option(False, help="Enable verbose output"),
+) -> None:
+    """
+    LazyKafka CLI - Interact with message [i]streams[/i] from the terminal.
+
+    Read more in the docs: [link=https://tmon.xyz/lazy-kafka-cli/]link=https://tmon.xyz/lazy-kafka-cli/[/link].
+    """
+
+    log_level = logging.DEBUG if verbose else logging.INFO
+
+    setup_logging(level=log_level)
 
 def consume_generator(consumer, topic: str,  max_messages = None) :
     consumer.subscribe([topic])
