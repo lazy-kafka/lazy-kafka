@@ -61,7 +61,7 @@ class DashboardScreen(Screen):
 
         yield Tabs(
             # TODO: these widgets should be lazy mounted so e.g.: load_data only runs when they are first visited by the user.
-            Tab("Topic", id="topic"),
+            Tab("Topic", id="tab-topic"),
             Tab("Schema Registry", id="tab-schema"),
             Tab(Text.from_markup(":warning: K-connect"), id="tab-connect"),
             id="tabs",
@@ -71,31 +71,32 @@ class DashboardScreen(Screen):
                 _hook = topic.KafkaClient(
                     self.app.lazy_kafka_config.kafka
                 )
-                yield TopicPanel(id="topic", classes="has-border", hook = _hook)
-            except AssertionError:
-                # display error message
-                # handled in compose
+            except (ConnectionRefusedError, AssertionError):
                 _hook = None
-                yield Label("Error", id="tab-schema")
+                yield Label("Error", id="tab-topic")
+            if _hook is not None:
+                yield TopicPanel(id="tab-topic", classes="has-border", hook = _hook)
 
             try:
                 _hook = registry.SchemaRegistry(
                     self.app.lazy_kafka_config.registry
                 )
-                yield SchemaRegistryPanel(id="tab-schema", classes="has-border", hook=_hook)
-            except AssertionError:
-                # display error message
-                # handled in compose
+            except ConnectionRefusedError:
                 _hook = None
                 yield Label("Error", id="tab-schema")
+            if _hook is not None:
+                yield SchemaRegistryPanel(id="tab-schema", classes="has-border", hook=_hook)
+
             try:
                 _hook = connect.Connect(
                     self.app.lazy_kafka_config.connect
                 )
-                yield KConnectPanel(id="tab-connect", classes="has-border", hook = _hook)
-            except AssertionError:
+            except ConnectionRefusedError:
                 _hook = None
                 yield Label("Error", id="tab-connect")
+            if _hook is not None:
+                # TODO: if hook is None, the widget should be just a Label?
+                yield KConnectPanel(id="tab-connect", classes="has-border", hook = _hook)
         yield Footer(show_command_palette=False)
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:

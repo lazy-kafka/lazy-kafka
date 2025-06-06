@@ -18,6 +18,7 @@ from textual.binding import Binding
 from textual.containers import Container, ScrollableContainer
 from textual.css.query import NoMatches
 from textual.message import Message
+from textual.reactive import Reactive, reactive
 from textual.widget import Widget
 from textual.widgets import DataTable, Input, Label, Pretty
 from textual.widgets.data_table import DuplicateKey, RowDoesNotExist
@@ -68,6 +69,10 @@ class SubjectDetails(Widget):
     def on_mount(self):
         self.query_one(ScrollableContainer).border_subtitle = "Details"
 
+class SearchInput(Input):
+    ...
+    #def on_input_submitted(self, message: Input.Submitted):
+        #self.log.info(f"Hello {message}")
 
 class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
     """Template class for core widgets with a DataTable and Details.
@@ -85,6 +90,7 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
     Reactive members:
        selected_id: currently selected id (see Messages)
        details: more displayable information about subject corresponding to selected_id
+       filter_token: a filter expression to limit the subjects on display
 
     """
 
@@ -93,7 +99,7 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         ("k", "previous_widget_item", "↑"),
         ("f", "toggle_refresh", "Toggle follow"),
         # TODO: remove ("escape", "unset_topic", "close"),
-        Binding("slash", "search_subject", "Search", False),
+        Binding("slash", "search_subject", "Search", show=True, key_display="/", tooltip="Search by name"),
     ]
     DEFAULT_CSS = """
     WidgetWithDataTable {
@@ -127,6 +133,8 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
 
     hook: ProviderProtocol[T,S]
     subjects: Mapping[T,S]
+    filter_token: Reactive[str] = reactive("")
+
 
     def __init__(self, *args, **kwargs):
         assert self.hook is not None
@@ -167,14 +175,24 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
 
     async def action_search_subject(self) -> None:
         try:
-            res = self.query_one(Input)
+            res = self.query_one(SearchInput)
             await res.remove()
+            self.filter_token = ""
         except NoMatches:
+            # TODO: implement a custom search bar:
+            #   - open/close on `/` binding (text cannot contain `/`)
+            #   - pressing enter focuses the data_table
+            #   - pressing enter again, opens the details panel
             res = await self.mount(
-                Input(placeholder="Search..."), before=self.query_one(DataTable)
+                SearchInput(placeholder="Search..."), before=self.query_one(DataTable)
             )
-            res = self.query_one(Input)
+            res = self.query_one(SearchInput)
             self.app.set_focus(res)
+
+    def on_input_submitted(self, message: Input.Submitted):
+        self.log.info(f"Hello {message}")
+        res = self.query_one(DataTable)
+        self.app.set_focus(res.parent)
 
     def on_mount(self):
         _LOGGER.debug("HERE IN PARENT mount")
@@ -183,13 +201,17 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
     def on_input_changed(self, event: Input.Changed) -> None:
         logging.debug(event)
         token = event.value
+        self.filter_token = event.value
+
+    def watch_filter_token(self, old_filter_token: str, new_filter_token: str) -> None:
+        self.app.log.info("filter token changed")
         table = self.query_one(DataTable)
         table.loading = True
         table.clear()
         _rows = {
-            k: v.replace(token, f"[dark_orange]{token}[/dark_orange]")
+            k: v.replace(new_filter_token, f"[dark_orange]{new_filter_token}[/dark_orange]")
             for k, v in self.subjects.items()
-            if token in v.lower()
+            if new_filter_token in v.lower()
         }
         for k, v in _rows.items():
             table.add_row(v, key=k)
@@ -242,6 +264,7 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         self.details = await self.hook.aget_details(message.selected_id)
         _LOGGER.debug(self.details)
 
+        # TODO: it's a bit too much to refresh on focus?
     async def on_focus(self, event):
         """Perform a single refresh on focus."""
         for data_table in self.query(DataTable):
@@ -261,9 +284,20 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         # For now, clearing the whole table looks viable...
         # problem is that it resets the highlighted row - annoying
         _LOGGER.debug(f"self.subjects is None: {self.subjects is None}")
-        for k,v in self.subjects.items():
+        if self.filter_token:
+            _rows = {
+                k: v.replace(self.filter_token, f"[dark_orange]{self.filter_token}[/dark_orange]")
+                for k, v in self.subjects.items()
+                if self.filter_token in v.lower()
+            }
+        else:
+            _rows = self.subjects
+
+        for k,v in _rows.items():
             try:
-                data_table.add_row(*v.to_table_values(), key=k)
+                # TODO: probably I am breaking a bunch o' other screens. this works for the topics
+                #data_table.add_row(*v.to_table_values(), key=k)
+                data_table.add_row(v, key=k)
             except DuplicateKey:
                 # No details are shown in rows, so it's ok to just pass
                 continue

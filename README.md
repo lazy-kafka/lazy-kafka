@@ -121,3 +121,4 @@ Generate client code from openapi
 🫛 lazy-kafka ➜ textual console -x EVENT -x SYSTEM --port 7342
 🫛 lazy-kafka ➜ python src/lazy_kafka/__main__.py --help
 🫛 lazy-kafka ➜ python src/lazy_kafka/scripts/topic_schema_producer.py
+🫛 lazy-kafka ➜textual run --dev --port 7342 src/lazy_kafka/__main__.py

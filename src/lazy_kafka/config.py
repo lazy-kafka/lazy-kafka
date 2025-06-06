@@ -33,6 +33,7 @@ class KafkaConfiguration:
     enable_auto_commit: str = "false"
     sasl_username: str = ""
     sasl_password: str = ""
+    sasl_mechanism: str = ""
     logger: logging.Handler | None = None
     # Note: log_queue has to go together with the logger param, so spotaneous logging from
     #   (non-python) threads is avoided.

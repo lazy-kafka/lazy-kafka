@@ -83,7 +83,11 @@ class Connect:
             # Basic authentication
             _auth = httpx.BasicAuth(username=config.username, password=config.password)
 
-        _debug_info = httpx.get(config.host, auth = _auth)
+        try:
+            _debug_info = httpx.get(config.host, auth = _auth)
+        except httpx.HTTPError as e:
+            _LOGGER.error("Connection error: %s", e)
+            raise ConnectionRefusedError(f"Cannot connect to {config.host}") from e
         _LOGGER.debug("Service info: %s", _debug_info)
         assert _debug_info.status_code == 200
         self.host = config.host

@@ -74,3 +74,10 @@ def consume(topic: Annotated[str, typer.Argument(help="Name of the topic", show_
                 # continue polling even if no more new msg
                 continue
 
+@app.command()
+def produce(topic: Annotated[str, typer.Argument(help="Name of the topic", show_default=False)]):
+    # TODO: kafka subpackage and consue/produce files? - probably too granular
+    print("TODO: scripts/topic_schema_producer")
+    
+
+
