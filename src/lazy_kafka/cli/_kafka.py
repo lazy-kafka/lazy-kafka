@@ -47,14 +47,8 @@ def consume(topic: Annotated[str, typer.Argument(help="Name of the topic", show_
 
     [blue]🐣 lazy-kafka ➜ python src/lazy_kafka/scripts/topic_schema_producer.py
     """
-    cfg = Configuration()
-    settings = {
-        "bootstrap.servers": cfg.kafka.bootstrap_servers,
-        "group.id": "my-work-group",
-        "auto.offset.reset": "latest",
-        "security.protocol": "plaintext",
-    }
-    consumer = Consumer(settings)
+    cfg = Configuration().from_local_config()
+    consumer = Consumer(cfg.kafka.to_config())
 
     consumer_iterable = consume_generator(consumer, topic)
     with rich.progress.Progress(

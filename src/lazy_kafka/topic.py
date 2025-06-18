@@ -422,9 +422,13 @@ class KafkaTopicDetailsClient(KafkaClient):
 
             if _msg is None or _msg == 'None':
                 return "{}"
-            details = json.loads(
-                "{" + str(_msg).split(sep="{")[1].rsplit("}")[0] + "}"
-            )
+            try:
+                details = json.loads(
+                    "{" + str(_msg).split(sep="{")[1].rsplit("}")[0] + "}"
+                )
+            except json.JSONDecodeError as e:
+                _LOGGER.error(e)
+                details = str(_msg)
             return details
         self.aget_details = _msg_converter
         
