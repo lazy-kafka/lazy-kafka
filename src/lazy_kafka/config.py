@@ -41,7 +41,7 @@ class KafkaConfiguration:
 
     def to_config(self, flavor: str = "librdkafka"):
         match flavor:
-            case "librdkafka":
+            case "librdkafka"| "confluent":
                 config = self.__dict__
                 config = {k.replace("_", "."): v for k, v in config.items()}
             case _:
@@ -60,6 +60,17 @@ class RegistryConfiguration:
     host: str = "http://localhost:8081"
     username: str | None = None
     password: str | None = None
+
+    def to_config(self, flavor: str = "librdkafka"):
+        match flavor:
+            case "librdkafka" | "confluent":
+                return {
+                    "url": self.host,
+                    "basic.auth.user.info": f"{self.username}:{self.password}"
+                }
+            case _:
+                raise ValueError("Unsupported configuration flavor.")
+        return config
 
 
 # TODO: @from_file(Path.home() / ".lazy-kafka.toml")
@@ -103,12 +114,17 @@ class Configuration:
         return cls.from_file(file_path, json.load)
 
     @classmethod
-    def from_local_config(cls):
-        # NOTE XDG_HOME is ignored
+    def default_config_file_path(cls):
         _p = Path.home() / ".config" / ".lazy-kafka.toml"
         _LOGGER.debug("Configfile path: %s", _p)
+        return _p
+
+    @classmethod
+    def from_local_config(cls):
+        # NOTE XDG_HOME is ignored
+        _p = cls.default_config_file_path()
         try:
-            return cls.from_toml(Path.home() / ".config" / ".lazy-kafka.toml")
+            return cls.from_toml(cls.default_config_file_path())
         except FileNotFoundError as exc:
             _LOGGER.error("No user configuration file.", exc_info=exc)
             return cls()
