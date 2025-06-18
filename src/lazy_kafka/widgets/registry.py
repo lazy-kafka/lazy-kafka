@@ -27,8 +27,6 @@ from lazy_kafka.widgets.common import (
 if TYPE_CHECKING:
     from textual.app import ComposeResult
 
-logging.basicConfig(level=logging.INFO)
-
 _LOGGER = logging.getLogger(__name__)
 
 

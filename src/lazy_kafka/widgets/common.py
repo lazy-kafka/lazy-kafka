@@ -28,8 +28,6 @@ from lazy_kafka.utils import get_current_time
 if TYPE_CHECKING:
     from lazy_kafka.types import ProviderProtocol, StrLike
 
-logging.basicConfig(level=logging.INFO)
-
 _LOGGER = logging.getLogger(__name__)
 
 class CanConvertToTable(Protocol):

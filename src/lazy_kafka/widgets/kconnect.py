@@ -14,8 +14,6 @@ from lazy_kafka.widgets.common import (
     WidgetWithDataTable,
 )
 
-logging.basicConfig(level=logging.INFO)
-
 _LOGGER = logging.getLogger(__name__)
 
 

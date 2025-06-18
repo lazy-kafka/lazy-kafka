@@ -5,7 +5,6 @@ import sys
 from functools import cached_property
 from pathlib import Path
 from lazy_kafka._logging import configure_base_logger
-configure_base_logger()
 
 from rich.text import Text
 from textual.app import App, ComposeResult
