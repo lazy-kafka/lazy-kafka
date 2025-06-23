@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: MIT
 from __future__ import annotations
+import contextlib
+import importlib.metadata
 
 # import logging
 
@@ -16,3 +18,7 @@ from __future__ import annotations
 from lazy_kafka.__main__ import app
 
 __version__ = "0.1.0"
+
+with contextlib.suppress(importlib.metadata.PackageNotFoundError):
+    __version__ = importlib.metadata.version("lazy-kafka")
+
