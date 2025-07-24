@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from enum import Enum
 import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
 import tomllib
 
@@ -43,6 +42,10 @@ class KafkaConfiguration:
         match flavor:
             case "librdkafka"| "confluent":
                 config = self.__dict__
+                # in confluent-kafka 2.5.0 it seems to be necessary to remove
+                # sasl.mechanism if it is not used
+                if config.get("sasl_mechanism") == "":
+                    config.pop("sasl_mechanism", None)
                 config = {k.replace("_", "."): v for k, v in config.items()}
             case _:
                 raise ValueError("Unsupported configuration flavor.")
