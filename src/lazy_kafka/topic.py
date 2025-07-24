@@ -134,7 +134,6 @@ class KafkaClient:
         handler = logging.StreamHandler()
         handler.setFormatter(logging.Formatter('%(asctime)-15s %(levelname)-8s %(message)s'))
         logger.addHandler(handler)
-        breakpoint()
         self._client = Consumer(self.config.to_config(), logger=logger)
         assert self._client is not None
         _LOGGER.debug("Consumer ready")
