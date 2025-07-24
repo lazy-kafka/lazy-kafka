@@ -60,15 +60,8 @@ class ConnectorData:
         }
 
 class Connect:
-    DEFAULT_HOST = "http://localhost:8083/"
     # [Reference](https://docs.confluent.io/platform/current/connect/references/restapi.html#content-types)
     _CONTENT_TYPE = "application/json"
-
-#    def __init__(self, host: str = DEFAULT_HOST) -> None:
-#        _debug_info = httpx.get(host)
-#        _LOGGER.debug("Connect info: %s", _debug_info)
-#        assert _debug_info.status_code == 200
-#        self.host = host
 
     def __init__(self, config: ConnectConfiguration = ConnectConfiguration()) -> None:
         """Initialise client.
@@ -110,7 +103,7 @@ class Connect:
             response = await client.get(self.host + url)
             return response.json()
 
-    ainfo = partialmethod(_ageneric_get_json, "")
+    ainfo = partialmethod(_ageneric_get_json, "/")
     ainfo.__doc__ = """Connect Cluster information.
 
     Top-level (root) request that gets the version of the Connect worker that
@@ -119,7 +112,7 @@ class Connect:
     """
 
     alist: partialmethod[Coroutine[Any, Any, dict[str, ConnectorData]]] = partialmethod(
-        _ageneric_get_json, "connectors?expand=status"
+        _ageneric_get_json, "/connectors?expand=status"
     )
     alist.__doc__ = """Get a list of active connectiors.
 

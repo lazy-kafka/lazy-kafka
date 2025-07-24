@@ -5,6 +5,28 @@
 
 -----
 
+# Features
+- tui
+- cli
+
+## Kafka
+- list topics
+- display basic topic information
+- list messages (experimental)
+
+## Kafka connect
+- list connectors
+- display basic connector information
+- display connector status
+- monitor connector status (follow)
+
+## Schema Registry
+- list subjects
+- create, delete subjects
+- display subject data
+
+
+
 ## Table of Contents
 
 - [Installation](#installation)
