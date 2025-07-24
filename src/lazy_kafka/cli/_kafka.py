@@ -1,29 +1,25 @@
 """Apache Kafka related CLI."""
 
 from __future__ import annotations
-import logging
+
 import json
+import random
 from pathlib import Path
+from time import sleep
+from typing import Annotated
+from uuid import uuid4
 
 import rich.progress
 import typer
-import random
 from confluent_kafka import Consumer, Producer
 from confluent_kafka.serialization import (
     MessageField,
     SerializationContext,
     StringSerializer,
 )
-from confluent_kafka.schema_registry import SchemaRegistryClient
-from confluent_kafka.schema_registry.json_schema import JSONSerializer
-from typing_extensions import Annotated
-from typing import Union
 from rich import print
 
-from time import sleep
-from uuid import uuid4
 from lazy_kafka.config import Configuration
-
 
 CONSOLE = rich.console.Console(log_path=False)
 
@@ -134,7 +130,7 @@ def produce(
 def _produce(topic: str, config_file:Path):
 
 
-    def _data_to_dict(_d: dict, ctx: Any) -> dict:  # noqa: ARG001, ANN401
+    def _data_to_dict(_d: dict, ctx: Any) -> dict:
         return _d
 
     cfg = Configuration().from_toml(config_file)

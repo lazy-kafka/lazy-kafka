@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 from __future__ import annotations
+
 import contextlib
 import importlib.metadata
 

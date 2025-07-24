@@ -1,15 +1,18 @@
 """Main CLI app to manage common config."""
-from pathlib import Path
-import typer
-from typing_extensions import Annotated
-from typing import Union
-import logging
+from __future__ import annotations
 
-from . import _kafka
-from lazy_kafka import __version__
-from lazy_kafka.config import Configuration
+import logging
+from pathlib import Path
+from typing import Annotated
+
+import typer
 from rich import print
 from rich.logging import RichHandler
+
+from lazy_kafka import __version__
+from lazy_kafka.config import Configuration
+
+from . import _kafka
 
 __all__ = ["app"]
 
@@ -51,7 +54,7 @@ def global_options(
         ),
     ] = False,
     version: Annotated[
-        Union[bool, None],
+        bool | None,
         typer.Option(
             "--version",
             help="Show the version and exit.",

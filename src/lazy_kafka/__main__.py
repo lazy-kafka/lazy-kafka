@@ -4,7 +4,6 @@ import logging
 import sys
 from functools import cached_property
 from pathlib import Path
-from lazy_kafka._logging import configure_base_logger
 
 from rich.text import Text
 from textual.app import App, ComposeResult
@@ -27,6 +26,7 @@ from lazy_kafka.widgets.kconnect import KConnectPanel
 from lazy_kafka.widgets.registry import SchemaRegistryPanel
 from lazy_kafka.widgets.switcher import ContentSwitcher
 from lazy_kafka.widgets.topic import TopicPanel
+
 
 class SettingsScreen(Screen):
     """Screen to display settings."""

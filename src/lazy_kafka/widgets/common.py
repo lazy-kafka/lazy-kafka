@@ -2,15 +2,13 @@ from __future__ import annotations
 
 import logging
 from abc import abstractmethod
+from collections.abc import Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
     Generic,
-    Mapping,
     Protocol,
-    Sequence,
     TypeVar,
-    Union,
 )
 
 from textual import work
@@ -34,7 +32,7 @@ class CanConvertToTable(Protocol):
     def to_table_values(self) -> Sequence[Any]:
         ...
 
-T = TypeVar("T", bound=Union[str, None])
+T = TypeVar("T", bound=str | None)
 """Used for the DataTable content and HashMap keys."""
 
 S = TypeVar("S", bound=CanConvertToTable)

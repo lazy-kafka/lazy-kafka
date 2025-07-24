@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Generator, override
+from collections.abc import Generator
+from typing import override
 
 from textual import work
 from textual.app import ComposeResult

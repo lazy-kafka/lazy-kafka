@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import (
     Any,
-    Mapping,
     NamedTuple,
     Self,
     override,
@@ -32,7 +32,7 @@ from lazy_kafka.config import KafkaConfiguration
 _LOGGER = logging.getLogger(__name__)
 
 def _timestamp_to_str(timestamp: int) -> str:
-    dt = datetime.fromtimestamp(timestamp / 1e3, timezone.utc)
+    dt = datetime.fromtimestamp(timestamp / 1e3, UTC)
     return dt.isoformat()
 
 class NoMessagesError(Exception):
@@ -433,7 +433,7 @@ class KafkaTopicDetailsClient(KafkaClient):
                 details = str(_msg)
             return details
         self.aget_details = _msg_converter
-        
+
 
 
 @dataclass

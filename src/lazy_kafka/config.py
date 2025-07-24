@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
+import tomllib
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Literal
-
-import tomllib
+from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
     from _typeshed import SupportsRead
