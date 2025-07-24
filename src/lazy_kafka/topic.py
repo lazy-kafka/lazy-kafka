@@ -410,7 +410,7 @@ class KafkaClient:
 class KafkaTopicDetailsClient(KafkaClient):
 
     def __init__(self, config: KafkaConfiguration, *args, **kwargs):
-        super(KafkaTopicDetailsClient, self).__init__(config)
+        super().__init__(config)
         # re-assign the methods to comply with the service interface:
         # asubjects and aget_details
         self.asubjects = self.aget_last_n_messages

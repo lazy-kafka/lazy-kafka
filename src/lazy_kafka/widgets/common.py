@@ -196,7 +196,6 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
 
     def on_input_changed(self, event: Input.Changed) -> None:
         logging.debug(event)
-        token = event.value
         self.filter_token = event.value
 
     def watch_filter_token(self, old_filter_token: str, new_filter_token: str) -> None:

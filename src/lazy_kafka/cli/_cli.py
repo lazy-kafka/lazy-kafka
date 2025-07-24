@@ -10,9 +10,8 @@ from rich import print
 from rich.logging import RichHandler
 
 from lazy_kafka import __version__
+from lazy_kafka.cli import _kafka
 from lazy_kafka.config import Configuration
-
-from . import _kafka
 
 __all__ = ["app"]
 
