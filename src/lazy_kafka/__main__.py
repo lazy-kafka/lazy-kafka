@@ -155,7 +155,7 @@ class LazyKafka(App[None]):
         self.switch_mode("dashboard")
 
 
-app = LazyKafka()
+# app = LazyKafka()
 
 if __name__ == "__main__":
 # TODO: config will have to be read earlier so the CLI can handle it.
@@ -165,6 +165,13 @@ if __name__ == "__main__":
 #        _cfg
 #    )
     if len(sys.argv) <= 1:
+        from textual.logging import TextualHandler
+
+        logging.basicConfig(
+            level="NOTSET",
+            handlers=[TextualHandler()],
+        )
+
         app = LazyKafka()
         app.run()
     else:

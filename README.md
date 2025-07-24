@@ -113,7 +113,7 @@ Generate client code from openapi
 
 
 
-# NOTES
+# Development
 - confluent kafka docs: https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#confluent_kafka.TopicPartition
 - detailed example of confluent kafka lib api: https://github.com/confluentinc/confluent-kafka-python/issues/1443
 
@@ -122,3 +122,9 @@ Generate client code from openapi
 🫛 lazy-kafka ➜ python src/lazy_kafka/__main__.py --help
 🫛 lazy-kafka ➜ python src/lazy_kafka/scripts/topic_schema_producer.py
 🫛 lazy-kafka ➜textual run --dev --port 7342 src/lazy_kafka/__main__.py
+
+The app does not handle the case where topics are empty. Produce dummy data with the cli:
+🐣 lazy-kafka ➜ python -m lazy_kafka kafka produce -f src/lazy_kafka/default_config.toml test-topic
+
+(optionally also run this:)
+🐣 lazy-kafka ❯ python -m lazy_kafka kafka consume -f src/lazy_kafka/default_config.toml test-topic

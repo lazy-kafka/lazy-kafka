@@ -68,6 +68,6 @@ def global_options(
         _set_up_logging()
 
     _LOGGER = logging.getLogger(__name__)
-    _LOGGER.debug(f"LazyKafka v{__version__} {config_file=} {verbose=}")
+    _LOGGER.debug(f"LazyKafka {__version__} {config_file=} {verbose=}")
 
 

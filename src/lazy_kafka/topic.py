@@ -135,7 +135,6 @@ class KafkaClient:
         handler.setFormatter(logging.Formatter('%(asctime)-15s %(levelname)-8s %(message)s'))
         logger.addHandler(handler)
         self._client = Consumer(self.config.to_config(), logger=logger)
-        assert self._client is not None
         _LOGGER.debug("Consumer ready")
 
     def assign(self, partitions: list[TopicPartition]):
@@ -197,7 +196,9 @@ class KafkaClient:
         )
         if msg is None:
             current_partition_assignment = self.position(self._client.assignment())
-            assert len(current_partition_assignment) == 1
+            # TODO: verify:  assert len(current_partition_assignment) == 1
+            if len(current_partition_assignment) == 0:
+                raise NoMessagesError
             if current_partition_assignment[0].offset == OFFSET_INVALID:
                 raise OffsetInvalidError
             raise NoMessagesError
@@ -288,7 +289,8 @@ class KafkaClient:
             partition_n = max(1, n // len(partitions))
             # Calculate the start offset (ensuring we don't go before the beginning)
             start_offset = max(low_offset, high_offset - partition_n)
-            assert start_offset > 0
+            # start offset cannot be negative-  why?
+            assert start_offset >= 0
             # Store the offset and how many messages we expect from this partition
             partition_offsets[partition] = (start_offset, high_offset)
             _LOGGER.debug(f"{partition=}")

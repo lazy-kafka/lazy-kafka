@@ -26,7 +26,7 @@ from textual.widgets.data_table import DuplicateKey, RowDoesNotExist
 from lazy_kafka.utils import get_current_time
 
 if TYPE_CHECKING:
-    from lazy_kafka.types import ProviderProtocol, StrLike
+    from lazy_kafka._types import ProviderProtocol, StrLike
 
 _LOGGER = logging.getLogger(__name__)
 
