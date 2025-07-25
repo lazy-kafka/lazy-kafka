@@ -191,7 +191,6 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         self.app.set_focus(res.parent)
 
     def on_mount(self):
-        _LOGGER.debug("HERE IN PARENT mount")
         self.update_timer = self.set_interval(2, self.action_load_data, pause=True)
 
     def on_input_changed(self, event: Input.Changed) -> None:
@@ -257,7 +256,7 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         # Note, this should be in the init method ...
         self.selected_id = message.selected_id
         self.details = await self.hook.aget_details(message.selected_id)
-        _LOGGER.debug(self.details)
+        _LOGGER.debug(f"{self.details!r}")
 
         # TODO: it's a bit too much to refresh on focus?
     async def on_focus(self, event):

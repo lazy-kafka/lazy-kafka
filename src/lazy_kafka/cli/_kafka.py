@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import random
+import logging
 from pathlib import Path
 from time import sleep
 from typing import Annotated
@@ -20,6 +21,8 @@ from confluent_kafka.serialization import (
 from rich import print
 
 from lazy_kafka.config import Configuration
+
+_LOGGER = logging.getLogger(__name__)
 
 CONSOLE = rich.console.Console(log_path=False)
 

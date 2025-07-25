@@ -40,7 +40,6 @@ class TopicPanel(WidgetWithDataTable[Topic, TopicMetadata]):
     details: Reactive[TopicData | None] = reactive(None)
 
     def action_details(self):
-        _LOGGER.info("show details:")
         assert self.details is not None
         self.app.push_screen(TopicDetails(hook=self.hook, topic=self.details.topic))
 

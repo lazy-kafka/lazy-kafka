@@ -125,7 +125,6 @@ class Configuration:
     @classmethod
     def from_local_config(cls):
         # NOTE XDG_HOME is ignored
-        _p = cls.default_config_file_path()
         try:
             return cls.from_toml(cls.default_config_file_path())
         except FileNotFoundError as exc:

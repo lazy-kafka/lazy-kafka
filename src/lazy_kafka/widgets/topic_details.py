@@ -131,5 +131,5 @@ class TopicDetailsWidget(WidgetWithDataTable[KafkaMessageId, list[LazyKafkaMessa
     def subject_to_table(
         self, response: list[LazyKafkaMessage], *args, **kwargs
     ) -> dict[KafkaMessageId, LazyKafkaMessage]:
-        _LOGGER.debug(f"LOFASZ: {response}")
+        _LOGGER.debug(f"{response=}")
         return {i.offset: i for i in response}
