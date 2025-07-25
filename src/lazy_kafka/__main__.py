@@ -154,14 +154,8 @@ class LazyKafka(App[None]):
         self.theme = "frog"
         self.switch_mode("dashboard")
 
-
-if __name__ == "__main__":
-# TODO: config will have to be read earlier so the CLI can handle it.
-#    _cfg = Configuration.from_local_config().registry
-#    logging.debug("%s", _cfg)
-#    _hook = registry.SchemaRegistry(
-#        _cfg
-#    )
+def main():
+    """Main entrypoint to the TUI and CLI."""
     if len(sys.argv) <= 1:
         from textual.logging import TextualHandler
 
@@ -176,3 +170,6 @@ if __name__ == "__main__":
         from lazy_kafka.cli import app
 
         app()
+
+if __name__ == "__main__":
+    main()
