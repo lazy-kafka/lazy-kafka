@@ -27,7 +27,7 @@ classifiers = [
 dependencies = [
 # see the bug: https://github.com/confluentinc/confluent-kafka-python/issues/1842
     "confluent-kafka[avro,json,protobuf]>=2.4.0,<=2.5.3",
-    "textual>=1.0.0",
+    "textual>=4.0.0",
     "rich",
     "typer",
     "click>=8.0.0",

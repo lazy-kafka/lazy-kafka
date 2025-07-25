@@ -155,8 +155,6 @@ class LazyKafka(App[None]):
         self.switch_mode("dashboard")
 
 
-# app = LazyKafka()
-
 if __name__ == "__main__":
 # TODO: config will have to be read earlier so the CLI can handle it.
 #    _cfg = Configuration.from_local_config().registry
