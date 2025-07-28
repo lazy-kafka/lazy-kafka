@@ -89,4 +89,16 @@ class KConnectPanel(WidgetWithDataTable[connect.ConnectorData, Any]):
     def subject_to_table(self, response: dict[str, Any], *args, **kwargs):
         """Transform raw `hook.asubjects` results into DataTable dict values."""
         return connect.ConnectorData.from_response(response)
+    
+    def apply_filter(self, data: connect.ConnectorData, token: str, *, textual_styling = "dark_orange") -> connect.ConnectorData:
+        """Apply textual highlighting on values."""
+        _d = {
+            k: v.replace(
+                token,
+                f"[{textual_styling}]{token}[/{textual_styling}]",
+            )
+            for k,v in data.to_dict().items()
+        }
+        return connect.ConnectorData(**_d)
+
 

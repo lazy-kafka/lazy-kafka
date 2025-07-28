@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Generator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from textual.reactive import Reactive, reactive
 from textual.widgets import (
@@ -61,3 +61,9 @@ class TopicPanel(WidgetWithDataTable[Topic, TopicMetadata]):
 
     def subject_to_table(self, response:dict[Topic, TopicMetadata], *args, **kwargs):
         return {i:i for i in response.keys()}
+
+    def apply_filter(self, data: Topic, token: str, *, textual_styling = "dark_orange") -> Topic:
+        return Topic(data.replace(
+                token,
+                f"[{textual_styling}]{token}[/{textual_styling}]",
+            ))

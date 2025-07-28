@@ -203,12 +203,11 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         table.loading = True
         table.clear()
         _rows = {
-            k: v.replace(new_filter_token, f"[dark_orange]{new_filter_token}[/dark_orange]")
+            k: self.apply_filter(v, self.filter_token)
             for k, v in self.subjects.items()
-            if new_filter_token in v.lower()
         }
         for k, v in _rows.items():
-            table.add_row(v, key=k)
+            table.add_row(*v, key=k)
 
         table.loading = False
 
@@ -283,9 +282,8 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         _LOGGER.debug(f"self.subjects is None: {self.subjects is None}")
         if self.filter_token:
             _rows = {
-                k: v.replace(self.filter_token, f"[dark_orange]{self.filter_token}[/dark_orange]")
+                k: self.apply_filter(v, self.filter_token)
                 for k, v in self.subjects.items()
-                if self.filter_token in v.lower()
             }
         else:
             _rows = self.subjects
@@ -294,7 +292,7 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
             try:
                 # TODO: probably I am breaking a bunch o' other screens. this works for the topics
                 #data_table.add_row(*v.to_table_values(), key=k)
-                data_table.add_row(v, key=k)
+                data_table.add_row(*v, key=k)
             except DuplicateKey:
                 # No details are shown in rows, so it's ok to just pass
                 continue
@@ -315,3 +313,6 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
     def subject_to_table(self, *args, **kwargs) -> Mapping[StrLike, S]:
         ...
 
+    @abstractmethod
+    def apply_filter(self, data: T, token: str) -> T:
+        ...

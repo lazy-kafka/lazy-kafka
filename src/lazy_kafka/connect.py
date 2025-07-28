@@ -6,7 +6,7 @@ import asyncio
 import logging
 from dataclasses import asdict, dataclass
 from functools import partialmethod
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Iterable, Self
 
 import httpx
 
@@ -35,6 +35,9 @@ class ConnectorData:
     state: str | None = None  # TODO: enum RUNNING | FAILED
     worker_id: str | None = None
     type: str | None = None
+
+    def __iter__(self: Self) -> Iterable[str | None]:
+        return iter(self.__dict__.values())
 
     def to_dict(self: Self) -> dict[str, Any]:
         """Return contents as dict."""
