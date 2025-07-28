@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from functools import partialmethod
-from typing import TYPE_CHECKING, Any, Iterable, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import httpx
 

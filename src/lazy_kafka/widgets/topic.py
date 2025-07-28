@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Generator
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING
 
 from textual.reactive import Reactive, reactive
 from textual.widgets import (
