@@ -70,7 +70,7 @@ class ContentSwitcher(Container):
         )
         self._initial = initial
 
-    def _on_mount(self, _: Mount) -> None: # typing: ignore
+    def _on_mount(self, _: Mount) -> None:  # typing: ignore
         """Perform the initial setup of the widget once the DOM is ready."""
         initial = self._initial
         with self.app.batch_update():

@@ -1,4 +1,5 @@
 """Logger configuration."""
+
 from __future__ import annotations
 
 import logging
@@ -7,9 +8,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 
 
-def setup_logging(
-    terminal_width: int | None = None, level: int = logging.INFO
-) -> None:
+def setup_logging(terminal_width: int | None = None, level: int = logging.INFO) -> None:
     logger = logging.getLogger("lazy_kafka")
     console = Console(width=terminal_width) if terminal_width else None
     rich_handler = RichHandler(
@@ -26,8 +25,9 @@ def setup_logging(
     logger.setLevel(level)
     logger.propagate = False
 
+
 def configure_base_logger(level: int = logging.DEBUG):
     logging.basicConfig(
         level=level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s() - %(message)s'  # Custom format
+        format="%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s() - %(message)s",  # Custom format
     )

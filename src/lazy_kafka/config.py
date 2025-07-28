@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+
 @dataclass(frozen=True)
 class KafkaConfiguration:
     """Kafka Consumer/Producer configuration.
@@ -40,7 +41,7 @@ class KafkaConfiguration:
 
     def to_config(self, flavor: str = "librdkafka"):
         match flavor:
-            case "librdkafka"| "confluent":
+            case "librdkafka" | "confluent":
                 config = self.__dict__
                 # in confluent-kafka 2.5.0 it seems to be necessary to remove
                 # sasl.mechanism if it is not used
@@ -58,6 +59,7 @@ class ConnectConfiguration:
     username: str | None = None
     password: str | None = None
 
+
 @dataclass(frozen=True)
 class RegistryConfiguration:
     host: str = "http://localhost:8081"
@@ -69,7 +71,7 @@ class RegistryConfiguration:
             case "librdkafka" | "confluent":
                 return {
                     "url": self.host,
-                    "basic.auth.user.info": f"{self.username}:{self.password}"
+                    "basic.auth.user.info": f"{self.username}:{self.password}",
                 }
             case _:
                 raise ValueError("Unsupported configuration flavor.")
@@ -87,7 +89,7 @@ class Configuration:
     request_time_out: int = 1000
     log_level: Literal["DEBUG", "INFO"] = "INFO"
     # Run the app in development mode: logging, log-formatting etc.
-    dev_mode:bool = False
+    dev_mode: bool = False
     _file: Path = Path(__file__).parent / "default_config.toml"
 
     def __post_init__(self):
@@ -106,7 +108,7 @@ class Configuration:
     ):
         with open(file_path, **kwargs) as _f:
             config = file_reader(_f)
-        return cls(**config, _file = file_path)
+        return cls(**config, _file=file_path)
 
     @classmethod
     def from_toml(cls, file_path: Path):

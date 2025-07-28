@@ -54,7 +54,9 @@ class DashboardScreen(Screen):
         self.query_one("#tabs", Tabs).action_previous_tab()
 
     def compose(self) -> ComposeResult:
-        assert hasattr(self.app, "lazy_kafka_config"), "Application failed to load configuration."
+        assert hasattr(self.app, "lazy_kafka_config"), (
+            "Application failed to load configuration."
+        )
 
         yield Header()
 
@@ -67,35 +69,31 @@ class DashboardScreen(Screen):
         )
         with ContentSwitcher(initial="topic", id="main-content-switcher"):
             try:
-                _hook = topic.KafkaClient(
-                    self.app.lazy_kafka_config.kafka
-                )
+                _hook = topic.KafkaClient(self.app.lazy_kafka_config.kafka)
             except (ConnectionRefusedError, AssertionError):
                 _hook = None
                 yield Label("Error", id="tab-topic")
             if _hook is not None:
-                yield TopicPanel(id="tab-topic", classes="has-border", hook = _hook)
+                yield TopicPanel(id="tab-topic", classes="has-border", hook=_hook)
 
             try:
-                _hook = registry.SchemaRegistry(
-                    self.app.lazy_kafka_config.registry
-                )
+                _hook = registry.SchemaRegistry(self.app.lazy_kafka_config.registry)
             except ConnectionRefusedError:
                 _hook = None
                 yield Label("Error", id="tab-schema")
             if _hook is not None:
-                yield SchemaRegistryPanel(id="tab-schema", classes="has-border", hook=_hook)
+                yield SchemaRegistryPanel(
+                    id="tab-schema", classes="has-border", hook=_hook
+                )
 
             try:
-                _hook = connect.Connect(
-                    self.app.lazy_kafka_config.connect
-                )
+                _hook = connect.Connect(self.app.lazy_kafka_config.connect)
             except ConnectionRefusedError:
                 _hook = None
                 yield Label("Error", id="tab-connect")
             if _hook is not None:
                 # TODO: if hook is None, the widget should be just a Label?
-                yield KConnectPanel(id="tab-connect", classes="has-border", hook = _hook)
+                yield KConnectPanel(id="tab-connect", classes="has-border", hook=_hook)
         yield Footer(show_command_palette=False)
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
@@ -154,6 +152,7 @@ class LazyKafka(App[None]):
         self.theme = "frog"
         self.switch_mode("dashboard")
 
+
 def main():
     """Main entrypoint to the TUI and CLI."""
     if len(sys.argv) <= 1:
@@ -170,6 +169,7 @@ def main():
         from lazy_kafka.cli import app
 
         app()
+
 
 if __name__ == "__main__":
     main()

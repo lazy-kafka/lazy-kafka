@@ -62,6 +62,7 @@ class ConnectorData:
             for k, v in response.items()
         }
 
+
 class Connect:
     # [Reference](https://docs.confluent.io/platform/current/connect/references/restapi.html#content-types)
     _CONTENT_TYPE = "application/json"
@@ -80,7 +81,7 @@ class Connect:
             _auth = httpx.BasicAuth(username=config.username, password=config.password)
 
         try:
-            _debug_info = httpx.get(config.host, auth = _auth)
+            _debug_info = httpx.get(config.host, auth=_auth)
         except httpx.HTTPError as e:
             _LOGGER.error("Connection error: %s", e)
             raise ConnectionRefusedError(f"Cannot connect to {config.host}") from e
@@ -90,7 +91,7 @@ class Connect:
         self._client = httpx.AsyncClient(
             base_url=self.host,
             headers={"Content-Type": Connect._CONTENT_TYPE},
-            auth = _auth
+            auth=_auth,
         )
 
     def __repr__(self):
@@ -137,6 +138,7 @@ class Connect:
 
 # TODO:  connector config info [Ref](https://docs.confluent.io/platform/current/connect/references/restapi.html#get--connectors-(string-name)-config)
 
+
 async def test_async_api():
     from rich.pretty import pprint
 
@@ -147,5 +149,5 @@ async def test_async_api():
 
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(test_async_api())
 
+    asyncio.run(test_async_api())

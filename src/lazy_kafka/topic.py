@@ -31,14 +31,17 @@ from lazy_kafka.config import KafkaConfiguration
 
 _LOGGER = logging.getLogger(__name__)
 
+
 def _timestamp_to_str(timestamp: int) -> str:
     dt = datetime.fromtimestamp(timestamp / 1e3, UTC)
     return dt.isoformat()
+
 
 class NoMessagesError(Exception):
     """No message retrieved by consumer."""
 
     pass
+
 
 class MessageRetriableError(Exception):
     """No message retrieved by consumer."""
@@ -51,6 +54,7 @@ class ConsumerPollError(Exception):
 
     pass
 
+
 class OffsetInvalidError(Exception):
     """Offset is invalid on the partition.
 
@@ -58,6 +62,7 @@ class OffsetInvalidError(Exception):
     """
 
     pass
+
 
 class LazyKafkaMessage(NamedTuple):
     """LazyKafka internal message type."""
@@ -71,17 +76,12 @@ class LazyKafkaMessage(NamedTuple):
     def from_confluent_kafka(cls, msg: Message) -> Self:
         """Alternative constructor from confluent kafka native Message type."""
         timestamp_type = msg.timestamp()
-        #TODO: handle timestamps properly:
+        # TODO: handle timestamps properly:
         # https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#confluent_kafka.Message.timestamp
         if timestamp_type[0] != 1:
             raise ValueError("Timestamp type not available")
         timestamp = _timestamp_to_str(timestamp_type[1])
-        return cls(
-            timestamp,
-            msg.offset(),
-            msg.key(),
-            str(msg.value())
-        )
+        return cls(timestamp, msg.offset(), msg.key(), str(msg.value()))
 
     # TODO: this method is not used at the moment,
     #   fix the interface implementations including this one
@@ -90,8 +90,9 @@ class LazyKafkaMessage(NamedTuple):
             "timestamp": self.timestamp,
             "offset": self.offset,
             "key": self.key,
-            "message": self.message
+            "message": self.message,
         }
+
 
 class TopicMetadata(ConfluentTopicMetadata):
     topic: str | None
@@ -100,6 +101,7 @@ class TopicMetadata(ConfluentTopicMetadata):
 
     def to_table_values(self):
         return self.__dict__()
+
 
 class Topic(str):
     """Custom type to represent the selected `subject`.
@@ -117,6 +119,7 @@ class Topic(str):
     def __iter__(self):
         yield str(self)
 
+
 # TOOD: assigne aget_details and aget_subjects to implement Protocol
 class KafkaClient:
     """Confluent Kafka based Client."""
@@ -129,10 +132,12 @@ class KafkaClient:
         self.config = config
         _LOGGER.debug(f"{self.config=}")
         _LOGGER.debug("Instantiate Consumer")
-        logger = logging.getLogger('consumer')
+        logger = logging.getLogger("consumer")
         logger.setLevel(logging.DEBUG)
         handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter('%(asctime)-15s %(levelname)-8s %(message)s'))
+        handler.setFormatter(
+            logging.Formatter("%(asctime)-15s %(levelname)-8s %(message)s")
+        )
         logger.addHandler(handler)
         self._client = Consumer(self.config.to_config(), logger=logger)
         _LOGGER.debug("Consumer ready")
@@ -147,7 +152,7 @@ class KafkaClient:
             admin_client.list_topics(timeout=1000).topics.values()
         )
         _LOGGER.debug(f"{raw_topics=}")
-        return {Topic(i.topic) : i for i in raw_topics if i.topic is not None}
+        return {Topic(i.topic): i for i in raw_topics if i.topic is not None}
 
     def asubjects(self) -> asyncio.Future[dict[Topic, TopicMetadata]]:
         loop = asyncio.get_running_loop()
@@ -162,7 +167,9 @@ class KafkaClient:
     def get_topic_information(self, topic: str) -> TopicMetadata:
         """Return metadata about single topic."""
         admin_client = AdminClient(self.config.to_config())
-        topic_metadata: Mapping[str, TopicMetadata] = admin_client.list_topics(topic=topic, timeout=1000).topics
+        topic_metadata: Mapping[str, TopicMetadata] = admin_client.list_topics(
+            topic=topic, timeout=1000
+        ).topics
         # topics: Map of topics indexed by the topic name. Value is a TopicMetadata object.
         assert topic in topic_metadata
         return topic_metadata[topic]
@@ -179,7 +186,9 @@ class KafkaClient:
 
     def get_watermark_offsets(self, partition: TopicPartition) -> tuple[int, int]:
         """Get the low and high watermark offsets for a partition."""
-        return self._client.get_watermark_offsets(partition, timeout=self.WATERMARK_TIMEOUT_SECONDS, cached=False)
+        return self._client.get_watermark_offsets(
+            partition, timeout=self.WATERMARK_TIMEOUT_SECONDS, cached=False
+        )
 
     def poll(self):
         """Poll the client implementation for new messages.
@@ -191,9 +200,7 @@ class KafkaClient:
             MessageRetriableError: a recoverable error
 
         """
-        msg: Message | None = self._client.poll(
-            self.MESSAGE_POLL_TIMEOUT_SECONDS
-        )
+        msg: Message | None = self._client.poll(self.MESSAGE_POLL_TIMEOUT_SECONDS)
         if msg is None:
             current_partition_assignment = self.position(self._client.assignment())
             # TODO: verify:  assert len(current_partition_assignment) == 1
@@ -242,7 +249,7 @@ class KafkaClient:
         assert loop is not None
         return loop.run_in_executor(None, self._consume, topic)
 
-    def _consume(self, topic:str) -> list[Message]:
+    def _consume(self, topic: str) -> list[Message]:
         # This consume uses subscribe to watch for changes
         # guard against infinite polling
         # mutates _client state subscribe -> close
@@ -261,15 +268,15 @@ class KafkaClient:
 
                 if _c >= self.MAX_CONSUMER_POLL:
                     raise ConsumerPollError("Too many polling.")
-                messages.append(
-                    LazyKafkaMessage.from_confluent_kafka(_msg)
-                )
+                messages.append(LazyKafkaMessage.from_confluent_kafka(_msg))
         finally:
             self._client.close()
 
         return messages
 
-    def get_partition_offsets(self, partitions: list[TopicPartition], n: int) -> dict[TopicPartition, tuple[int,int]]:
+    def get_partition_offsets(
+        self, partitions: list[TopicPartition], n: int
+    ) -> dict[TopicPartition, tuple[int, int]]:
         """Get partitions offsets based on naive approach.
 
         partitions (list[TopicPartition]): list of partitions
@@ -297,8 +304,7 @@ class KafkaClient:
             _LOGGER.debug(f"{start_offset=} - {high_offset=}")
         return partition_offsets
 
-
-    def better_consume_n(self, topic: str, n:int) -> list[LazyKafkaMessage]:
+    def better_consume_n(self, topic: str, n: int) -> list[LazyKafkaMessage]:
         """Read `n` messages from a kafka topic.
 
         Reading *"batch"* from a Kafka topic has a few caveats, more precisely,
@@ -328,7 +334,6 @@ class KafkaClient:
         message_count = 0
         max_messages_total = n
 
-
         while message_count < max_messages_total:
             # Poll for message
             try:
@@ -341,8 +346,12 @@ class KafkaClient:
                 for partition in partition_assignments:
                     current_position = self.position([partition])[0]
                     assert isinstance(current_position, TopicPartition)
-                    _, high_offset = partition_offsets[TopicPartition(partition.topic, partition.partition, 0)]
-                    _LOGGER.debug(f"Partition offset: {current_position=}, {high_offset=}")
+                    _, high_offset = partition_offsets[
+                        TopicPartition(partition.topic, partition.partition, 0)
+                    ]
+                    _LOGGER.debug(
+                        f"Partition offset: {current_position=}, {high_offset=}"
+                    )
                     current_offset = current_position.offset
                     if current_offset < high_offset:
                         all_done = False
@@ -367,9 +376,7 @@ class KafkaClient:
                     continue
 
             # Process message
-            messages.append(
-                LazyKafkaMessage.from_confluent_kafka(msg)
-            )
+            messages.append(LazyKafkaMessage.from_confluent_kafka(msg))
             message_count += 1
 
         # Sort messages by timestamp if available
@@ -407,22 +414,24 @@ class KafkaClient:
         timestamp = _timestamp_to_str(timestamp_type[1])
         return (timestamp, msg.offset(), msg.key(), str(msg.value()))
 
-class KafkaTopicDetailsClient(KafkaClient):
 
+class KafkaTopicDetailsClient(KafkaClient):
     def __init__(self, config: KafkaConfiguration, *args, **kwargs):
         super().__init__(config)
         # re-assign the methods to comply with the service interface:
         # asubjects and aget_details
         self.asubjects = self.aget_last_n_messages
+
         async def _msg_converter(message):
             import json
+
             _LOGGER.debug(message)
             try:
                 _msg = message.message
             except AttributeError:
                 return "{}"
 
-            if _msg is None or _msg == 'None':
+            if _msg is None or _msg == "None":
                 return "{}"
             try:
                 details = json.loads(
@@ -432,8 +441,8 @@ class KafkaTopicDetailsClient(KafkaClient):
                 _LOGGER.error(e)
                 details = str(_msg)
             return details
-        self.aget_details = _msg_converter
 
+        self.aget_details = _msg_converter
 
 
 @dataclass

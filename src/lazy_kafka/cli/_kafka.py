@@ -73,7 +73,7 @@ def consume(
             "--config-file",
             "-f",
             help="Path to lazy-kafka config file.",
-            rich_help_panel="[i][green]Customization and Utils[/]"
+            rich_help_panel="[i][green]Customization and Utils[/]",
         ),
     ] = Configuration.default_config_file_path(),
 ):
@@ -112,7 +112,7 @@ def produce(
             "--config-file",
             "-f",
             help="Path to lazy-kafka config file.",
-            rich_help_panel="[i][green]Customization and Utils[/]"
+            rich_help_panel="[i][green]Customization and Utils[/]",
         ),
     ] = Configuration.default_config_file_path(),
 ):
@@ -130,9 +130,7 @@ def produce(
     _produce(topic, config_file)
 
 
-def _produce(topic: str, config_file:Path):
-
-
+def _produce(topic: str, config_file: Path):
     def _data_to_dict(_d: dict, ctx: Any) -> dict:
         return _d
 

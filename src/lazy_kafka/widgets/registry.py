@@ -181,7 +181,9 @@ class DialogOpen(Message):
         super().__init__()
 
 
-class SchemaRegistryPanel(WidgetWithDataTable[registry.Subject, registry.SubjectDetails]):
+class SchemaRegistryPanel(
+    WidgetWithDataTable[registry.Subject, registry.SubjectDetails]
+):
     """Schema Registry widget."""
 
     BORDER_TITLE = "Subjects"
@@ -252,8 +254,12 @@ class SchemaRegistryPanel(WidgetWithDataTable[registry.Subject, registry.Subject
         """Transform raw `hook.asubjects` results into DataTable dict values."""
         return {i: registry.Subject(i) for i in response}
 
-    def apply_filter(self, data: registry.Subject, token: str, *, textual_styling = "dark_orange") -> registry.Subject:
-        return registry.Subject(data.replace(
+    def apply_filter(
+        self, data: registry.Subject, token: str, *, textual_styling="dark_orange"
+    ) -> registry.Subject:
+        return registry.Subject(
+            data.replace(
                 token,
                 f"[{textual_styling}]{token}[/{textual_styling}]",
-            ))
+            )
+        )

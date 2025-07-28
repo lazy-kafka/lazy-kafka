@@ -8,6 +8,7 @@ from lazy_kafka.config import Configuration
 
 TOPIC = "user-topic"
 
+
 def dict_to_user(obj, ctx):
     """
     Converts object literal(dict) to a User instance.
@@ -21,6 +22,7 @@ def dict_to_user(obj, ctx):
         return None
 
     return obj
+
 
 def main():
     cfg = Configuration()

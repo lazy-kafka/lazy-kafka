@@ -25,8 +25,9 @@ class User:
         self.favorite_color = favorite_color
 
 
-def consume_generator(consumer: KafkaClient, topic: str, n:int = 10):
+def consume_generator(consumer: KafkaClient, topic: str, n: int = 10):
     from rich.pretty import pprint
+
     partitions = consumer.get_topic_partitions(topic)
     # ----
     partition_offsets = consumer.get_partition_offsets(partitions, n)
@@ -64,7 +65,9 @@ def consume_generator(consumer: KafkaClient, topic: str, n:int = 10):
             all_done = True
             for partition in partition_assignments:
                 current_position = consumer.position([partition])[0]
-                _, high_offset = partition_offsets[TopicPartition(partition.topic, partition.partition, 0)]
+                _, high_offset = partition_offsets[
+                    TopicPartition(partition.topic, partition.partition, 0)
+                ]
                 current_offset = current_position.offset
                 if current_offset < high_offset:
                     all_done = False
@@ -89,21 +92,22 @@ def consume_generator(consumer: KafkaClient, topic: str, n:int = 10):
                 continue
 
         # Process message
-        value = { "msg": msg.value()}
-        value['_kafka_metadata'] = {
-            'topic': msg.topic(),
-            'partition': msg.partition(),
-            'offset': msg.offset(),
-            'timestamp': msg.timestamp()[1] if msg.timestamp() else None
+        value = {"msg": msg.value()}
+        value["_kafka_metadata"] = {
+            "topic": msg.topic(),
+            "partition": msg.partition(),
+            "offset": msg.offset(),
+            "timestamp": msg.timestamp()[1] if msg.timestamp() else None,
         }
         messages.append(value)
         message_count += 1
 
     # Sort messages by timestamp if available
-    messages.sort(key=lambda m: m.get('_kafka_metadata', {}).get('timestamp', 0))
+    messages.sort(key=lambda m: m.get("_kafka_metadata", {}).get("timestamp", 0))
 
     # Return the latest N messages
     return messages[-n:] if len(messages) > n else messages
+
 
 def main(topic: str):
     cfg = Configuration()
@@ -122,13 +126,14 @@ def main(topic: str):
 
     return messages
 
+
 if __name__ == "__main__":
     import typer
     from rich.console import Console
     from rich.pretty import pprint
     from rich.table import Table
-    app = typer.Typer()
 
+    app = typer.Typer()
 
     @app.command()
     def _main(topic: str):
@@ -139,6 +144,5 @@ if __name__ == "__main__":
         for m in messages:
             table.add_row(str(m["_kafka_metadata"]["offset"]), str(m["msg"]))
         console.print(table)
-
 
     app()

@@ -15,10 +15,10 @@ frog_theme = Theme(
     name="frog",
     primary="#5f8787",
     secondary="#fbcb97",
-    accent="#e78a53",#5f8787
+    accent="#e78a53",  # 5f8787
     foreground="#D8DEE9",
     background="#000000",
-    success="#0b6e0b",#A3BE8C
+    success="#0b6e0b",  # A3BE8C
     warning="#EBCB8B",
     error="#BF616A",
     surface="#3B4252",
@@ -30,4 +30,3 @@ frog_theme = Theme(
         "input-selection-background": "#81a1c1 35%",
     },
 )
-

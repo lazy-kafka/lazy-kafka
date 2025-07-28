@@ -34,4 +34,3 @@ class Status(Widget, can_focus=False):
             Label("[i]Updated:[/] ", id="text"),
             Label("--:--:--", id="time", classes="status-text"),
         )
-

@@ -91,9 +91,7 @@ def main():
             if msg is None:
                 continue
 
-            print(
-                msg.value(), SerializationContext(msg.topic(), MessageField.VALUE)
-            )
+            print(msg.value(), SerializationContext(msg.topic(), MessageField.VALUE))
         except KeyboardInterrupt:
             break
 

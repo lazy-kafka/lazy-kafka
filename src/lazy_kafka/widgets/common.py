@@ -28,9 +28,10 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class CanConvertToTable(Protocol):
-    def to_table_values(self) -> Sequence[Any]:
-        ...
+    def to_table_values(self) -> Sequence[Any]: ...
+
 
 T = TypeVar("T", bound=str | None)
 """Used for the DataTable content and HashMap keys."""
@@ -57,20 +58,23 @@ class SubjectDetails(Widget):
         width: 1fr;
       }
     """
+
     def compose(self):
         yield ScrollableContainer(
-                Pretty([]),
-            )
+            Pretty([]),
+        )
 
     def on_mount(self):
         self.query_one(ScrollableContainer).border_subtitle = "Details"
 
+
 class SearchInput(Input):
     ...
-    #def on_input_submitted(self, message: Input.Submitted):
-        #self.log.info(f"Hello {message}")
+    # def on_input_submitted(self, message: Input.Submitted):
+    # self.log.info(f"Hello {message}")
 
-class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
+
+class WidgetWithDataTable(Generic[T, S], Container, can_focus=True):
     """Template class for core widgets with a DataTable and Details.
 
     The class is generic over:
@@ -95,7 +99,14 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         ("k", "previous_widget_item", "↑"),
         ("f", "toggle_refresh", "Toggle follow"),
         # TODO: remove ("escape", "unset_topic", "close"),
-        Binding("slash", "search_subject", "Search", show=True, key_display="/", tooltip="Search by name"),
+        Binding(
+            "slash",
+            "search_subject",
+            "Search",
+            show=True,
+            key_display="/",
+            tooltip="Search by name",
+        ),
     ]
     DEFAULT_CSS = """
     WidgetWithDataTable {
@@ -127,10 +138,9 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
     }
     """
 
-    hook: ProviderProtocol[T,S]
-    subjects: Mapping[T,S]
+    hook: ProviderProtocol[T, S]
+    subjects: Mapping[T, S]
     filter_token: Reactive[str] = reactive("")
-
 
     def __init__(self, *args, **kwargs):
         assert self.hook is not None
@@ -203,8 +213,7 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         table.loading = True
         table.clear()
         _rows = {
-            k: self.apply_filter(v, self.filter_token)
-            for k, v in self.subjects.items()
+            k: self.apply_filter(v, self.filter_token) for k, v in self.subjects.items()
         }
         for k, v in _rows.items():
             table.add_row(*v, key=k)
@@ -213,7 +222,6 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
 
     def on_data_table_focused(self, event):
         _LOGGER.debug("DATA TABLE FOC %s", f"{event!r}")
-
 
     def watch_details(self, details: str):
         """Callback on topic changed."""
@@ -261,6 +269,7 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         _LOGGER.debug(f"{self.details!r}")
 
         # TODO: it's a bit too much to refresh on focus?
+
     async def on_focus(self, event):
         """Perform a single refresh on focus."""
         for data_table in self.query(DataTable):
@@ -288,7 +297,7 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         else:
             _rows = self.subjects
 
-        for k,v in _rows.items():
+        for k, v in _rows.items():
             try:
                 data_table.add_row(*v, key=k)
             except DuplicateKey:
@@ -308,9 +317,7 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
         label.update(f"{get_current_time()}")
 
     @abstractmethod
-    def subject_to_table(self, *args, **kwargs) -> Mapping[StrLike, S]:
-        ...
+    def subject_to_table(self, *args, **kwargs) -> Mapping[StrLike, S]: ...
 
     @abstractmethod
-    def apply_filter(self, data: T, token: str) -> T:
-        ...
+    def apply_filter(self, data: T, token: str) -> T: ...

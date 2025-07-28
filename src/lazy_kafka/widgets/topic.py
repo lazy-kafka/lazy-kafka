@@ -59,11 +59,15 @@ class TopicPanel(WidgetWithDataTable[Topic, TopicMetadata]):
         data_table.add_column("Name")
         super().on_mount()
 
-    def subject_to_table(self, response:dict[Topic, TopicMetadata], *args, **kwargs):
-        return {i:i for i in response.keys()}
+    def subject_to_table(self, response: dict[Topic, TopicMetadata], *args, **kwargs):
+        return {i: i for i in response.keys()}
 
-    def apply_filter(self, data: Topic, token: str, *, textual_styling = "dark_orange") -> Topic:
-        return Topic(data.replace(
+    def apply_filter(
+        self, data: Topic, token: str, *, textual_styling="dark_orange"
+    ) -> Topic:
+        return Topic(
+            data.replace(
                 token,
                 f"[{textual_styling}]{token}[/{textual_styling}]",
-            ))
+            )
+        )

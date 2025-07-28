@@ -18,7 +18,8 @@ from lazy_kafka.config import Configuration
 
 
 def phone_number():
-    return partial(text, alphabet=[chr(i) for i in range(48,58)])
+    return partial(text, alphabet=[chr(i) for i in range(48, 58)])
+
 
 class User:
     """

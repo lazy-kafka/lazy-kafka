@@ -24,7 +24,8 @@ class User:
         self.favorite_number = favorite_number
         self.favorite_color = favorite_color
 
-def consume_generator(consumer, max_messages = None) :
+
+def consume_generator(consumer, max_messages=None):
     consumer.subscribe([TOPIC])
     message_count = 0
 
@@ -39,12 +40,14 @@ def consume_generator(consumer, max_messages = None) :
 
                 message_count += 1
                 yield (
-                    msg.value(), SerializationContext(msg.topic(), MessageField.VALUE)
+                    msg.value(),
+                    SerializationContext(msg.topic(), MessageField.VALUE),
                 )
             except KeyboardInterrupt:
                 break
     finally:
         consumer.close()
+
 
 def main():
     cfg = Configuration()
@@ -60,6 +63,7 @@ def main():
     consumer_iterable = consume_generator(consumer)
     for _ in range(5):
         print(next(consumer_iterable))
+
 
 if __name__ == "__main__":
     main()
