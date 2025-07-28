@@ -11,7 +11,7 @@ from rich import print
 from rich.logging import RichHandler
 
 from lazy_kafka import __version__
-from lazy_kafka.cli import _kafka
+from lazy_kafka.cli import _kafka, _schema_registry
 from lazy_kafka.config import Configuration
 
 __all__ = ["app"]
@@ -28,6 +28,8 @@ def _set_up_logging(level="INFO"):
 app = typer.Typer(rich_markup_mode="rich")
 
 app.add_typer(_kafka.app, name="kafka")
+# TODO: create shorter alias for this:
+app.add_typer(_schema_registry.app, name="schema-registry")
 
 
 def version_callback(value: bool) -> None:
