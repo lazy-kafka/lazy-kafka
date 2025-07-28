@@ -43,8 +43,8 @@ class DashboardScreen(Screen):
     """Content screens."""
 
     BINDINGS = [
-        ("l", "next_tab", "Next"),
-        ("h", "previous_tab", "Previous"),
+        ("l", "next_tab", "→"),
+        ("h", "previous_tab", "←"),
     ]
 
     def action_next_tab(self):
