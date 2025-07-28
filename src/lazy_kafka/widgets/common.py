@@ -234,6 +234,9 @@ class WidgetWithDataTable(Generic[T,S], Container, can_focus=True):
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         # The post_message method sends an event to be handled in the DOM
         _LOGGER.debug(f"selected: {event}")
+        if event.cursor_row == -1:
+            # Already in top row
+            return
         if event.row_key.value is None:
             _LOGGER.error("False event")
             return
