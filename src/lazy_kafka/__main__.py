@@ -5,7 +5,6 @@ import sys
 from functools import cached_property
 from pathlib import Path
 
-from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.css.query import NoMatches
 from textual.screen import Screen
@@ -18,14 +17,10 @@ from textual.widgets import (
     Tabs,
 )
 
-# services
-from lazy_kafka import connect, registry, topic
 from lazy_kafka.config import Configuration
+from lazy_kafka.plugin import iter_plugins, load_builtin_plugins
 from lazy_kafka.theme import frog_theme
-from lazy_kafka.widgets.kconnect import KConnectPanel
-from lazy_kafka.widgets.registry import SchemaRegistryPanel
 from lazy_kafka.widgets.switcher import ContentSwitcher
-from lazy_kafka.widgets.topic import TopicPanel
 
 
 class SettingsScreen(Screen):
@@ -60,40 +55,18 @@ class DashboardScreen(Screen):
 
         yield Header()
 
+        plugins = list(iter_plugins())
+        # TODO: panels should be lazy-mounted so their load_data only runs when
+        # a tab is first visited by the user.
         yield Tabs(
-            # TODO: these widgets should be lazy mounted so e.g.: load_data only runs when they are first visited by the user.
-            Tab("Topic", id="tab-topic"),
-            Tab("Schema Registry", id="tab-schema"),
-            Tab(Text.from_markup(":warning: K-connect"), id="tab-connect"),
+            *(Tab(p.tab_label, id=p.tab_id) for p in plugins),
             id="tabs",
         )
-        with ContentSwitcher(initial="topic", id="main-content-switcher"):
-            try:
-                _hook = topic.KafkaClient(self.app.lazy_kafka_config.kafka)
-            except (ConnectionRefusedError, AssertionError):
-                _hook = None
-                yield Label("Error", id="tab-topic")
-            if _hook is not None:
-                yield TopicPanel(id="tab-topic", classes="has-border", hook=_hook)
-
-            try:
-                _hook = registry.SchemaRegistry(self.app.lazy_kafka_config.registry)
-            except ConnectionRefusedError:
-                _hook = None
-                yield Label("Error", id="tab-schema")
-            if _hook is not None:
-                yield SchemaRegistryPanel(
-                    id="tab-schema", classes="has-border", hook=_hook
-                )
-
-            try:
-                _hook = connect.Connect(self.app.lazy_kafka_config.connect)
-            except ConnectionRefusedError:
-                _hook = None
-                yield Label("Error", id="tab-connect")
-            if _hook is not None:
-                # TODO: if hook is None, the widget should be just a Label?
-                yield KConnectPanel(id="tab-connect", classes="has-border", hook=_hook)
+        initial = plugins[0].tab_id if plugins else None
+        with ContentSwitcher(initial=initial, id="main-content-switcher"):
+            for plugin in plugins:
+                result = plugin.build_panel(self.app.lazy_kafka_config)
+                yield Label(result, id=plugin.tab_id) if isinstance(result, str) else result
         yield Footer(show_command_palette=False)
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
@@ -135,6 +108,7 @@ class LazyKafka(App[None]):
         ansi_color: bool = False,
     ):
         self.lazy_kafka_config = Configuration.from_local_config()
+        load_builtin_plugins()
         super().__init__(driver_class, css_path, watch_css, ansi_color)
 
     @cached_property

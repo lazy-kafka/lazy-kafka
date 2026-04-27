@@ -1,3 +1,8 @@
+# nix
+devenv
+.direnv
+.envrc
+
 *.ipynb
 .pytype
 .DS_Store
@@ -130,3 +135,15 @@ sandbox/
 
 # Used by mkdocs-material social plugin
 .cache
+
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
+

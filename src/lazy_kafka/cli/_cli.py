@@ -11,8 +11,8 @@ from rich import print
 from rich.logging import RichHandler
 
 from lazy_kafka import __version__
-from lazy_kafka.cli import _kafka, _schema_registry
 from lazy_kafka.config import Configuration
+from lazy_kafka.plugin import iter_plugins, load_builtin_plugins
 
 __all__ = ["app"]
 
@@ -27,9 +27,17 @@ def _set_up_logging(level="INFO"):
 
 app = typer.Typer(rich_markup_mode="rich")
 
-app.add_typer(_kafka.app, name="kafka")
-# TODO: create shorter alias for this:
-app.add_typer(_schema_registry.app, name="schema-registry")
+# Plugin CLIs are attached at import time: the shell imports this module
+# whenever the user runs `lazy-kafka <subcommand>`, and each plugin contributes
+# its own Typer sub-app.
+load_builtin_plugins()
+for _plugin in iter_plugins():
+    if _plugin.cli_name is None:
+        continue
+    _sub_app = _plugin.build_cli()
+    if _sub_app is None:
+        continue
+    app.add_typer(_sub_app, name=_plugin.cli_name)
 
 
 def version_callback(value: bool) -> None:

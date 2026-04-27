@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 import asyncio
+import logging
 from pathlib import Path
-import json
 from typing import Annotated
 
 import rich.progress
 import typer
-from confluent_kafka import Consumer
 
 from lazy_kafka import registry
 from lazy_kafka.config import Configuration
