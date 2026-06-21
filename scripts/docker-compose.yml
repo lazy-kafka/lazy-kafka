@@ -19,6 +19,7 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=*"
     healthcheck:
       # `nc -z` requires netcat; cp-zookeeper ships it. `ruok` is the
       # canonical ZooKeeper liveness command.
