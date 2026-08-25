@@ -9,9 +9,9 @@ name: Dependabot auto-merge
 # read-only token. Nothing from the pull request is checked out or executed
 # here, so the elevated context is not exposed to untrusted code.
 #
-# `pull_request_review` covers the major-version path: those PRs are not merged
-# automatically on open, but once a human approves one this workflow re-runs and
-# enables auto-merge for it.
+# `pull_request_review` covers the major-version path: those PRs are not
+# approved automatically, but once a human approves one this workflow re-runs
+# and turns on auto-merge for it.
 on: # zizmor: ignore[dangerous-triggers]
   pull_request_target:
   pull_request_review:
@@ -38,8 +38,8 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      # Minor and patch updates merge on their own, gated by whatever checks the
-      # branch requires. Major updates wait for a human approving review.
+      # Minor and patch updates are approved and merged unattended. Major
+      # updates are left for a human to approve.
       - name: Decide whether the update can be merged automatically
         id: decide
         env:
@@ -58,15 +58,34 @@ jobs:
           fi
           echo "automerge=$automerge" >> "$GITHUB_OUTPUT"
 
-      # No approval step: GITHUB_TOKEN is not permitted to approve pull requests.
-      # If the target branch ever requires approving reviews, use a PAT or GitHub
-      # App token here instead of GITHUB_TOKEN.
+      # The `trunk-approval` ruleset requires one approving review. Rather than
+      # bypassing that rule, the workflow satisfies it: `github-actions[bot]`
+      # submits a genuine approval, which is possible because the repository has
+      # "Allow GitHub Actions to create and approve pull requests" enabled.
+      - name: Approve the pull request
+        if: steps.decide.outputs.automerge == 'true' && github.event_name == 'pull_request_target'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Dependabot force-pushes when it rebases, which re-triggers this
+          # workflow. Skip re-approving a PR that is already approved so the
+          # timeline does not fill up with duplicate reviews.
+          decision=$(gh pr view "$PR_URL" --json reviewDecision --jq '.reviewDecision')
+          if [ "$decision" = "APPROVED" ]; then
+            echo "Already approved, nothing to do."
+          else
+            gh pr review --approve "$PR_URL"
+          fi
+
+      # With a real approval in place, native auto-merge behaves normally: the
+      # PR lands by itself once the required `Build` check passes.
       - name: Enable auto-merge
         if: steps.decide.outputs.automerge == 'true'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Auto-merge can only be enabled while the PR is still pending checks.
           # When there is nothing left to wait for, merge it directly.
           gh pr merge --auto --squash "$PR_URL" || gh pr merge --squash "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
