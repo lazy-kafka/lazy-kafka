@@ -24,8 +24,16 @@ updates:
         update-types:
           - "version-update:semver-major"
     groups:
+      # Minor and patch bumps are batched into one PR, which the auto-merge
+      # workflow lands without review. Majors are deliberately left out of the
+      # group so each arrives as its own PR: a grouped PR reports the *highest*
+      # semver change it contains, so a single major would otherwise block the
+      # whole batch from merging.
       python:
         applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
         patterns:
           - "*"
       python-security:
@@ -55,8 +63,13 @@ updates:
       - "dependencies"
       - "github_actions"
     groups:
+      # Same split as the Python group above: minors and patches batch and
+      # auto-merge, majors come through individually for review.
       github-actions:
         applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
         patterns:
           - "*"
       github-actions-security:

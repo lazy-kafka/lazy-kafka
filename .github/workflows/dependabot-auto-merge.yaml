@@ -1,0 +1,72 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+name: Dependabot auto-merge
+
+# `pull_request_target` is required so that the workflow gets a writable
+# GITHUB_TOKEN: Dependabot-triggered `pull_request` runs only ever receive a
+# read-only token. Nothing from the pull request is checked out or executed
+# here, so the elevated context is not exposed to untrusted code.
+#
+# `pull_request_review` covers the major-version path: those PRs are not merged
+# automatically on open, but once a human approves one this workflow re-runs and
+# enables auto-merge for it.
+on: # zizmor: ignore[dangerous-triggers]
+  pull_request_target:
+  pull_request_review:
+    types:
+      - submitted
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot:
+    name: Enable auto-merge
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      # Only needed to classify the update on the "PR opened" path. On the
+      # review path an approval has already been given, so the semver level of
+      # the update no longer decides anything.
+      - name: Dependabot metadata
+        id: metadata
+        if: github.event_name == 'pull_request_target'
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      # Minor and patch updates merge on their own, gated by whatever checks the
+      # branch requires. Major updates wait for a human approving review.
+      - name: Decide whether the update can be merged automatically
+        id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+          REVIEW_STATE: ${{ github.event.review.state }}
+        run: |
+          automerge=false
+          if [ "$EVENT" = "pull_request_review" ]; then
+            # `state` is lower-cased in the webhook payload, unlike the API.
+            if [ "$REVIEW_STATE" = "approved" ]; then
+              automerge=true
+            fi
+          elif [ "$UPDATE_TYPE" != "version-update:semver-major" ]; then
+            automerge=true
+          fi
+          echo "automerge=$automerge" >> "$GITHUB_OUTPUT"
+
+      # No approval step: GITHUB_TOKEN is not permitted to approve pull requests.
+      # If the target branch ever requires approving reviews, use a PAT or GitHub
+      # App token here instead of GITHUB_TOKEN.
+      - name: Enable auto-merge
+        if: steps.decide.outputs.automerge == 'true'
+        run: |
+          # Auto-merge can only be enabled while the PR is still pending checks.
+          # When there is nothing left to wait for, merge it directly.
+          gh pr merge --auto --squash "$PR_URL" || gh pr merge --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
