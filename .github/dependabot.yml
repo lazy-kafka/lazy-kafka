@@ -1,0 +1,65 @@
+version: 2
+
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+    ignore:
+      # confluent-kafka is pinned to <=2.5.3 in pyproject.toml because of
+      # https://github.com/confluentinc/confluent-kafka-python/issues/1842.
+      # Dependabot cannot cross that ceiling anyway; ignoring majors keeps it
+      # from repeatedly proposing a bump that has to be closed by hand.
+      - dependency-name: "confluent-kafka"
+        update-types:
+          - "version-update:semver-major"
+    groups:
+      python:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      python-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  # GitHub Actions used by the workflows in .github/workflows.
+  #
+  # Pin every `uses:` reference to a full commit SHA with a trailing `# vX.Y.Z`
+  # comment. Dependabot preserves that format: it bumps the SHA to the commit
+  # the new tag points at and rewrites the version comment, so updates never
+  # fall back to mutable tags. There is no dependabot.yml switch for this - the
+  # pinning style used in the workflow files is what Dependabot follows.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github_actions"
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      github-actions-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
