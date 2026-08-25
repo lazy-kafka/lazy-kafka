@@ -1,0 +1,111 @@
+name: Build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - trunk
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+# Superseded runs on the same PR or branch are pointless once a newer commit
+# exists. Tags are never cancelled: their run produces the release artifacts.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # versioningit derives the package version from `git describe`, so the
+          # full history and all tags have to be present. With the default
+          # shallow clone the build silently falls back to the
+          # `default-version` in pyproject.toml.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          # Matches `requires-python` in pyproject.toml and the
+          # `requires-python` recorded in uv.lock.
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        # `--locked` fails the build if uv.lock is out of date with
+        # pyproject.toml rather than silently re-resolving, which is what keeps
+        # Dependabot's lockfile updates honest.
+        run: uv sync --locked
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Check the wheel imports in a clean environment
+        # Catches packaging mistakes that `uv build` alone does not: missing
+        # modules, a broken package layout, or dependency metadata that cannot
+        # be resolved from the wheel on its own.
+        run: |
+          wheel=$(ls dist/*.whl)
+          uv run --isolated --no-project --with "$wheel" \
+            python -c "import lazy_kafka; print(lazy_kafka.__name__)"
+
+      - name: Run tests
+        # The test suite is currently empty, and pytest exits 5 ("no tests
+        # collected") in that case. Treat only that specific code as a pass so
+        # this step starts gating merges the moment the first test lands.
+        run: |
+          set +e
+          uv run --with pytest pytest -q
+          code=$?
+          set -e
+          if [ "$code" -eq 5 ]; then
+            echo "::notice::No tests collected yet - add tests under tests/."
+            exit 0
+          fi
+          exit "$code"
+
+      - name: Upload the distributions
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  release:
+    name: Draft release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download the distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist/
+
+      # Left as a draft on purpose: the release is only published once someone
+      # has looked over the generated notes and the attached artifacts.
+      - name: Create the draft release
+        env:
+          TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$TAG" \
+            --draft \
+            --title "$TAG" \
+            --generate-notes \
+            dist/*
