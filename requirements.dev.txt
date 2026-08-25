@@ -4,7 +4,7 @@ httpx
 rich
 textual>=1.0.0
 textual-dev
-pre-commit == 3.7.*
+pre-commit == 4.6.*
 ruff == 0.16.3
 mypy == 1.10.*
 versioningit>=3.1.2
