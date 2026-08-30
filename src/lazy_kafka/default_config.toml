@@ -1,4 +1,6 @@
 request_time_out = 1001
+log_level = "INFO"
+max_log_entries = 1000
 
 [kafka]
 bootstrap_servers = "localhost:9092"
