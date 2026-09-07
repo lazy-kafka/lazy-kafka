@@ -9,4 +9,4 @@ ruff == 0.16.5
 mypy == 2.3.*
 versioningit>=3.1.2
 towncrier == 25.8.*
-hypothesis == 6.165.*
+hypothesis == 6.167.*
