@@ -87,7 +87,9 @@ class Configuration:
     registry: RegistryConfiguration = field(default_factory=RegistryConfiguration)
     connect: ConnectConfiguration = field(default_factory=ConnectConfiguration)
     request_time_out: int = 1000
-    log_level: Literal["DEBUG", "INFO"] = "INFO"
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    # Maximum number of log entries to keep in memory for the logs widget
+    max_log_entries: int = 1000
     # Run the app in development mode: logging, log-formatting etc.
     dev_mode: bool = False
     _file: Path = Path(__file__).parent / "default_config.toml"
@@ -130,7 +132,7 @@ class Configuration:
         try:
             return cls.from_toml(cls.default_config_file_path())
         except FileNotFoundError as exc:
-            _LOGGER.error("No user configuration file.", exc_info=exc)
+            _LOGGER.debug("No user configuration file.", exc_info=exc)
             return cls()
 
 

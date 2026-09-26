@@ -5,9 +5,16 @@ import sys
 from functools import cached_property
 from pathlib import Path
 
+from typing import TYPE_CHECKING
+
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.css.query import NoMatches
+from textual.driver import Driver
 from textual.screen import Screen
+
+if TYPE_CHECKING:
+    from textual.css.types import CSSPathType
 from textual.widgets import (
     Footer,
     Header,
@@ -21,6 +28,7 @@ from lazy_kafka.config import Configuration
 from lazy_kafka.plugin import iter_plugins, load_builtin_plugins
 from lazy_kafka.theme import frog_theme
 from lazy_kafka.widgets.switcher import ContentSwitcher
+from lazy_kafka.widgets._logs import LogHandler, LogsScreen
 
 
 class SettingsScreen(Screen):
@@ -92,10 +100,12 @@ class LazyKafka(App[None]):
         ("d", "switch_mode('dashboard')", "Dashboard"),
         ("s", "switch_mode('settings')", "Settings"),
         ("h", "switch_mode('help')", "Help"),
+        Binding("L", "switch_mode('logs')", "Logs", show=True, priority=True),
     ]
     MODES = {
         "dashboard": DashboardScreen,
         "settings": SettingsScreen,
+        "logs": LogsScreen,
     }
 
     CSS_PATH = "style.tcss"
@@ -107,8 +117,17 @@ class LazyKafka(App[None]):
         watch_css: bool = False,
         ansi_color: bool = False,
     ):
-        self.lazy_kafka_config = Configuration.from_local_config()
+        try:
+            self.lazy_kafka_config = Configuration.from_local_config()
+        except Exception:
+            # Use default config if loading fails
+            self.lazy_kafka_config = Configuration()
+        
         load_builtin_plugins()
+        
+        # Set up custom log handler for the logs widget
+        self.log_handler = LogHandler(max_entries=getattr(self.lazy_kafka_config, 'max_log_entries', 1000))
+        
         super().__init__(driver_class, css_path, watch_css, ansi_color)
 
     @cached_property
@@ -117,9 +136,18 @@ class LazyKafka(App[None]):
 
     def on_load(self):
         """Load action before anything visible happens."""
-        logging.debug("Configuration file: %s", self._configuration_file)
-        self.lazy_kafka_config = Configuration.from_toml(self._configuration_file)
-        logging.debug("app config: %s", f"{self.lazy_kafka_config}")
+        try:
+            logging.debug("Configuration file: %s", self._configuration_file)
+            self.lazy_kafka_config = Configuration.from_toml(self._configuration_file)
+            logging.debug("app config: %s", f"{self.lazy_kafka_config}")
+            
+            # Set up the log handler with the configured max entries
+            self.log_handler.max_entries = self.lazy_kafka_config.max_log_entries
+            
+            # Set the initial log level from config
+            self.log_handler.set_min_level(self.lazy_kafka_config.log_level)
+        except Exception as e:
+            logging.error("Failed to load configuration: %s", e)
 
     def on_mount(self) -> None:
         self.register_theme(frog_theme)
@@ -132,12 +160,25 @@ def main():
     if len(sys.argv) <= 1:
         from textual.logging import TextualHandler
 
+        # Create the app first so we can access its log_handler
+        app = LazyKafka()
+        
+        # Set up logging with both our custom handler and TextualHandler
+        textual_handler = TextualHandler()
+        
+        # Set up basic logging first
         logging.basicConfig(
             level="NOTSET",
-            handlers=[TextualHandler()],
+            handlers=[app.log_handler, textual_handler],
         )
-
-        app = LazyKafka()
+        
+        # Set the logging level for the root logger
+        logging.getLogger().setLevel("NOTSET")
+        
+        # Configure the log handler settings after app is created
+        # This will be updated in on_load when config is fully loaded
+        app.log_handler.set_min_level("INFO")
+        
         app.run()
     else:
         from lazy_kafka.cli import app
