@@ -46,7 +46,7 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run --with pytest pytest -q --cov=src/lazy_kafka --cov-report=term-missing
+          uv run --with pytest-cov pytest -q --cov=src/lazy_kafka --cov-report=term-missing
 
       - name: Verify version
         id: version
