@@ -49,6 +49,9 @@ jobs:
         # Dependabot's lockfile updates honest.
         run: uv sync --locked
 
+      - name: Install test dependencies
+        run: uv pip install pytest-asyncio pytest-mock
+
       - name: Build sdist and wheel
         run: uv build
 
