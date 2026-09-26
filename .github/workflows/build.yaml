@@ -88,7 +88,7 @@ jobs:
           coverage-file: coverage.xml
           minimum-coverage: 10
           badge-title: Coverage
-          badge-directory: .github/workflows
+          badge-directory: .github/badges
           badge-filename: coverage-badge.json
           create-badge: true
           comment-on-pr: ${{ github.event_name == 'pull_request' }}
