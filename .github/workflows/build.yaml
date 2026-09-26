@@ -18,6 +18,8 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: write
+  checks: write
 
 jobs:
   build:
@@ -50,7 +52,7 @@ jobs:
         run: uv sync --locked
 
       - name: Install test dependencies
-        run: uv pip install pytest-asyncio pytest-mock
+        run: uv pip install pytest-asyncio pytest-mock pytest-cov
 
       - name: Build sdist and wheel
         run: uv build
@@ -64,13 +66,13 @@ jobs:
           uv run --isolated --no-project --with "$wheel" \
             python -c "import lazy_kafka; print(lazy_kafka.__name__)"
 
-      - name: Run tests
+      - name: Run tests with coverage
         # The test suite is currently empty, and pytest exits 5 ("no tests
         # collected") in that case. Treat only that specific code as a pass so
         # this step starts gating merges the moment the first test lands.
         run: |
           set +e
-          uv run --with pytest pytest -q
+          uv run --with pytest pytest --cov=src/lazy_kafka --cov-report=term --cov-report=xml --cov-fail-under=10 -q
           code=$?
           set -e
           if [ "$code" -eq 5 ]; then
@@ -78,6 +80,45 @@ jobs:
             exit 0
           fi
           exit "$code"
+
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const coveragePath = './coverage.xml';
+            
+            if (fs.existsSync(coveragePath)) {
+              const coverageXml = fs.readFileSync(coveragePath, 'utf8');
+              const coverageMatch = coverageXml.match(/line-rate="([0-9.]+)"/);
+              
+              if (coverageMatch) {
+                const coverage = parseFloat(coverageMatch[1]) * 100;
+                const minCoverage = 10;
+                
+                let message = `✅ Coverage: ${coverage.toFixed(2)}%`;
+                if (coverage < minCoverage) {
+                  message = `❌ Coverage: ${coverage.toFixed(2)}% (minimum ${minCoverage}% required)`;
+                }
+                
+                await github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: message
+                });
+              }
+            }
 
       - name: Upload the distributions
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
