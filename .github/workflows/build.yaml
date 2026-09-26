@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - trunk
-      - ci-cd
     tags:
       - "v*"
   workflow_dispatch:
