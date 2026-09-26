@@ -39,7 +39,7 @@ class KafkaConfiguration:
     #   (non-python) threads is avoided.
     log_queue: bool = True
 
-    def to_config(self, flavor: str = "librdkafka"):
+    def to_config(self, flavor: str = "librdkafka") -> dict[str, Any]:
         match flavor:
             case "librdkafka" | "confluent":
                 config = self.__dict__
@@ -66,7 +66,7 @@ class RegistryConfiguration:
     username: str | None = None
     password: str | None = None
 
-    def to_config(self, flavor: str = "librdkafka"):
+    def to_config(self, flavor: str = "librdkafka") -> dict[str, str]:
         match flavor:
             case "librdkafka" | "confluent":
                 return {
@@ -75,7 +75,6 @@ class RegistryConfiguration:
                 }
             case _:
                 raise ValueError("Unsupported configuration flavor.")
-        return config
 
 
 # TODO: @from_file(Path.home() / ".lazy-kafka.toml")
