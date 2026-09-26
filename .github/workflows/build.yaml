@@ -80,8 +80,8 @@ jobs:
           fi
           exit "$code"
 
-      - name: Comment PR with coverage and generate badge
-        if: success()
+      - name: Generate coverage badge
+        if: success() && github.ref == 'refs/heads/trunk'
         uses: py-cov-action/python-coverage-comment-action@v3
         with:
           coverage-file: coverage.xml
@@ -90,7 +90,7 @@ jobs:
           badge-directory: .github/badges
           badge-filename: coverage-badge.json
           create-badge: true
-          comment-on-pr: ${{ github.event_name == 'pull_request' }}
+          comment-on-pr: false
 
       - name: Upload the distributions
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
