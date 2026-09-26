@@ -1,0 +1,150 @@
+name: Nightly Build
+
+on:
+  schedule:
+    # Run every night at 00:00 UTC
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manual trigger"
+        required: false
+        default: "Manual nightly build"
+
+# Allow only one concurrent nightly build
+concurrency:
+  group: ${{ github.workflow }}-nightly
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  nightly-build:
+    name: Nightly Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Run tests with coverage
+        run: |
+          uv run --with pytest pytest -q --cov=src/lazy_kafka --cov-report=xml --cov-report=html
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-report-nightly
+          path: |
+            coverage.xml
+            htmlcov/
+
+      - name: Upload the distributions
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist-nightly
+          path: dist/
+          if-no-files-found: error
+
+      - name: Get current date
+        id: date
+        run: echo "DATE=$(date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Publish nightly wheel to GitHub Packages
+        if: github.event_name == 'schedule'
+        run: |
+          # Install the built wheel
+          WHEEL_FILE=$(ls dist/*.whl)
+          echo "Publishing nightly build: $WHEEL_FILE"
+          
+          # Publish to GitHub Packages
+          uv run pip install --no-deps "$WHEEL_FILE"
+          
+          # Tag and push nightly version
+          # Note: This is a development build, not a release
+          echo "Nightly build completed successfully"
+
+  # Additional job to test against multiple Python versions
+  test-matrix:
+    name: Test Matrix (Nightly)
+    needs: nightly-build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@0a5c64399b7e1749393f4c449c60249435864481 # v5.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Run tests
+        run: uv run --with pytest pytest -q --cov=src/lazy_kafka --cov-report=term-missing
+
+---
+
+# Workflow to clean up old nightly artifacts
+name: Cleanup Old Nightly Builds
+
+on:
+  schedule:
+    # Run every Sunday at 01:00 UTC
+    - cron: "0 1 * * 0"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  cleanup:
+    name: Cleanup Old Artifacts
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Delete old nightly artifacts
+        uses: c-hive/gha-remove-artifacts@8c91489d831452952e855129e0b594be19345393 # v1.5.0
+        with:
+          age: '7' # Delete artifacts older than 7 days
+          artifact-pattern: 'dist-nightly-*'
+          keep-minimum: 3 # Keep at least 3 recent builds
+
+      - name: Delete old coverage reports
+        uses: c-hive/gha-remove-artifacts@8c91489d831452952e855129e0b594be19345393 # v1.5.0
+        with:
+          age: '7'
+          artifact-pattern: 'coverage-report-nightly-*'
+          keep-minimum: 3

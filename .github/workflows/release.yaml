@@ -1,0 +1,180 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"  # v1.0.0, v2.3.4, etc.
+      - "v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+"  # v1.0.0-rc1, v2.3.4-rc2, etc.
+      - "v[0-9]+.[0-9]+.[0-9]+-alpha[0-9]+"  # v1.0.0-alpha1, etc.
+      - "v[0-9]+.[0-9]+.[0-9]+-beta[0-9]+"  # v1.0.0-beta1, etc.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g., v1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write  # Needed for PyPI publishing with OIDC
+
+jobs:
+  build-and-publish:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Run tests
+        run: |
+          uv run --with pytest pytest -q --cov=src/lazy_kafka --cov-report=term-missing
+
+      - name: Verify version
+        id: version
+        run: |
+          # Extract version from tag or input
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
+          
+          # Remove leading 'v' for version comparison
+          CLEAN_VERSION="${VERSION#v}"
+          
+          # Get version from package
+          PACKAGE_VERSION=$(uv run python -c "import lazy_kafka; print(lazy_kafka.__version__)")
+          
+          echo "Tag version: $VERSION"
+          echo "Package version: $PACKAGE_VERSION"
+          
+          # Verify versions match
+          if [ "$CLEAN_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "❌ Version mismatch!"
+            echo "   Tag: $VERSION"
+            echo "   Package: $PACKAGE_VERSION"
+            exit 1
+          fi
+          
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "clean_version=$CLEAN_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the distributions
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist-${{ steps.version.outputs.version }}
+          path: dist/
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@de2c0eb89ae2a59587782423527426771e844896 # v2.0.1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body: |
+            ## What's Changed
+            
+            See [CHANGELOG.md](https://github.com/Timon Viola/lazy-kafka/blob/${{ steps.version.outputs.version }}/doc/changelog.rst) for details.
+            
+            ---
+            
+            **Assets:**
+            - Python source distribution (sdist)
+            - Python wheel distribution
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-rc') || contains(steps.version.outputs.version, '-alpha') || contains(steps.version.outputs.version, '-beta') }}
+          files: |
+            dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to PyPI
+        if: "!contains(steps.version.outputs.version, '-rc') && !contains(steps.version.outputs.version, '-alpha') && !contains(steps.version.outputs.version, '-beta')"
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          verbose: true
+          # Use OIDC for authentication if PYPI_API_TOKEN is not set
+          # Falls back to PYPI_API_TOKEN secret
+
+      - name: Publish to TestPyPI (for pre-releases)
+        if: "contains(steps.version.outputs.version, '-rc') || contains(steps.version.outputs.version, '-alpha') || contains(steps.version.outputs.version, '-beta')"
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          verbose: true
+          repository-url: https://test.pypi.org/legacy/
+          # Use TEST_PYPI_API_TOKEN secret
+
+  # Additional job to update documentation and notify
+  post-release:
+    name: Post-Release
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    if: success() && (!contains(steps.version.outputs.version, '-rc') && !contains(steps.version.outputs.version, '-alpha') && !contains(steps.version.outputs.version, '-beta'))
+    
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Generate and commit changelog
+        run: |
+          # Use towncrier to generate changelog
+          uv run towncrier build --yes
+          
+          # Commit changelog changes
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if there are changes
+          if git diff --quiet doc/changelog.rst; then
+            echo "No changelog changes to commit"
+          else
+            git add doc/changelog.rst
+            git commit -m "docs: update changelog for ${{ steps.version.outputs.version }}"
+            git push
+          fi
+
+      - name: Create GitHub Discussion for Release
+        uses: peter-evans/create-or-update-comment@719248295050f44478a8713c034335a594f5415c # v3.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          issue-number: 1  # Use a dedicated discussion category
+          body: |
+            ## 🎉 Release ${{ steps.version.outputs.version }} is now available!
+            
+            ### Download
+            
+            ```bash
+            pip install --upgrade lazy-kafka==${{ steps.version.outputs.clean_version }}
+            ```
+            
+            ### Highlights
+            
+            See the [release notes](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}) for details.
+            
+            ---
+            
+            **Please report any issues [here](${{ github.server_url }}/${{ github.repository }}/issues/new/choose).**

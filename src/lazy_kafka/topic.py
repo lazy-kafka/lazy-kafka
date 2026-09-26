@@ -210,7 +210,7 @@ class KafkaClient:
                 raise OffsetInvalidError
             raise NoMessagesError
         if msg.error() and msg.error().retriable():
-            raise MessageRetriableError("%s %s".format())
+            raise MessageRetriableError(f"{msg.error().name()}: {msg.error().str()}")
 
         return msg
 
@@ -250,25 +250,35 @@ class KafkaClient:
         return loop.run_in_executor(None, self._consume, topic)
 
     def _consume(self, topic: str) -> list[Message]:
-        # This consume uses subscribe to watch for changes
-        # guard against infinite polling
-        # mutates _client state subscribe -> close
+        """Consume messages from a topic.
+
+        This consume uses subscribe to watch for changes.
+        Guard against infinite polling.
+        Mutates _client state subscribe -> close.
+
+        Args:
+            topic: name of the topic
+
+        Returns:
+            list of confluent_kafka Message objects
+
+        Raises:
+            ConsumerPollError: Too many polling attempts without messages
+        """
         self._client.subscribe([topic])
-        _msg = None
-        messages = []
-        _c = 0
+        messages: list[Message] = []
+        poll_count = 0
         try:
-            while _msg is None:
-                _c += 1
+            while len(messages) == 0:
+                poll_count += 1
+                if poll_count > self.MAX_CONSUMER_POLL:
+                    raise ConsumerPollError("Too many polling attempts.")
                 try:
-                    self.poll()
+                    msg = self.poll()
+                    messages.append(msg)
                 except (NoMessagesError, MessageRetriableError):
                     # These errors are ok and we want to retry
                     continue
-
-                if _c >= self.MAX_CONSUMER_POLL:
-                    raise ConsumerPollError("Too many polling.")
-                messages.append(LazyKafkaMessage.from_confluent_kafka(_msg))
         finally:
             self._client.close()
 
@@ -338,7 +348,7 @@ class KafkaClient:
             # Poll for message
             try:
                 msg = self.poll()
-            except NoMessagesError:
+            except (NoMessagesError, MessageRetriableError):
                 # No message within timeout - check if we've reached the end of all partitions
                 # TODO: move this into a member function -> all_done vs not
                 #       can be challenging, should partition state be attached to the KafkaClient???
