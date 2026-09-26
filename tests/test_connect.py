@@ -10,7 +10,7 @@ import httpx
 import pytest
 
 from lazy_kafka.config import ConnectConfiguration
-from lazy_kafka.connect import ConnectorData, Connect
+from lazy_kafka.connect import ConnectionRefusedError, ConnectorData, Connect
 
 
 class TestConnectorData:
@@ -166,14 +166,20 @@ class TestConnectAsync:
 
     @pytest.fixture
     def mock_connect(self, mock_httpx_get: MagicMock) -> Connect:
-        """Create a mock Connect instance for async tests."""
+        """Create a Connect instance with mocked _client for async tests."""
+        from lazy_kafka.connect import Connect
         config = ConnectConfiguration(host="http://test:8083")
-        return Connect(config)
+        connect = Connect.__new__(Connect)
+        connect.host = "http://test:8083"
+        # Create a mock AsyncClient
+        mock_async_client = AsyncMock()
+        connect._client = mock_async_client
+        return connect
 
-    @patch("httpx.AsyncClient.get")
-    async def test_connectors(self, mock_get: AsyncMock, mock_connect: Connect) -> None:
+    async def test_connectors(self, mock_connect: Connect) -> None:
         """Test connectors method to get all connectors."""
-        mock_response = AsyncMock()
+        # Set up mock response
+        mock_response = MagicMock()
         mock_response.json.return_value = {
             "test-connector-1": {
                 "status": {
@@ -188,18 +194,16 @@ class TestConnectAsync:
                 }
             },
         }
-        mock_response.raise_for_status = AsyncMock()
-        mock_get.return_value = mock_response
+        mock_connect._client.get.return_value = mock_response
         
         result = await mock_connect.connectors()
         
-        assert mock_get.called
+        assert mock_connect._client.get.called
         assert len(result) == 2
         assert "test-connector-1" in result
         assert "test-connector-2" in result
 
-    @patch("httpx.AsyncClient.get")
-    async def test_connector(self, mock_get: AsyncMock, mock_connect: Connect) -> None:
+    async def test_connector(self, mock_connect: Connect) -> None:
         """Test connector method to get specific connector."""
         mock_response = AsyncMock()
         mock_response.json.return_value = {
@@ -210,16 +214,16 @@ class TestConnectAsync:
             },
         }
         mock_response.raise_for_status = AsyncMock()
-        mock_get.return_value = mock_response
+        mock_connect._client.get.return_value = mock_response
         
         result = await mock_connect.connector("test-connector")
         
-        assert mock_get.called
-        call_args = mock_get.call_args
-        assert "connectors/test-connector" in call_args.kwargs.get("url", "")
+        assert mock_connect._client.get.called
+        call_args = mock_connect._client.get.call_args
+        # URL is passed as first positional argument
+        assert "connectors/test-connector" in call_args.args[0]
 
-    @patch("httpx.AsyncClient.get")
-    async def test_connector_status(self, mock_get: AsyncMock, mock_connect: Connect) -> None:
+    async def test_connector_status(self, mock_connect: Connect) -> None:
         """Test connector_status method."""
         mock_response = AsyncMock()
         mock_response.json.return_value = {
@@ -228,91 +232,98 @@ class TestConnectAsync:
             "type": "sink",
         }
         mock_response.raise_for_status = AsyncMock()
-        mock_get.return_value = mock_response
+        mock_connect._client.get.return_value = mock_response
         
         result = await mock_connect.connector_status("test-connector")
         
-        assert mock_get.called
-        call_args = mock_get.call_args
-        assert "connectors/test-connector/status" in call_args.kwargs.get("url", "")
+        assert mock_connect._client.get.called
+        call_args = mock_connect._client.get.call_args
+        # URL is passed as first positional argument
+        assert "connectors/test-connector/status" in call_args.args[0]
 
-    @patch("httpx.AsyncClient.post")
-    async def test_connector_create(self, mock_post: AsyncMock, mock_connect: Connect) -> None:
+    async def test_connector_create(self, mock_connect: Connect) -> None:
         """Test connector_create method."""
         mock_response = AsyncMock()
         mock_response.json.return_value = {"name": "test-connector"}
         mock_response.raise_for_status = AsyncMock()
-        mock_post.return_value = mock_response
+        mock_connect._client.post.return_value = mock_response
         
-        config = {"name": "test-connector", "config": {}}
-        result = await mock_connect.connector_create(config)
+        # connector_create expects name and config as separate parameters
+        config = {"config": {}}
+        result = await mock_connect.connector_create("test-connector", config)
         
-        assert mock_post.called
-        call_args = mock_post.call_args
-        assert "connectors" in call_args.kwargs.get("url", "")
+        assert mock_connect._client.post.called
+        call_args = mock_connect._client.post.call_args
+        # URL is passed as first positional argument
+        assert "connectors" in call_args.args[0]
 
-    @patch("httpx.AsyncClient.put")
-    async def test_connector_update(self, mock_put: AsyncMock, mock_connect: Connect) -> None:
+    async def test_connector_update(self, mock_connect: Connect) -> None:
         """Test connector_update method."""
         mock_response = AsyncMock()
         mock_response.raise_for_status = AsyncMock()
-        mock_put.return_value = mock_response
+        mock_connect._client.put.return_value = mock_response
         
-        config = {"name": "test-connector", "config": {}}
+        config = {"config": {}}
         await mock_connect.connector_update("test-connector", config)
         
-        assert mock_put.called
-        call_args = mock_put.call_args
-        assert "connectors/test-connector/config" in call_args.kwargs.get("url", "")
+        assert mock_connect._client.put.called
+        call_args = mock_connect._client.put.call_args
+        # URL is passed as first positional argument
+        assert "connectors/test-connector/config" in call_args.args[0]
 
-    @patch("httpx.AsyncClient.delete")
-    async def test_connector_delete(self, mock_delete: AsyncMock, mock_connect: Connect) -> None:
+    async def test_connector_delete(self, mock_connect: Connect) -> None:
         """Test connector_delete method."""
         mock_response = AsyncMock()
         mock_response.raise_for_status = AsyncMock()
-        mock_delete.return_value = mock_response
+        mock_connect._client.delete.return_value = mock_response
         
         await mock_connect.connector_delete("test-connector")
         
-        assert mock_delete.called
-        call_args = mock_delete.call_args
-        assert "connectors/test-connector" in call_args.kwargs.get("url", "")
+        assert mock_connect._client.delete.called
+        call_args = mock_connect._client.delete.call_args
+        # URL is passed as first positional argument
+        assert "connectors/test-connector" in call_args.args[0]
 
-    @patch("httpx.AsyncClient.post")
-    async def test_connector_pause(self, mock_post: AsyncMock, mock_connect: Connect) -> None:
+    async def test_connector_pause(self, mock_connect: Connect) -> None:
         """Test connector_pause method."""
         mock_response = AsyncMock()
+        mock_response.json.return_value = {}
         mock_response.raise_for_status = AsyncMock()
-        mock_post.return_value = mock_response
+        # aconnector_pause uses PUT, not POST
+        mock_connect._client.put.return_value = mock_response
         
         await mock_connect.connector_pause("test-connector")
         
-        assert mock_post.called
-        call_args = mock_post.call_args
-        assert "connectors/test-connector/pause" in call_args.kwargs.get("url", "")
+        assert mock_connect._client.put.called
+        call_args = mock_connect._client.put.call_args
+        # URL is passed as first positional argument
+        assert "connectors/test-connector/pause" in call_args.args[0]
 
-    @patch("httpx.AsyncClient.post")
-    async def test_connector_resume(self, mock_post: AsyncMock, mock_connect: Connect) -> None:
+    async def test_connector_resume(self, mock_connect: Connect) -> None:
         """Test connector_resume method."""
         mock_response = AsyncMock()
+        mock_response.json.return_value = {}
         mock_response.raise_for_status = AsyncMock()
-        mock_post.return_value = mock_response
+        # aconnector_resume uses PUT, not POST
+        mock_connect._client.put.return_value = mock_response
         
         await mock_connect.connector_resume("test-connector")
         
-        assert mock_post.called
-        call_args = mock_post.call_args
-        assert "connectors/test-connector/resume" in call_args.kwargs.get("url", "")
+        assert mock_connect._client.put.called
+        call_args = mock_connect._client.put.call_args
+        # URL is passed as first positional argument
+        assert "connectors/test-connector/resume" in call_args.args[0]
 
-    @patch("httpx.AsyncClient.post")
-    async def test_connector_restart(self, mock_post: AsyncMock, mock_connect: Connect) -> None:
+    async def test_connector_restart(self, mock_connect: Connect) -> None:
         """Test connector_restart method."""
         mock_response = AsyncMock()
+        mock_response.json.return_value = {}
         mock_response.raise_for_status = AsyncMock()
-        mock_post.return_value = mock_response
+        mock_connect._client.post.return_value = mock_response
         
         await mock_connect.connector_restart("test-connector")
         
-        assert mock_post.called
-        call_args = mock_post.call_args
-        assert "connectors/test-connector/restart" in call_args.kwargs.get("url", "")
+        assert mock_connect._client.post.called
+        call_args = mock_connect._client.post.call_args
+        # URL is passed as first positional argument
+        assert "connectors/test-connector/restart" in call_args.args[0]

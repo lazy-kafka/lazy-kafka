@@ -56,8 +56,10 @@ class TestTimeMocking:
         mock_time = (2024, 1, 15, 14, 30, 45, 0, 15, 0)  # Jan 15, 2024, 14:30:45
         
         with patch("time.localtime", return_value=mock_time):
-            result = get_current_time()
-            assert result == "14:30:45"
+            # Also mock time.time() to return an integer (no fractional seconds)
+            with patch("time.time", return_value=1705342245.0):
+                result = get_current_time()
+                assert result == "14:30:45"
 
     def test_mocked_time_with_microseconds(self) -> None:
         """Test get_current_time with mocked time including microseconds."""

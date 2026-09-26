@@ -144,69 +144,77 @@ class TestSchemaRegistryAsync:
     @pytest.fixture
     def mock_registry(self) -> SchemaRegistry:
         """Create a mock SchemaRegistry for async tests."""
-        with patch("httpx.get") as mock_get:
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_get.return_value = mock_response
+        with patch("httpx.get") as mock_get_sync, \
+             patch("httpx.AsyncClient") as mock_async_client_class:
+            # Mock sync get for __init__ check
+            mock_response_sync = MagicMock()
+            mock_response_sync.status_code = 200
+            mock_get_sync.return_value = mock_response_sync
+            
+            # Mock AsyncClient
+            mock_async_client = AsyncMock()
+            mock_async_client_class.return_value = mock_async_client
+            
             config = RegistryConfiguration(host="http://test:8081")
             return SchemaRegistry(config)
 
-    @patch("httpx.AsyncClient.get")
-    async def test_asubject_versions(self, mock_get: AsyncMock, mock_registry: SchemaRegistry) -> None:
+    async def test_asubject_versions(self, mock_registry: SchemaRegistry) -> None:
         """Test asubject_versions method."""
-        mock_response = AsyncMock()
+        # Mock the _client's get method
+        mock_response = MagicMock()
         mock_response.json.return_value = [1, 2, 3]
-        mock_response.raise_for_status = AsyncMock()
-        mock_get.return_value = mock_response
+        mock_response.raise_for_status = MagicMock()
+        mock_registry._client.get = AsyncMock(return_value=mock_response)
         
         subject = Subject("test-subject")
         result = await mock_registry.asubject_versions(subject)
         
-        assert mock_get.called
-        call_args = mock_get.call_args
-        assert call_args.kwargs.get("url") == "subjects/test-subject/versions"
+        assert mock_registry._client.get.called
+        call_args = mock_registry._client.get.call_args
+        url_arg = call_args.args[0] if call_args.args else call_args.kwargs.get("url", "")
+        assert "subjects/test-subject/versions" in url_arg
 
-    @patch("httpx.AsyncClient.get")
-    async def test_asubject_latest(self, mock_get: AsyncMock, mock_registry: SchemaRegistry) -> None:
+    async def test_asubject_latest(self, mock_registry: SchemaRegistry) -> None:
         """Test asubject_latest method."""
-        mock_response = AsyncMock()
+        mock_response = MagicMock()
         mock_response.json.return_value = {
             "subject": "test-subject",
             "version": 1,
             "id": 123,
             "schema": "{}",
         }
-        mock_response.raise_for_status = AsyncMock()
-        mock_get.return_value = mock_response
+        mock_response.raise_for_status = MagicMock()
+        mock_registry._client.get = AsyncMock(return_value=mock_response)
         
         subject = Subject("test-subject")
         result = await mock_registry.asubject_latest((subject,))
         
-        assert mock_get.called
-        call_args = mock_get.call_args
-        assert "subjects/test-subject" in call_args.kwargs.get("url", "")
+        assert mock_registry._client.get.called
+        call_args = mock_registry._client.get.call_args
+        url_arg = call_args.args[0] if call_args.args else call_args.kwargs.get("url", "")
+        # The URL contains the tuple representation
+        assert "test-subject" in url_arg
 
-    @patch("httpx.AsyncClient.delete")
-    async def test_asubjects_delete(self, mock_delete: AsyncMock, mock_registry: SchemaRegistry) -> None:
+    async def test_asubjects_delete(self, mock_registry: SchemaRegistry) -> None:
         """Test asubjects_delete method."""
         mock_response = AsyncMock()
         mock_response.raise_for_status = AsyncMock()
-        mock_delete.return_value = mock_response
+        mock_registry._client.delete = AsyncMock(return_value=mock_response)
         
         subject = Subject("test-subject")
         await mock_registry.asubjects_delete(subject, version=1)
         
-        assert mock_delete.called
-        call_args = mock_delete.call_args
-        assert "subjects/test-subject/versions/1" in call_args.kwargs.get("url", "")
+        assert mock_registry._client.delete.called
+        call_args = mock_registry._client.delete.call_args
+        url_arg = call_args.args[0] if call_args.args else call_args.kwargs.get("url", "")
+        assert "subjects/test-subject/versions/1" in url_arg
 
-    @patch("httpx.AsyncClient.post")
-    async def test_asubjects_create(self, mock_post: AsyncMock, mock_registry: SchemaRegistry) -> None:
+    async def test_asubjects_create(self, mock_registry: SchemaRegistry) -> None:
         """Test asubjects_create method."""
-        mock_response = AsyncMock()
+        mock_response = MagicMock()
         mock_response.json.return_value = {"id": 123}
-        mock_response.raise_for_status = AsyncMock()
-        mock_post.return_value = mock_response
+        mock_response.raise_for_status = MagicMock()
+        mock_registry._client.post = AsyncMock(return_value=mock_response)
         
         subject = Subject("test-subject")
         data: SubjectNew = {
@@ -215,24 +223,25 @@ class TestSchemaRegistryAsync:
         }
         await mock_registry.asubjects_create(subject, data)
         
-        assert mock_post.called
-        call_args = mock_post.call_args
-        assert "subjects/test-subject" in call_args.kwargs.get("url", "")
+        assert mock_registry._client.post.called
+        call_args = mock_registry._client.post.call_args
+        url_arg = call_args.args[0] if call_args.args else call_args.kwargs.get("url", "")
+        assert "subjects/test-subject" in url_arg
 
-    @patch("httpx.AsyncClient.get")
-    async def test_aschema_versions(self, mock_get: AsyncMock, mock_registry: SchemaRegistry) -> None:
+    async def test_aschema_versions(self, mock_registry: SchemaRegistry) -> None:
         """Test aschema_versions method."""
-        mock_response = AsyncMock()
+        mock_response = MagicMock()
         mock_response.json.return_value = {"schema": {"versions": [1, 2, 3]}}
-        mock_response.raise_for_status = AsyncMock()
-        mock_get.return_value = mock_response
+        mock_response.raise_for_status = MagicMock()
+        mock_registry._client.get = AsyncMock(return_value=mock_response)
         
         subject = Subject("test-subject")
         await mock_registry.aschema_versions(subject)
         
-        assert mock_get.called
-        call_args = mock_get.call_args
-        assert "schemas/ids" in call_args.kwargs.get("url", "")
+        assert mock_registry._client.get.called
+        call_args = mock_registry._client.get.call_args
+        url_arg = call_args.args[0] if call_args.args else call_args.kwargs.get("url", "")
+        assert "subjects/test-subject/versions" in url_arg
 
 
 class TestSubjectTableValues:

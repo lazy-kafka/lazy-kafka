@@ -82,11 +82,10 @@ class TestSchemaRegistryPanel:
     @pytest.fixture
     def mock_panel(self) -> SchemaRegistryPanel:
         """Create a mock SchemaRegistryPanel for testing."""
-        with patch("lazy_kafka.widgets.registry.SchemaRegistry") as mock_registry:
+        with patch("lazy_kafka.registry.SchemaRegistry") as mock_registry:
             mock_registry_instance = MagicMock()
             mock_registry.return_value = mock_registry_instance
             
-            config = Configuration()
             return SchemaRegistryPanel(hook=mock_registry_instance, *[], **{})
 
     def test_init(self, mock_panel: SchemaRegistryPanel) -> None:
@@ -132,7 +131,7 @@ class TestWidgetIntegration:
         """Test that widgets can accept configuration."""
         config = Configuration()
         
-        with patch("lazy_kafka.widgets.registry.SchemaRegistry") as mock_registry:
+        with patch("lazy_kafka.registry.SchemaRegistry") as mock_registry:
             mock_registry_instance = MagicMock()
             mock_registry.return_value = mock_registry_instance
             
