@@ -104,6 +104,23 @@ class Configuration:
         if not isinstance(self.registry, RegistryConfiguration):
             object.__setattr__(self, "registry", RegistryConfiguration(**self.registry))
 
+        # Validate log_level
+        valid_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+        if self.log_level not in valid_log_levels:
+            _LOGGER.warning(
+                "Invalid log_level '%s' in configuration, using 'INFO' as fallback",
+                self.log_level,
+            )
+            object.__setattr__(self, "log_level", "INFO")
+
+        # Validate max_log_entries - must be positive
+        if self.max_log_entries < 1:
+            _LOGGER.warning(
+                "Invalid max_log_entries %d in configuration, using 1000 as fallback",
+                self.max_log_entries,
+            )
+            object.__setattr__(self, "max_log_entries", 1000)
+
     @classmethod
     def from_file(
         cls, file_path: Path, file_reader: Callable[[SupportsRead], Any], **kwargs: Any
