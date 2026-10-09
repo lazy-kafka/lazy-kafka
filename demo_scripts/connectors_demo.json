@@ -1,0 +1,39 @@
+{
+  "metadata": {
+    "name": "Connectors Screen Demo",
+    "description": "Demonstrates navigation through the kafka connect screen",
+    "author": "lazy-kafka",
+    "version": "1.0.0"
+  },
+  "actions": [
+    {
+      "log": "Starting connectors demo",
+      "level": "INFO",
+      "delay": 500
+    },
+    {
+      "key": "d",
+      "delay": 500
+    },
+    {
+      "key": "h",
+      "delay": 500
+    },
+    {
+      "key": "h",
+      "delay": 500
+    },
+    {
+      "key": "l",
+      "delay": 1000
+    },
+    {
+      "log": "Connector navigation complete",
+      "level": "INFO",
+      "delay": 500
+    },
+    {
+      "screenshot": "connectors_view"
+    }
+  ]
+}

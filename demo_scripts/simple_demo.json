@@ -1,0 +1,19 @@
+{
+  "metadata": {
+    "name": "Simple Demo",
+    "description": "A simple demo that just navigates the UI",
+    "author": "lazy-kafka",
+    "version": "1.0.0"
+  },
+  "actions": [
+    {
+      "log": "Starting simple demo",
+      "level": "INFO",
+      "delay": 500
+    },
+    {
+      "key": "q",
+      "delay": 1000
+    }
+  ]
+}

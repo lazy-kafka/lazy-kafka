@@ -1,0 +1,39 @@
+{
+  "metadata": {
+    "name": "Topics Screen Demo",
+    "description": "Demonstrates navigation through the topics screen",
+    "author": "lazy-kafka",
+    "version": "1.0.0"
+  },
+  "actions": [
+    {
+      "log": "Starting topics demo",
+      "level": "INFO",
+      "delay": 500
+    },
+    {
+      "key": "d",
+      "delay": 500
+    },
+    {
+      "key": "l",
+      "delay": 1000
+    },
+    {
+      "key": "h",
+      "delay": 1000
+    },
+    {
+      "key": "l",
+      "delay": 500
+    },
+    {
+      "log": "Topic navigation complete",
+      "level": "INFO",
+      "delay": 500
+    },
+    {
+      "screenshot": "topics_view"
+    }
+  ]
+}

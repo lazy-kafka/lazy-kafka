@@ -150,7 +150,10 @@ class Configuration:
         try:
             return cls.from_toml(cls.default_config_file_path())
         except FileNotFoundError as exc:
-            _LOGGER.debug("No user configuration file.", exc_info=exc)
+            _LOGGER.debug("No user configuration file: %s", exc)
+            return cls()
+        except Exception as exc:
+            _LOGGER.warning("Unexpected error loading config: %s", exc)
             return cls()
 
 

@@ -163,6 +163,14 @@ class LazyKafka(App[None]):
 
 def main():
     """Main entrypoint to the TUI and CLI."""
+    # Check for headless mode
+    if "--headless" in sys.argv:
+        from lazy_kafka.headless.main import main as headless_main
+        # Remove --headless from sys.argv so argparse doesn't see it
+        sys.argv.remove("--headless")
+        headless_main()
+        return
+    
     if len(sys.argv) <= 1:
         from textual.logging import TextualHandler
 

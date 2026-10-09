@@ -1,0 +1,39 @@
+{
+  "metadata": {
+    "name": "Registry Screen Demo",
+    "description": "Demonstrates navigation through the schema registry screen",
+    "author": "lazy-kafka",
+    "version": "1.0.0"
+  },
+  "actions": [
+    {
+      "log": "Starting registry demo",
+      "level": "INFO",
+      "delay": 500
+    },
+    {
+      "key": "d",
+      "delay": 500
+    },
+    {
+      "key": "l",
+      "delay": 500
+    },
+    {
+      "key": "l",
+      "delay": 500
+    },
+    {
+      "key": "h",
+      "delay": 1000
+    },
+    {
+      "log": "Registry navigation complete",
+      "level": "INFO",
+      "delay": 500
+    },
+    {
+      "screenshot": "registry_view"
+    }
+  ]
+}
