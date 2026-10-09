@@ -88,7 +88,9 @@ class Configuration:
     registry: RegistryConfiguration = field(default_factory=RegistryConfiguration)
     connect: ConnectConfiguration = field(default_factory=ConnectConfiguration)
     request_time_out: int = 1000
-    log_level: Literal["DEBUG", "INFO"] = "INFO"
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    # Maximum number of log entries to keep in memory for the logs widget
+    max_log_entries: int = 1000
     # Run the app in development mode: logging, log-formatting etc.
     dev_mode: bool = False
     _file: Path = Path(__file__).parent / "default_config.toml"
@@ -102,6 +104,23 @@ class Configuration:
 
         if not isinstance(self.registry, RegistryConfiguration):
             object.__setattr__(self, "registry", RegistryConfiguration(**self.registry))
+
+        # Validate log_level
+        valid_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+        if self.log_level not in valid_log_levels:
+            _LOGGER.warning(
+                "Invalid log_level '%s' in configuration, using 'INFO' as fallback",
+                self.log_level,
+            )
+            object.__setattr__(self, "log_level", "INFO")
+
+        # Validate max_log_entries - must be positive
+        if self.max_log_entries < 1:
+            _LOGGER.warning(
+                "Invalid max_log_entries %d in configuration, using 1000 as fallback",
+                self.max_log_entries,
+            )
+            object.__setattr__(self, "max_log_entries", 1000)
 
     @classmethod
     def from_file(
@@ -131,7 +150,7 @@ class Configuration:
         try:
             return cls.from_toml(cls.default_config_file_path())
         except FileNotFoundError as exc:
-            _LOGGER.error("No user configuration file.", exc_info=exc)
+            _LOGGER.debug("No user configuration file.", exc_info=exc)
             return cls()
 
 
