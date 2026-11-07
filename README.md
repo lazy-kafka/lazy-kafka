@@ -50,10 +50,20 @@ pip install lazy-kafka
 `lazy-kafka` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
 
 # dev
+This project uses [uv](https://docs.astral.sh/uv/) for dependency/env management
+(provided by `devenv.nix`). A `Justfile` provides a couple of shortcuts for things
+that aren't a single straightforward command (local dev setup, test coverage flags,
+release bump) — everything else is just plain `uv run ...`.
+
 run:
 - 🐳 docker environment `$ scripts/start-up`
-- 📃 `$ hatch run dev:console` -> `🐣 lazy-kafka/scripts ➜ textual console -x EVENT -x SYSTEM --port 7342`
-- 💾 `$ hatch run dev:app` -> `🐣 lazy-kafka ❯ python src/lazy_kafka/__main__.py`
+- 📦 install deps `$ uv sync` (or enter the devenv shell, which does this for you)
+- 🔧 one-time local setup (pre-commit hooks, etc.) `$ just setup`
+- 💾 run the app `$ uv run python src/lazy_kafka/__main__.py`
+- 📃 textual dev console `$ uv run textual console -x EVENT -x SYSTEM --port 7342`
+- 🧪 run tests with coverage `$ just test`
+- 🔍 type-check `$ uv run mypy src/lazy_kafka tests`
+- 🎨 lint/format `$ uv run ruff check .` / `$ uv run ruff format .`
 
 If you are using pip:
 - `pip install -e .`

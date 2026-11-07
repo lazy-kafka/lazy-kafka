@@ -400,7 +400,7 @@ main (protected)
 - [ ] ruff linting passes
 - [ ] mypy type checking passes
 - [ ] Documentation updated
-- [ ] Changelog entry added (via towncrier)
+- [ ] Commit messages follow Conventional Commits (used by cocogitto for changelog/version bump)
 - [ ] Linked to appropriate milestone
 
 ### Release Process
