@@ -8,7 +8,7 @@ until curl --output /dev/null --silent $KAFKA_CONNECT_URL/connectors; do
       sleep 10
 done
 
-response=$(curl -X PUT -H "Content-Type: application/json" --write-out '%{http_code}' --output /dev/null $KAFKA_CONNECT_URL/connectors/s3-sink/config\
+response_1=$(curl -X PUT -H "Content-Type: application/json" --write-out '%{http_code}' --output /dev/null $KAFKA_CONNECT_URL/connectors/s3-sink/config\
     -d '{
     "store.url": "http://localstack:4566",
     "aws.access.key.id": "",
@@ -37,7 +37,7 @@ response=$(curl -X PUT -H "Content-Type: application/json" --write-out '%{http_c
     "value.converter.schema.registry.url": "http://schema-registry:8081"
 }')
 
-response=$(curl -X PUT -H "Content-Type: application/json" --write-out '%{http_code}' --output /dev/null $KAFKA_CONNECT_URL/connectors/my-topic-sinko/config\
+response_2=$(curl -X PUT -H "Content-Type: application/json" --write-out '%{http_code}' --output /dev/null $KAFKA_CONNECT_URL/connectors/my-topic-sinko/config\
     -d '{
     "store.url": "http://localstack:4566",
     "aws.access.key.id": "",
@@ -66,10 +66,19 @@ response=$(curl -X PUT -H "Content-Type: application/json" --write-out '%{http_c
     "value.converter.schema.registry.url": "http://schema-registry:8081"
 }')
 
-if [ "$response" -eq 200 ]; then
-    >&2 echo "Connector created successfully."
+# PUT .../config returns 201 on first creation, 200 on update of an
+# existing connector — both indicate success.
+if [ "$response_1" -eq 200 ] || [ "$response_1" -eq 201 ]; then
+    >&2 echo "Connector s3-sink created successfully."
+else
+    >&2 echo "Connector s3-sink creation failed (HTTP $response_1)."
+    exit 1
+fi
+
+if [ "$response_2" -eq 200 ] || [ "$response_2" -eq 201 ]; then
+    >&2 echo "Connector my-topic-sinko created successfully."
     exit 0
 else
-    >&2 echo "Connector creation failed."
+    >&2 echo "Connector my-topic-sinko creation failed (HTTP $response_2)."
     exit 1
 fi
