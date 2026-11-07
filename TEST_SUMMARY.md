@@ -186,11 +186,11 @@ pytest tests/test_config.py::TestKafkaConfiguration::test_default_values
 ### Using Hatch (recommended)
 
 ```bash
-# Run tests (as configured in pyproject.toml)
-hatch run test
+# Run tests (as configured in pyproject.toml dependency-groups)
+uv run pytest tests
 
-# Run with specific Python version
-hatch -e test run test
+# Or via the Justfile shortcut
+just test
 ```
 
 ### With Coverage Report

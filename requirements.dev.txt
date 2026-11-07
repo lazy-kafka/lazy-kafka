@@ -8,5 +8,4 @@ pre-commit == 4.7.*
 ruff == 0.17.2
 mypy == 2.4.*
 versioningit>=3.1.2
-towncrier == 25.8.*
-hypothesis == 6.170.*
+hypothesis == 6.168.*

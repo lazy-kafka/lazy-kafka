@@ -38,14 +38,14 @@ pytest tests/test_config.py
 pytest tests/test_config.py::TestKafkaConfiguration::test_default_values
 ```
 
-### Using Hatch
+### Using uv / just
 
 ```bash
-# Run tests using hatch (as configured in pyproject.toml)
-hatch run test
+# Run tests using uv (as configured in pyproject.toml dependency-groups)
+uv run pytest tests
 
-# Run tests with coverage
-hatch run test:test
+# Run tests with coverage via the Justfile shortcut
+just test
 ```
 
 ## Test Categories
