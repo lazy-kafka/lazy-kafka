@@ -46,10 +46,10 @@ lazy-kafka = "lazy_kafka.entry_points:lazy_kafka"
 dev = [
     "textual-dev",
     "pre-commit == 3.7.*",
-    "ruff == 0.4.4",
+    "ruff==0.17.3",
     "mypy == 1.10.*",
     "versioningit>=3.1.2",
-    "hypothesis == 6.115.*",
+    "hypothesis>=6.115,<6.171",
 ]
 test = [
     "pytest >= 8.0.0",
