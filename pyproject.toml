@@ -47,7 +47,7 @@ dev = [
     "textual-dev",
     "pre-commit == 3.7.*",
     "ruff==0.17.3",
-    "mypy == 1.10.*",
+    "mypy>=1.10,<2.5",
     "versioningit>=3.1.2",
     "hypothesis>=6.115,<6.171",
 ]
