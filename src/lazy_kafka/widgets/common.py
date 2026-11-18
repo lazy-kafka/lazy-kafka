@@ -67,6 +67,42 @@ class SubjectDetails(Widget):
     def on_mount(self):
         self.query_one(ScrollableContainer).border_subtitle = "Details"
 
+    def show(self, details: Any) -> None:
+        """Update the displayed details."""
+        self.shown_details = details
+        self.query_one(Pretty).update(details)
+
+
+class DataTableCursorMixin:
+    """Vim-style j/k cursor navigation over the first child `DataTable`."""
+
+    def action_next_widget_item(self):
+        self.query_one(DataTable).action_cursor_down()
+
+    def action_previous_widget_item(self):
+        self.query_one(DataTable).action_cursor_up()
+
+
+class DetailsPanelMixin:
+    """Display `details` in a bordered `SubjectDetails` panel docked at the bottom.
+
+    Expects a reactive `details` attribute; mounting the panel is delayed to
+    the moment details are first set.
+    """
+
+    details: Reactive[Any] = reactive(None, init=False)
+
+    def watch_details(self, details: Any) -> None:
+        """Callback on details changed."""
+        try:
+            details_panel = self.query_one(SubjectDetails)
+        except NoMatches:
+            details_panel = SubjectDetails(id="details", classes="has-border")
+            self.mount(details_panel)
+            self.call_after_refresh(details_panel.show, details)
+            return
+        details_panel.show(details)
+
 
 class SearchInput(Input):
     ...
@@ -74,7 +110,9 @@ class SearchInput(Input):
     # self.log.info(f"Hello {message}")
 
 
-class WidgetWithDataTable(Generic[T, S], Container, can_focus=True):
+class WidgetWithDataTable(
+    Generic[T, S], DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=True
+):
     """Template class for core widgets with a DataTable and Details.
 
     The class is generic over:
@@ -155,12 +193,6 @@ class WidgetWithDataTable(Generic[T, S], Container, can_focus=True):
             self.selected_id = selected_id
             super().__init__()
 
-    def action_next_widget_item(self):
-        self.query_one(DataTable).action_cursor_down()
-
-    def action_previous_widget_item(self):
-        self.query_one(DataTable).action_cursor_up()
-
     def action_stop_refresh(self):
         self.update_timer.pause()
         label = self.query_one("#icon", Label)
@@ -222,17 +254,6 @@ class WidgetWithDataTable(Generic[T, S], Container, can_focus=True):
 
     def on_data_table_focused(self, event):
         _LOGGER.debug("DATA TABLE FOC %s", f"{event!r}")
-
-    def watch_details(self, details: str):
-        """Callback on topic changed."""
-        try:
-            details_panel = self.query_one(Pretty)
-        except NoMatches as _:
-            details_panel = SubjectDetails(id="details", classes="has-border")
-            self.mount(details_panel)
-            return
-        self.query_one(Pretty).update(details)
-        self.log(f"{details}")
 
     async def action_load_data(self):
         data_table = self.query_one(DataTable)

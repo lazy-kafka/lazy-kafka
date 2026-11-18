@@ -28,3 +28,60 @@ command. Exception: tools intentionally left for the user/CI to install
 explicitly (e.g. `cocogitto`, which is installed via `cargo install` directly
 in `.github/workflows/release.yaml` and expected to be installed manually for
 local release work) — don't add devenv/nix support for those unless asked.
+
+## TUI architecture (Textual)
+
+Entry point: `src/lazy_kafka/__main__.py` (`LazyKafka` app). Screens are
+switched through `App.MODES` (`dashboard`, `settings`, `logs`) via key
+bindings — no screen stacking for these; the app "changes mode", it does not
+push modals.
+
+### Screen/widget conventions (consistency rules)
+
+- One `Footer` per screen, composed by the **Screen**, never by its child
+  widgets. `style.tcss` docks `Footer` to `top`, so duplicate footers stack
+  into a doubled header bar.
+- `set_focus` exists on App/Screen only. On a widget use `widget.focus()`.
+- Every `DataTable`: construct with `cursor_type="row", zebra_stripes=True`,
+  give it `background: $background` (not `$surface`), transparent header,
+  odd/even row backgrounds — copy the rules from
+  `src/lazy_kafka/widgets/common.py` / `_logs.py`.
+- Full-height table screens get their frame from the shared `has-border`
+  class in `style.tcss` (round `$primary` border) plus a `border_title` set
+  in `on_mount`. Don't redefine border CSS per widget.
+- Selection/detail UX lives in `src/lazy_kafka/widgets/common.py`:
+  - `WidgetWithDataTable` — base class for hook-fed table widgets
+    (topics, messages, schema registry, connect).
+  - `DataTableCursorMixin` — j/k cursor movement (vim style).
+  - `DetailsPanelMixin` — reactive `details` + `watch_details` that mounts a
+    bordered `SubjectDetails` panel docked at the bottom.
+  Any new table screen must reuse these mixins/classes instead of
+  reimplementing navigation or a details pane.
+
+### Logging
+
+`main()` routes the root logger ONLY into the in-app `LogHandler`
+(`widgets/_logs.py`); filtering happens at display level (`LogsWidget`).
+Do not attach `logging.StreamHandler` or `TextualHandler` to the root logger:
+before `app.run()` starts console capture, they print straight to the
+terminal and pollute the TUI's clean startup. `LogsWidget` rebuilds its table
+on a 0.1s interval but skips the rebuild when the filtered entry set and
+level are unchanged; row keys are `f"log-{id(entry)}"` and selection/cursor
+are preserved across rebuilds.
+
+### Testing the TUI
+
+- Headless testing uses Textual's Pilot: `async with app.run_test(size=...)
+  as pilot:` — no real terminal needed. Existing examples:
+  `tests/integration/test_tui.py`.
+- `pytest.ini` sets `--asyncio-mode=auto`: async test functions need no
+  `@pytest.mark.asyncio` marker.
+- `LazyKafka()` reads the user's real config (`~/.config/.lazy-kafka.toml`);
+  missing file is handled and falls back to defaults. To control logging in
+  tests, pass a dedicated `LogHandler` (or emit records via
+  `handler.emit(logging.LogRecord(...))`) — pytest's global root-logger state
+  can point elsewhere.
+- Assert rendering by inspecting the DOM (`app.screen`,
+  `query_one(...)`, `styles.*`) — `App.export_text` does not exist in
+  textual 8.x.
+

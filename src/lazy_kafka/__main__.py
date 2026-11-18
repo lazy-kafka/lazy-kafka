@@ -164,25 +164,23 @@ class LazyKafka(App[None]):
 def main():
     """Main entrypoint to the TUI and CLI."""
     if len(sys.argv) <= 1:
-        from textual.logging import TextualHandler
-
         # Load configuration first to get settings
         try:
             config = Configuration.from_local_config()
         except Exception:
             config = Configuration()
-        
+
         # Create log handler with configured settings BEFORE setting up basicConfig
         max_entries = getattr(config, 'max_log_entries', 1000)
         log_handler = LogHandler(max_entries=max_entries)
-        
-        # Set up logging with both our custom handler and TextualHandler
-        textual_handler = TextualHandler()
-        
-        # Set up basic logging first - this will start capturing logs
+
+        # Route all log records into the in-app log handler (displayed on the
+        # Logs screen, filtered at display level). No console handler here:
+        # anything attached before app.run() would print straight to the
+        # terminal and pollute the TUI's own output.
         logging.basicConfig(
             level="NOTSET",
-            handlers=[log_handler, textual_handler],
+            handlers=[log_handler],
             force=True,
         )
         

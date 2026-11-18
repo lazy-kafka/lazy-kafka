@@ -5,17 +5,14 @@ from __future__ import annotations
 import logging
 from collections import deque
 from datetime import datetime
-from typing import TYPE_CHECKING, Deque
 
-from textual import messages
 from textual.binding import Binding
 from textual.containers import Container
 from textual.reactive import reactive
 from textual.screen import Screen
-from textual.widgets import DataTable, Footer, Header, Label
+from textual.widgets import DataTable, Footer, Label
 
-if TYPE_CHECKING:
-    from textual.app import App
+from lazy_kafka.widgets.common import DataTableCursorMixin, DetailsPanelMixin
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -84,14 +81,14 @@ class LogHandler(logging.Handler):
         super().__init__()
         # Ensure max_entries is at least 1
         self.max_entries: int = max(1, max_entries)
-        self.entries: Deque[LogEntry] = deque(maxlen=self.max_entries)
+        self.entries: deque[LogEntry] = deque(maxlen=self.max_entries)
 
     def emit(self, record: logging.LogRecord) -> None:
         """Handle a log record - store all entries without filtering."""
         # Use record.levelno directly instead of levelname to handle custom levels
         # Map numeric level to level name using standard logging levels
         level_name = logging.getLevelName(record.levelno)
-        
+
         entry = LogEntry(
             level=level_name,
             logger_name=record.name,
@@ -113,18 +110,20 @@ class LogHandler(logging.Handler):
         max_entries = max(1, max_entries)
         if max_entries == self.max_entries:
             return
-        
+
         self.max_entries = max_entries
         # Recreate deque with new maxlen
         old_entries = list(self.entries)
         self.entries = deque(old_entries[-max_entries:], maxlen=max_entries)
 
 
-class LogsWidget(Container, can_focus=True):
+class LogsWidget(DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=True):
     """Widget for displaying logs with filtering and level control."""
 
     BINDINGS = [
         Binding("c", "clear_logs", "Clear logs"),
+        Binding("j", "next_widget_item", "↓"),
+        Binding("k", "previous_widget_item", "↑"),
         Binding("up", "increase_level", "Increase log level"),
         Binding("down", "decrease_level", "Decrease log level"),
         Binding("b", "scroll_bottom", "Scroll to bottom"),
@@ -136,31 +135,22 @@ class LogsWidget(Container, can_focus=True):
         layout: vertical;
         height: 100%;
         width: 100%;
-        
-        &:focus {
-            border: none;
-        }
-        
+
         Container {
             layout: horizontal;
             height: auto;
             width: 100%;
             padding: 0 1;
         }
-        
-        #logs-title {
-            text-style: bold;
-            color: $primary;
-        }
-        
+
         #level-label {
             padding-left: 2;
         }
-        
+
         DataTable {
             width: 100%;
             height: 1fr;
-            background: $surface;
+            background: $background;
             
             & > .datatable--header {
                 background: transparent;
@@ -175,11 +165,7 @@ class LogsWidget(Container, can_focus=True):
             & > .datatable--even-row {
                 background: $background;
             }
-            
-            & > .datatable--cursor-row {
-                background: $primary-lighten-3;
-            }
-            
+
             .level-debug {
                 color: $text-disabled;
             }
@@ -202,6 +188,12 @@ class LogsWidget(Container, can_focus=True):
                 color: $error;
                 text-style: bold underline;
             }
+
+            .datatable--cursor {
+                color: $secondary;
+                background: $primary-lighten-3;
+                text-style: bold;
+            }
         }
     }
     """
@@ -214,20 +206,22 @@ class LogsWidget(Container, can_focus=True):
         self.log_handler = log_handler or LogHandler()
         self._data_table: DataTable | None = None
         self._initial_level = initial_level
+        self._entry_map: dict[str, LogEntry] = {}
+        self._last_state: tuple | None = None
 
     def on_mount(self) -> None:
         """Initialize the widget after mounting."""
         self._data_table = self.query_one("#logs-table", DataTable)
         self._setup_table()
-        
+        self.border_title = "[i]Logs[/]"
         # Set initial level if provided
         if self._initial_level and self._initial_level in LEVEL_TO_INDEX:
             self.current_level_index = LEVEL_TO_INDEX[self._initial_level]
-        
+
         self._update_level_display()
         self._update_table()
         # Start with focus on the table
-        self.set_focus(self._data_table)
+        self._data_table.focus()
         # Set up periodic refresh to catch new log entries
         self.set_interval(0.1, self._check_for_updates)
 
@@ -247,11 +241,9 @@ class LogsWidget(Container, can_focus=True):
 
     def compose(self) -> Container.ComposeResult:
         with Container():
-            yield Label("Logs", id="logs-title")
             yield Label("Level: DEBUG", id="level-label")
-        
-        yield DataTable(id="logs-table")
-        yield Footer()
+
+        yield DataTable(id="logs-table", cursor_type="row", zebra_stripes=True)
 
     def _check_for_updates(self) -> None:
         """Periodically check for new log entries and update the display."""
@@ -291,33 +283,62 @@ class LogsWidget(Container, can_focus=True):
 
     def _update_table(self) -> None:
         """Update the table with current log entries.
-        
+
         Filters entries based on current_level_index and displays them
-        with appropriate styling.
+        with appropriate styling. Skips the rebuild when nothing changed,
+        so the selection (and details panel) stays stable.
         """
         if not self._data_table:
             return
 
+        entries = [
+            entry
+            for entry in self.log_handler.get_entries()
+            if self._passes_level_filter(entry)
+        ]
+        state = (tuple(id(entry) for entry in entries), self.current_level_index)
+        if state == self._last_state:
+            return
+        self._last_state = state
+
+        # Preserve the cursor row across the rebuild
+        cursor_row = self._data_table.cursor_row
+
         self._data_table.clear()
-        # Don't call _setup_table() here - it's only needed on initial setup
-        
-        for entry in self.log_handler.get_entries():
-            if self._passes_level_filter(entry):
-                time_str, level, logger, message = entry.to_tuple()
-                # Add row with the level as a styled cell
-                self._data_table.add_row(
-                    time_str,
-                    f"[{entry.get_level_class()}]{level}[/]",
-                    logger,
-                    message,
-                )
-        
-        # Scroll to bottom to show newest logs
-        self._data_table.scroll_end()
+        self._entry_map = {}
+
+        for entry in entries:
+            time_str, level, logger, message = entry.to_tuple()
+            key = f"log-{id(entry)}"
+            self._entry_map[key] = entry
+            # Add row with the level as a styled cell
+            self._data_table.add_row(
+                time_str,
+                f"[{entry.get_level_class()}]{level}[/]",
+                logger,
+                message,
+                key=key,
+            )
+
+        if self._data_table.row_count:
+            # Keep the selected row visible (and scroll to it)
+            self._data_table.move_cursor(
+                row=min(cursor_row, self._data_table.row_count - 1)
+            )
+
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        """Show the full, untruncated message of the selected entry."""
+        if event.cursor_row == -1 or event.row_key.value is None:
+            return
+        entry = self._entry_map.get(event.row_key.value)
+        if entry is not None:
+            self.details = entry.message
 
     def action_clear_logs(self) -> None:
         """Clear all logs."""
         self.log_handler.clear()
+        self._entry_map = {}
+        self._last_state = None
         self._update_entries_count()
         if self._data_table:
             self._data_table.clear()
@@ -368,7 +389,11 @@ class LogsScreen(Screen):
         log_handler = getattr(self.app, 'log_handler', None)
         config = getattr(self.app, 'lazy_kafka_config', None)
         initial_level = getattr(config, 'log_level', "INFO") if config else "INFO"
-        self._logs_widget = LogsWidget(log_handler=log_handler, initial_level=initial_level)
+        self._logs_widget = LogsWidget(
+            log_handler=log_handler,
+            initial_level=initial_level,
+            classes="has-border",
+        )
         yield self._logs_widget
         yield Footer()
 
