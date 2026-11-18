@@ -102,6 +102,86 @@ async def test_logs_zebra_vim_nav_and_details():
         assert details_panel.shown_details == "first message"
 
 
+async def test_logs_vim_jump_keys():
+    """G jumps to the newest entry, gg to the oldest (standard vim)."""
+    import logging as pylog
+
+    app = LazyKafka()
+    handler = app.log_handler
+    for i in range(50):
+        handler.emit(pylog.LogRecord("x", pylog.INFO, "f", 1, f"entry {i}", (), None))
+
+    async with app.run_test(size=(120, 20)) as pilot:
+        await pilot.press("L")
+        await pilot.pause()
+        table = app.screen.query_one("#logs-table")
+
+        await pilot.press("g", "g")
+        await pilot.pause()
+        assert table.cursor_row == 0
+
+        # a rebuild must not yank the cursor away from the top
+        handler.emit(pylog.LogRecord("x", pylog.INFO, "f", 1, "new entry", (), None))
+        await pilot.pause(0.2)
+        assert table.cursor_row == 0
+
+        await pilot.press("G")
+        await pilot.pause()
+        assert table.cursor_row == table.row_count - 1
+
+        # a rebuild must not yank the cursor away from the bottom
+        handler.emit(pylog.LogRecord("x", pylog.INFO, "f", 1, "newer entry", (), None))
+        await pilot.pause(0.2)
+        assert table.cursor_row == table.row_count - 1
+
+        # gg returns to the oldest entry
+        await pilot.press("g", "g")
+        await pilot.pause()
+        await pilot.pause()
+        assert table.cursor_row == 0
+
+        # a lone g followed by a timeout must not move the cursor
+        await pilot.press("G")
+        await pilot.pause()
+        bottom_row = table.row_count - 1
+        await pilot.press("g")
+        await pilot.pause(1.2)  # longer than _GG_TIMEOUT
+        assert table.cursor_row == bottom_row
+        await pilot.press("g")
+        await pilot.pause()
+        await pilot.pause()
+        assert table.cursor_row == bottom_row
+
+
+async def test_logs_level_column_coloring():
+    """ERROR/INFO/WARNING cells carry rich styles; unknown levels stay plain."""
+    from rich.text import Text
+
+    from lazy_kafka.widgets._logs import LogEntry
+
+    app = LazyKafka()
+    handler = app.log_handler
+    handler.entries.append(LogEntry("ERROR", "x", "boom"))
+    handler.entries.append(LogEntry("INFO", "x", "ok"))
+    handler.entries.append(LogEntry("WARNING", "x", "hmm"))
+    handler.entries.append(LogEntry("NOTICE", "x", "unknown level"))
+
+    async with app.run_test(size=(120, 30)) as pilot:
+        await pilot.press("L")
+        await pilot.pause()
+        table = app.screen.query_one("#logs-table")
+
+        for row, (level, expected_style) in enumerate(
+            [("ERROR", "red"), ("INFO", "green"), ("WARNING", "yellow")]
+        ):
+            cell = table.get_cell_at(type(table.cursor_coordinate)(row, 1))
+            assert cell.plain == level
+            assert cell.style == expected_style, (level, cell.style)
+        unknown_cell = table.get_cell_at(type(table.cursor_coordinate)(3, 1))
+        assert unknown_cell == "NOTICE"  # plain string, unstyled
+        assert not isinstance(unknown_cell, Text)
+
+
 async def test_log_handler_captures_without_console_output(capsys):
     """Reproduce main()'s logging setup: all records go to the LogHandler,
     and nothing is written to stdout/stderr."""

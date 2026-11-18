@@ -5,7 +5,9 @@ from __future__ import annotations
 import logging
 from collections import deque
 from datetime import datetime
+from typing import TYPE_CHECKING
 
+from rich.text import Text
 from textual.binding import Binding
 from textual.containers import Container
 from textual.reactive import reactive
@@ -13,6 +15,10 @@ from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Label
 
 from lazy_kafka.widgets.common import DataTableCursorMixin, DetailsPanelMixin
+
+if TYPE_CHECKING:
+    from textual.app import App
+    from textual.timer import Timer
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,13 +37,14 @@ LOG_LEVEL_NUMERIC: dict[str, int] = {
     "CRITICAL": logging.CRITICAL,
 }
 
-# Log level to color mapping for styling
+# Rich style for each log level, used to color the Level column cells.
+# Levels without an entry here are displayed unstyled.
 LOG_LEVEL_COLORS: dict[str, str] = {
-    "DEBUG": "$text-disabled",
-    "INFO": "$text",
-    "WARNING": "$warning",
-    "ERROR": "$error",
-    "CRITICAL": "bold $error",
+    "DEBUG": "dim",
+    "INFO": "green",
+    "WARNING": "yellow",
+    "ERROR": "red",
+    "CRITICAL": "bold red",
 }
 
 
@@ -61,13 +68,9 @@ class LogEntry:
         time_str = self.timestamp.strftime("%H:%M:%S.%f")[:-3]
         return (time_str, self.level, self.logger_name, self.message)
 
-    def get_color(self) -> str:
-        """Get the CSS color for this log level."""
-        return LOG_LEVEL_COLORS.get(self.level, "$text")
-
-    def get_level_class(self) -> str:
-        """Get the CSS class for a log level."""
-        return f"level-{self.level.lower()}"
+    def get_color(self) -> str | None:
+        """Get the Rich style for this log level, or None if unknown."""
+        return LOG_LEVEL_COLORS.get(self.level)
 
 
 class LogHandler(logging.Handler):
@@ -124,10 +127,10 @@ class LogsWidget(DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=T
         Binding("c", "clear_logs", "Clear logs"),
         Binding("j", "next_widget_item", "↓"),
         Binding("k", "previous_widget_item", "↑"),
+        Binding("G", "scroll_bottom", "↓ end"),
+        Binding("g", "handle_g", "↑ start", key_display="g g"),
         Binding("up", "increase_level", "Increase log level"),
         Binding("down", "decrease_level", "Decrease log level"),
-        Binding("b", "scroll_bottom", "Scroll to bottom"),
-        Binding("t", "scroll_top", "Scroll to top"),
     ]
 
     DEFAULT_CSS = """
@@ -166,29 +169,6 @@ class LogsWidget(DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=T
                 background: $background;
             }
 
-            .level-debug {
-                color: $text-disabled;
-            }
-            
-            .level-info {
-                color: $text;
-            }
-            
-            .level-warning {
-                color: $warning;
-                text-style: bold;
-            }
-            
-            .level-error {
-                color: $error;
-                text-style: bold;
-            }
-            
-            .level-critical {
-                color: $error;
-                text-style: bold underline;
-            }
-
             .datatable--cursor {
                 color: $secondary;
                 background: $primary-lighten-3;
@@ -208,6 +188,10 @@ class LogsWidget(DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=T
         self._initial_level = initial_level
         self._entry_map: dict[str, LogEntry] = {}
         self._last_state: tuple | None = None
+        # Pending state for the vim 'gg' two-key sequence: textual 8.x has no
+        # multi-key bindings, so the sequence is tracked manually.
+        self._gg_pending = False
+        self._gg_timer: Timer | None = None
 
     def on_mount(self) -> None:
         """Initialize the widget after mounting."""
@@ -301,8 +285,10 @@ class LogsWidget(DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=T
             return
         self._last_state = state
 
-        # Preserve the cursor row across the rebuild
+        # Preserve the cursor row across the rebuild; keep following the
+        # newest entry while the selection sits on the last row
         cursor_row = self._data_table.cursor_row
+        follows_tail = cursor_row == self._data_table.row_count - 1
 
         self._data_table.clear()
         self._entry_map = {}
@@ -311,16 +297,21 @@ class LogsWidget(DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=T
             time_str, level, logger, message = entry.to_tuple()
             key = f"log-{id(entry)}"
             self._entry_map[key] = entry
+            # Color the Level cell; unknown levels stay unstyled
+            level_style = entry.get_color()
+            level_cell = Text(level, style=level_style) if level_style else level
             # Add row with the level as a styled cell
             self._data_table.add_row(
                 time_str,
-                f"[{entry.get_level_class()}]{level}[/]",
+                level_cell,
                 logger,
                 message,
                 key=key,
             )
 
         if self._data_table.row_count:
+            if follows_tail:
+                cursor_row = self._data_table.row_count - 1
             # Keep the selected row visible (and scroll to it)
             self._data_table.move_cursor(
                 row=min(cursor_row, self._data_table.row_count - 1)
@@ -355,14 +346,34 @@ class LogsWidget(DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=T
             self.current_level_index -= 1
 
     def action_scroll_bottom(self) -> None:
-        """Scroll to the bottom of the logs."""
+        """Jump to the newest log entry (vim G)."""
         if self._data_table:
-            self._data_table.scroll_end()
+            self._data_table.move_cursor(row=self._data_table.row_count - 1)
 
     def action_scroll_top(self) -> None:
-        """Scroll to the top of the logs."""
+        """Jump to the oldest log entry (vim gg)."""
         if self._data_table:
-            self._data_table.scroll_home()
+            self._data_table.move_cursor(row=0)
+
+    _GG_TIMEOUT = 1.0
+    """Seconds to wait for the second `g` of the vim `gg` sequence."""
+
+    def action_handle_g(self) -> None:
+        """Track the vim `gg` two-key sequence: one `g` pends, two jumps top."""
+        if self._gg_pending:
+            self._gg_pending = False
+            if self._gg_timer is not None:
+                self._gg_timer.stop()
+                self._gg_timer = None
+            self.action_scroll_top()
+        else:
+            self._gg_pending = True
+            self._gg_timer = self.set_timer(self._GG_TIMEOUT, self._gg_expired)
+
+    def _gg_expired(self) -> None:
+        """A lone `g` was pressed - forget it."""
+        self._gg_pending = False
+        self._gg_timer = None
 
     def update_from_handler(self) -> None:
         """Public method to update the table from the log handler's entries.

@@ -53,6 +53,13 @@ push modals.
   - `WidgetWithDataTable` — base class for hook-fed table widgets
     (topics, messages, schema registry, connect).
   - `DataTableCursorMixin` — j/k cursor movement (vim style).
+  - Vim jump keys follow the same cursor-based model (never raw view
+    scrolling, which table rebuilds would fight): `G` = last row,
+    `gg` = first row, and while the cursor sits on the last row, rebuilds
+    keep following new entries.
+    Note: textual 8.x does not support multi-key bindings — `Binding("g g")`
+    registers a literal key no keypress can match. Sequences must be tracked
+    manually (see `LogsWidget.action_handle_g` + pending timer).
   - `DetailsPanelMixin` — reactive `details` + `watch_details` that mounts a
     bordered `SubjectDetails` panel docked at the bottom.
   Any new table screen must reuse these mixins/classes instead of
