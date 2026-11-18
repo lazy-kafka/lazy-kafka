@@ -204,3 +204,44 @@ async def test_log_handler_captures_without_console_output(capsys):
     finally:
         logging.getLogger().handlers.clear()
 
+
+
+async def test_message_sparkline_shows_timestamp_distribution():
+    """The Messages screen sparkline reflects the loaded messages' timestamps."""
+    from unittest.mock import MagicMock
+
+    from textual.widgets import Sparkline
+
+    from lazy_kafka.topic import LazyKafkaMessage
+    from lazy_kafka.widgets.topic_details import TopicDetails, TopicDetailsWidget
+
+    messages = [
+        LazyKafkaMessage(
+            "2024-01-01T00:00:%02d+00:00" % s, s, b"key", "body"
+        )
+        for s in range(4)
+    ]
+    messages += [LazyKafkaMessage("2024-01-01T00:01:00+00:00", 4, b"key", "late")]
+
+    app = LazyKafka()
+    async with app.run_test(size=(120, 40)) as pilot:
+        hook = MagicMock()
+        hook.config = app.lazy_kafka_config.kafka
+        await app.push_screen(TopicDetails(hook=hook, topic="test-topic"))
+        await pilot.pause()
+
+        details_widget = app.screen.query_one(TopicDetailsWidget)
+        details_widget._update_sparkline(messages)
+        await pilot.pause()
+
+        sparkline = app.screen.query_one("#message-distribution", Sparkline)
+        data = sparkline.data
+        assert data is not None and len(data) == 100
+        assert sum(data) == 5
+        # bucket i covers seconds [i * 0.6, (i + 1) * 0.6) of the message range
+        # (0s..3s, plus the late message at 60s -> clamped into the last bucket)
+        expected = [0] * 100
+        for second in (0, 1, 2, 3):
+            expected[int(second / 60 * 100)] += 1
+        expected[99] += 1
+        assert data == expected
