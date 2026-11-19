@@ -99,7 +99,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub release
-        uses: softprops/action-gh-release@de2c0eb89ae2a59587782423527426771e844896 # v2.0.1
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: ${{ steps.release_meta.outputs.tag }}
           name: Release ${{ steps.release_meta.outputs.tag }}
@@ -128,27 +128,3 @@ jobs:
           verbose: true
           repository-url: https://test.pypi.org/legacy/
           # Use TEST_PYPI_API_TOKEN secret
-
-      - name: Create GitHub Discussion for Release
-        if: "!contains(steps.release_meta.outputs.tag, '-rc') && !contains(steps.release_meta.outputs.tag, '-alpha') && !contains(steps.release_meta.outputs.tag, '-beta')"
-        uses: peter-evans/create-or-update-comment@719248295050f44478a8713c034335a594f5415c # v3.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ github.repository }}
-          issue-number: 1  # Use a dedicated discussion category
-          body: |
-            ## 🎉 Release ${{ steps.release_meta.outputs.tag }} is now available!
-
-            ### Download
-
-            ```bash
-            pip install --upgrade lazy-kafka==${{ steps.release_meta.outputs.clean_version }}
-            ```
-
-            ### Highlights
-
-            See the [release notes](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.release_meta.outputs.tag }}) for details.
-
-            ---
-
-            **Please report any issues [here](${{ github.server_url }}/${{ github.repository }}/issues/new/choose).**
