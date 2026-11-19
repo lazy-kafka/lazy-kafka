@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Coverage for src/lazy_kafka/topic.py: 49%</title>
+    <title>Coverage for src/lazy_kafka/topic.py: 50%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
     <link rel="stylesheet" href="style_cb_4667309f.css" type="text/css">
     <script src="coverage_html_cb_54cfdca1.js" defer></script>
@@ -12,7 +12,7 @@
     <div class="content">
         <h1>
             <span class="text">Coverage for </span><b>src<span class="sep">/</span>lazy_kafka<span class="sep">/</span>topic.py</b>:
-            <span class="pc_cov">49%</span>
+            <span class="pc_cov">50%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
@@ -56,8 +56,8 @@
         </aside>
         <h2>
             <span class="text">234 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">123<span class="text"> run</span></button>
-            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">111<span class="text"> missing</span></button>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">127<span class="text"> run</span></button>
+            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">107<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">31<span class="text"> excluded</span></button>
             <button type="button" class="par run show_par button_toggle_par" value="par" data-shortcut="p" title="Toggle lines partially run">1<span class="text"> partial</span></button>
         </h2>
@@ -66,8 +66,8 @@
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="z_b61c28f0f1f909b5_utils_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.17.0">coverage.py v7.17.0</a>,
-            created at 2026-11-07 10:04 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.17.3">coverage.py v7.17.3</a>,
+            created at 2026-11-19 10:45 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -409,7 +409,7 @@
     <p class="pln"><span class="n"><a id="t325" href="#t325">325</a></span><span class="t"><span class="str">        This method takes a naive approach and reads equal number of messages,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t326" href="#t326">326</a></span><span class="t"><span class="str">        from each partition.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t327" href="#t327">327</a></span><span class="t"><span class="str">        &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t328" href="#t328">328</a></span><span class="t">        <span class="nam">partitions</span> <span class="op">=</span> <span class="nam">self</span><span class="op">.</span><span class="nam">get_topic_partitions</span><span class="op">(</span><span class="nam">topic</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t328" href="#t328">328</a></span><span class="t">        <span class="nam">partitions</span> <span class="op">=</span> <span class="nam">self</span><span class="op">.</span><span class="nam">get_topic_partitions</span><span class="op">(</span><span class="nam">topic</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t329" href="#t329">329</a></span><span class="t">        <span class="com"># Set up offsets for each partition to read the last N messages</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t330" href="#t330">330</a></span><span class="t">        <span class="nam">partition_offsets</span> <span class="op">=</span> <span class="nam">self</span><span class="op">.</span><span class="nam">get_partition_offsets</span><span class="op">(</span><span class="nam">partitions</span><span class="op">,</span> <span class="nam">n</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t331" href="#t331">331</a></span><span class="t">        <span class="com"># Assign consumer to all these partitions at the calculated offsets</span>&nbsp;</span><span class="r"></span></p>
@@ -487,9 +487,9 @@
     <p class="pln"><span class="n"><a id="t403" href="#t403">403</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t404" href="#t404">404</a></span><span class="t"><span class="str">        Consumer instantiated.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t405" href="#t405">405</a></span><span class="t"><span class="str">        &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t406" href="#t406">406</a></span><span class="t">        <span class="nam">loop</span> <span class="op">=</span> <span class="nam">asyncio</span><span class="op">.</span><span class="nam">get_running_loop</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t407" href="#t407">407</a></span><span class="t">        <span class="key">assert</span> <span class="nam">loop</span> <span class="key">is</span> <span class="key">not</span> <span class="key">None</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t408" href="#t408">408</a></span><span class="t">        <span class="key">return</span> <span class="nam">loop</span><span class="op">.</span><span class="nam">run_in_executor</span><span class="op">(</span><span class="key">None</span><span class="op">,</span> <span class="nam">self</span><span class="op">.</span><span class="nam">better_consume_n</span><span class="op">,</span> <span class="nam">topic</span><span class="op">,</span> <span class="nam">last_n_messages</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t406" href="#t406">406</a></span><span class="t">        <span class="nam">loop</span> <span class="op">=</span> <span class="nam">asyncio</span><span class="op">.</span><span class="nam">get_running_loop</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t407" href="#t407">407</a></span><span class="t">        <span class="key">assert</span> <span class="nam">loop</span> <span class="key">is</span> <span class="key">not</span> <span class="key">None</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t408" href="#t408">408</a></span><span class="t">        <span class="key">return</span> <span class="nam">loop</span><span class="op">.</span><span class="nam">run_in_executor</span><span class="op">(</span><span class="key">None</span><span class="op">,</span> <span class="nam">self</span><span class="op">.</span><span class="nam">better_consume_n</span><span class="op">,</span> <span class="nam">topic</span><span class="op">,</span> <span class="nam">last_n_messages</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t409" href="#t409">409</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t410" href="#t410">410</a></span><span class="t">    <span class="key">def</span> <span class="nam">get_last_messages</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">topic</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t411" href="#t411">411</a></span><span class="t">        <span class="nam">MESSAGE_POLL_TIMEOUT_SECONDS</span> <span class="op">=</span> <span class="num">1.0</span>&nbsp;</span><span class="r"></span></p>
@@ -624,8 +624,8 @@
             <a class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a class="nav" href="z_b61c28f0f1f909b5_utils_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.17.0">coverage.py v7.17.0</a>,
-            created at 2026-11-07 10:04 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.17.3">coverage.py v7.17.3</a>,
+            created at 2026-11-19 10:45 +0000
         </p>
     </div>
 </footer>
