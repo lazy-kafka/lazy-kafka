@@ -71,9 +71,14 @@ jobs:
           echo "clean_version=${tag#v}" >> "$GITHUB_OUTPUT"
           cog changelog --at "${tag}" > release-notes.md
 
+      - name: Build sdist and wheel
+        run: uv build
+
       - name: Verify package version matches tag
         run: |
-          package_version=$(uv run python -c "import lazy_kafka; print(lazy_kafka.__version__)")
+          # Check the built artifact (not the pre-bump editable install)
+          wheel=$(ls dist/*.whl)
+          package_version=$(basename "$wheel" | cut -d- -f2)
           echo "Tag version: ${{ steps.release_meta.outputs.clean_version }}"
           echo "Package version: $package_version"
           if [ "${{ steps.release_meta.outputs.clean_version }}" != "$package_version" ]; then
@@ -82,9 +87,6 @@ jobs:
             echo "   Package: $package_version"
             exit 1
           fi
-
-      - name: Build sdist and wheel
-        run: uv build
 
       - name: Push release commit and tag
         run: git push --follow-tags
