@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>lazy-kafka</title>
+  <meta name="description" content="A TUI application to enhance the Kafka eco-system devX.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@1,200;1,300&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #fbf7f0;
+      --bg-soft: #f4ede1;
+      --paper: #fffdf8;
+      --ink: #44554f;
+      --ink-soft: #8a9a93;
+      --teal: #85b8af;
+      --teal-deep: #5d8a82;
+      --salmon: #ecab8c;
+      --lemon: #ecd48d;
+      --berry: #e2a79e;
+      --line: #e8ddcc;
+      --mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      --display: "Inter", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 15px;
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 96px 24px 64px;
+    }
+
+    /* ---- hero ---- */
+
+    header { margin-bottom: 72px; }
+
+    h1 {
+      font-family: var(--display);
+      font-style: italic;
+      font-weight: 200;
+      font-size: clamp(56px, 12vw, 108px);
+      line-height: 1.05;
+      letter-spacing: 0.01em;
+      color: var(--teal-deep);
+    }
+
+    h1 .dash { color: var(--salmon); font-weight: 300; }
+
+    .tagline {
+      margin-top: 14px;
+      color: var(--ink-soft);
+    }
+
+    .tagline .cursor {
+      display: inline-block;
+      width: 0.55em;
+      background: var(--salmon);
+      animation: blink 1.1s steps(1) infinite;
+      user-select: none;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ---- terminal window ---- */
+
+    .terminal {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 6px 24px rgba(93, 138, 130, 0.08);
+      overflow: hidden;
+    }
+
+    .terminal-bar {
+      display: flex;
+      gap: 7px;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg-soft);
+    }
+
+    .terminal-bar span {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+
+    .dot-r { background: var(--berry); }
+    .dot-y { background: var(--lemon); }
+    .dot-g { background: var(--teal); }
+
+    .terminal-title {
+      flex: 1;
+      text-align: center;
+      color: var(--ink-soft);
+      font-size: 12px;
+      user-select: none;
+    }
+
+    .terminal-body {
+      padding: 22px 24px;
+      font-size: 14px;
+      overflow-x: auto;
+    }
+
+    .terminal-body .p {
+      color: var(--teal-deep);
+      font-weight: 500;
+      user-select: none;
+    }
+
+    /* ---- copy button ---- */
+
+    .copy {
+      float: right;
+      background: none;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--ink-soft);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 3px 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .copy:hover { border-color: var(--teal); color: var(--teal-deep); }
+    .copy.done  { border-color: var(--teal); color: var(--teal-deep); }
+
+    /* ---- sections ---- */
+
+    section { margin-top: 72px; }
+
+    h2 {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 500;
+      margin-bottom: 20px;
+    }
+
+    h2::before { content: "$ "; color: var(--salmon); font-weight: 400; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+
+    .card h3 {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--teal-deep);
+      margin-bottom: 10px;
+    }
+
+    .card li {
+      list-style: none;
+      color: var(--ink);
+      padding: 2px 0 2px 18px;
+      position: relative;
+      font-size: 13.5px;
+    }
+
+    .card li::before {
+      content: "▸";
+      position: absolute;
+      left: 0;
+      color: var(--salmon);
+    }
+
+    /* ---- keys table ---- */
+
+    .keys {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    .keys td { padding: 7px 0; border-bottom: 1px dashed var(--line); }
+    .keys tr:last-child td { border-bottom: none; }
+
+    kbd {
+      display: inline-block;
+      min-width: 30px;
+      text-align: center;
+      background: var(--bg-soft);
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      color: var(--teal-deep);
+      margin-right: 4px;
+    }
+
+    /* ---- links & footer ---- */
+
+    a {
+      color: var(--teal-deep);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.15s ease;
+    }
+
+    a:hover { border-bottom-color: var(--teal); }
+
+    footer {
+      margin-top: 88px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+      color: var(--ink-soft);
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    footer .mistral { color: var(--berry); }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .tagline .cursor { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+
+    <header>
+      <h1>lazy<span class="dash">-</span>kafka</h1>
+      <p class="tagline">a tui to enhance the kafka eco-system devX<span class="cursor">&nbsp;</span></p>
+    </header>
+
+    <section id="install">
+      <h2>install</h2>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+          <span class="terminal-title">~ — lazy-kafka</span>
+        </div>
+        <div class="terminal-body" style="clear: both;">
+          <span class="p">$</span> pip install lazy-kafka<button class="copy" data-copy="pip install lazy-kafka">copy</button><br>
+          <span class="p">$</span> lazy-kafka&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: var(--ink-soft)"># start the tui</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <h2>features</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>kafka</h3>
+          <ul>
+            <li>list topics</li>
+            <li>topic metadata</li>
+            <li>browse message tables (experimental)</li>
+            <li>timestamp-distribution sparkline</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>kafka connect</h3>
+          <ul>
+            <li>list connectors</li>
+            <li>connector status</li>
+            <li>follow / monitor status</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>schema registry</h3>
+          <ul>
+            <li>list subjects</li>
+            <li>create &amp; delete subjects</li>
+            <li>inspect versioned schemas</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>tui</h3>
+          <ul>
+            <li>persistent in-app logs</li>
+            <li>level filtering</li>
+            <li>vimming optional, zealotry welcome</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="keys">
+      <h2>keys</h2>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+          <span class="terminal-title">bindings</span>
+        </div>
+        <div class="terminal-body">
+          <table class="keys">
+            <tr><td><kbd>d</kbd><kbd>s</kbd><kbd>L</kbd><kbd>h</kbd></td><td>dashboard · settings · logs · help modes</td></tr>
+            <tr><td><kbd>j</kbd><kbd>k</kbd></td><td>move down / up in tables</td></tr>
+            <tr><td><kbd>G</kbd>&nbsp;<kbd>g</kbd><kbd>g</kbd></td><td>jump to last / first row (follows tail on <kbd>G</kbd>)</td></tr>
+            <tr><td><kbd>/</kbd></td><td>search within a table</td></tr>
+            <tr><td><kbd>c</kbd></td><td>clear the log viewer</td></tr>
+            <tr><td><kbd>↑</kbd><kbd>↓</kbd></td><td>raise / lower log filtering level</td></tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <span>
+        <a href="https://github.com/lazy-kafka/lazy-kafka">github</a>
+        &nbsp;·&nbsp;
+        <a href="https://pypi.org/project/lazy-kafka">pypi</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/lazy-kafka/lazy-kafka/issues">issues</a>
+      </span>
+      <span class="mistral">built with Mistral :)</span>
+    </footer>
+
+  </main>
+
+  <script>
+    document.querySelectorAll(".copy").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var text = btn.getAttribute("data-copy");
+        function done() {
+          btn.textContent = "copied";
+          btn.classList.add("done");
+          setTimeout(function () {
+            btn.textContent = "copy";
+            btn.classList.remove("done");
+          }, 1400);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done);
+        } else {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+          done();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

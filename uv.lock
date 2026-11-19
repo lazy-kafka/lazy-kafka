@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.12"
 
 [[package]]
@@ -1125,7 +1125,6 @@ wheels = [
 [[package]]
 name = "lazy-kafka"
 source = { editable = "." }
-default-groups = ["dev", "test", "types"]
 dependencies = [
     { name = "click" },
     { name = "confluent-kafka", extra = ["avro", "json", "protobuf"] },
@@ -1161,7 +1160,7 @@ requires-dist = [
     { name = "confluent-kafka", extras = ["avro", "json", "protobuf"], specifier = ">=2.4.0,<=2.16.1" },
     { name = "httpx" },
     { name = "rich" },
-    { name = "textual", specifier = ">=4.0.0" },
+    { name = "textual", specifier = ">=8.0.0" },
     { name = "typer" },
 ]
 

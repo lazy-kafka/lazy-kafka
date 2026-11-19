@@ -5,29 +5,24 @@ build-backend = "hatchling.build"
 [project]
 name = "lazy-kafka"
 dynamic = ["version"]
-description = ''
+description = "A TUI application to enhance the Kafka eco-system devX."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
-keywords = []
+keywords = ["kafka", "tui", "textual", "terminal", "schema-registry", "kafka-connect"]
 authors = [
   { name = "Timon Viola", email = "44016238+timonviola@users.noreply.github.com" },
 ]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 5 - Production/Stable",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
 # see the bug: https://github.com/confluentinc/confluent-kafka-python/issues/1842
     "confluent-kafka[avro,json,protobuf]>=2.4.0,<=2.16.1",
-    "textual>=4.0.0",
+    "textual>=8.0.0",
     "rich",
     "typer",
     "click>=8.0.0",
@@ -35,9 +30,9 @@ dependencies = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/Timon Viola/lazy-kafka#readme"
-Issues = "https://github.com/Timon Viola/lazy-kafka/issues"
-Source = "https://github.com/Timon Viola/lazy-kafka"
+Documentation = "https://github.com/lazy-kafka/lazy-kafka#readme"
+Issues = "https://github.com/lazy-kafka/lazy-kafka/issues"
+Source = "https://github.com/lazy-kafka/lazy-kafka"
 
 [project.scripts]
 lazy-kafka = "lazy_kafka.entry_points:lazy_kafka"
