@@ -8,7 +8,7 @@
 
 A tui application to enhance Kafka eco-system devX.
 
-I started this project quite a while ago and haven't really worked on it all that much. There are many, more feature rich and mature projects, so probably you should not use exactly this one. The purpose of this project is to have some fun, not to churn out a project, so I am not too keen on vibeing it to v1.0.0. I am making the repo public, so maybe someone can get inspired/look around 🤷
+I started this project quite a while ago and haven't really worked on it all that much. There are many, more feature rich and mature projects, so probably you should not use exactly this one. The purpose of this project is to have some fun, not to churn out a project. I am making the repo public, so maybe someone can get inspired/look around 🤷
 
 [![asciicast](https://asciinema.org/a/1258296.svg)](https://asciinema.org/a/1258296)
 
@@ -167,3 +167,7 @@ The app does not handle the case where topics are empty. Produce dummy data with
 
 (optionally also run this:)
 🐣 lazy-kafka ❯ python -m lazy_kafka kafka consume -f src/lazy_kafka/default_config.toml test-topic
+
+---
+
+- built with Mistral :)
