@@ -40,7 +40,7 @@ lazy-kafka = "lazy_kafka.entry_points:lazy_kafka"
 [dependency-groups]
 dev = [
     "textual-dev",
-    "pre-commit == 3.7.*",
+    "pre-commit>=3.7,<4.8",
     "ruff==0.17.4",
     "mypy == 1.10.*",
     "versioningit>=3.1.2",
