@@ -30,19 +30,17 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
+          # Fine-grained PAT of the org owner. The trunk ruleset requires PRs
+          # and status checks and cannot be bypassed by the default
+          # GITHUB_TOKEN (github-actions[bot]); this token's user is in the
+          # ruleset bypass list, so the release commit + tag can be pushed.
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Set up uv
+        # Only for `uv build` (produces dist/ for release + PyPI).
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: "3.12"
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install dependencies
-        run: uv sync --locked
-
-      - name: Run tests
-        run: uv run --with pytest-cov pytest -q --cov=src/lazy_kafka --cov-report=term-missing
 
       - name: Install cocogitto
         # Prebuilt static binary from the official release (musl, for glibc
