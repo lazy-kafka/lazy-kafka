@@ -44,11 +44,19 @@ jobs:
       - name: Run tests
         run: uv run --with pytest-cov pytest -q --cov=src/lazy_kafka --cov-report=term-missing
 
-      - name: Set up Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
       - name: Install cocogitto
-        run: cargo install --locked cocogitto
+        # Prebuilt static binary from the official release (musl, for glibc
+        # runners); version + sha256 pinned. Avoids compiling cocogitto with
+        # cargo, which took ~15 min on the runner.
+        run: |
+          url="https://github.com/cocogitto/cocogitto/releases/download/7.0.0/cocogitto-7.0.0-x86_64-unknown-linux-musl.tar.gz"
+          checksum="e03938ff2c4c86d71c00c0f3284dbbe95c5ca76fe34a51f33e945c23010d59bb"
+          curl -fsSL -o /tmp/cog.tgz "$url"
+          echo "${checksum}  /tmp/cog.tgz" | shasum -a 256 -c -
+          mkdir -p /tmp/cog-install
+          tar -xz -C /tmp/cog-install -f /tmp/cog.tgz
+          sudo install -m 0755 /tmp/cog-install/x86_64-unknown-linux-musl/cog /usr/local/bin/cog
+          cog --version
 
       - name: Configure git identity
         run: |
@@ -56,11 +64,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Bump version and changelog
+        # cocogitto 7.x: bump levels are --auto|--major|--minor|--patch (no
+        # --increment flag). CHANGELOG.md is written automatically by bump
+        # unless disabled in cog.toml, so there is no --changelog flag.
         run: |
           if [ "${{ github.event.inputs.increment }}" = "auto" ]; then
-            cog bump --auto --changelog
+            cog bump --auto
           else
-            cog bump --increment "${{ github.event.inputs.increment }}" --changelog
+            cog bump --"${{ github.event.inputs.increment }}"
           fi
 
       - name: Collect release metadata
