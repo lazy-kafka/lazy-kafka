@@ -1,0 +1,177 @@
+# Changelog
+All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
+
+- - -
+## v0.1.0 - 2026-11-20
+#### Features
+- (**build**) use textual v1.0.0 🥳 - (a9231a5) - Timon Viola
+- (**cli**) add schema registry create command - (3c32402) - Timon Viola
+- (**cli**) add cli - (4604c16) - Timon Viola
+- (**connect**) row update and contitonal table coloring - (fccdb56) - Timon Viola
+- (**logs**) implement log view feature with color-coding and filtering (#9) - (e589d3e) - intellectual-destroyer, *Mistral Vibe*, *Timon Viola*, *Mistral Vibe*
+- (**topic**) add more columns to topic details widget - (cb4fcbf) - Timon Viola
+- (**wip**) add topic details widget - (93b0f22) - Timon Viola
+- (**wip**) add user config support and extend schemaregistry config - (4344c88) - Timon Viola
+- (**wip**) update kafka topic data load - (10f4e3d) - Timon Viola
+- (**wip**) add text editor to create schema - (978aa3f) - Timon Viola
+- fix logs view and distribution histogram (#44) - (0b8b756) - Timon Viola
+- update docker compose - (9b63c96) - Timon Viola
+- refactor into plugins - (54bec8c) - Timon Viola
+- change j,k key symbol - (61d9ff7) - Timon Viola
+- add filter implementation - (aa44be5) - Timon Viola
+- add version check in __init__ - (11a8fec) - Timon Viola
+- add class method to determine local config file location - (ac8019c) - Timon Viola
+- clean up cli - (d4f87c9) - Timon Viola
+- fix some search-bar interactions - (a771e10) - Timon Viola
+- refactor logging - (40bb039) - Timon Viola
+- remove red border - (1cdd5d3) - Timon Viola
+- refactor kconnect screen to use the template class - (8e371a2) - Timon Viola
+- use common widget on registry screen and consolidate tcss - (ec966f5) - Timon Viola
+- add topic message consumer mode - (4ab9421) - Timon Viola
+- add podman usable manifest and compose file - (a247f21) - Timon Viola
+- remember cursor location in topic panel - (8e87ac4) - Timon Viola
+- remember cursor location in registry panel - (85a4cea) - Timon Viola
+- tweak Footer - (02fa1b5) - Timon Viola
+- update test config - (0d96b91) - Timon Viola
+- make topic data load async - (439933f) - Timon Viola
+- wip topic feature - (08908e0) - Timon Viola
+- initial implementation for kafka topic details - (d5d384b) - Timon Viola
+- clean up code a bit - (d63db06) - Timon Viola
+- add basic UI to settings screen - (4f5e438) - Timon Viola
+- remove unused reactive property - (ebb26cf) - Timon Viola
+- add initial settings screen - (b7e5539) - Timon Viola
+- disable DataTable update on auto-update - (f438338) - Timon Viola
+- update registry client to use AsyncClient - (99a26b6) - Timon Viola
+- add sanity check to schema registry client - (b6c114e) - Timon Viola
+- clean up connect module - (a9182df) - Timon Viola
+- add sanity check to connect init - (7b2321c) - Timon Viola
+- add config reader - (7d3aee4) - Timon Viola
+- add create schema dialog to create schema - (fcf97bb) - Timon Viola
+- schmema registry extensions - (646ebfe) - Timon Viola
+- add status widget to show auto-update status - (6398331) - Timon Viola
+- add timer based update to registry - (e5e97ae) - Timon Viola
+- add major refactor - (0878283) - Timon Viola
+- add schema registry - (be405ad) - Timon Viola
+- add schema registry docker - (771d126) - Timon Viola
+- make kconnect work - (e78f010) - Timon Viola
+- add entrypoints - (c98205b) - Timon Viola
+- document dev commands to run - (3ff2412) - Timon Viola
+- refactor topic component into a self-contained module - (7c8264e) - Timon Viola
+- refactor components into widgets module and extend kconnect - (da88081) - Timon Viola
+- remove unused code - (fdb18e5) - Timon Viola
+- SQUASH ME LATER Add kafka-connect support - (8d89cc6) - Timon Viola
+- add comments - (29fd6d6) - Timon Viola
+- reshuffle reactive parts - (9593150) - Timon Viola
+- add worker to topic load - (c7070a0) - Timon Viola
+- add initial plugin manager - (ccadb99) - Timon Viola
+- add content switcher, tabs and plugins - (4e51ea8) - Timon Viola
+- remove screens to avoid early complexity - (f0d0a02) - Timon Viola
+- screens, datatable, tabs - (83e35d4) - Timon Viola
+- add animated details with content :) - (75aa3da) - Timon Viola
+- animated container but no content :( - (b849bc6) - Timon Viola
+- focusable topic borwser - (2be50c4) - Timon Viola
+- prototype with databinding - (0029515) - Timon Viola
+- experiment with events - (8f060eb) - Timon Viola
+- initial commit - (89e658b) - Timon Viola
+#### Bug Fixes
+- (**css**) change footer background colors - (4467cc2) - Timon Viola
+- (**css**) hide vertical scrollbar - (a9aab1a) - Timon Viola
+- (**scripts**) fix docker compose, so zookeeper accepts ruok - (b1c3783) - Timon Viola
+- fix release - (24f482c) - Timon Viola
+- fix release action (#47) - (baffb5c) - Timon Viola
+- fix local docker setup (#36) - (5d0bd40) - Timon Viola
+- use correct parameter names for python-coverage-comment-action@v3 (#22) - (1d7e8ef) - intellectual-destroyer
+- fix pytest-cov not installed in GitHub workflows (#20) - (e801f95) - intellectual-destroyer, *Mistral Vibe*
+- catch exception when TUI broke due to user navigating up in empty table - (8dde724) - Timon Viola
+- clean up entry_points.py - (e013133) - Timon Viola
+- remove log statements - (06bccd5) - Timon Viola
+- remove '/' after host names in configs and paths - (a585aea) - Timon Viola
+- make app runnable locally - (bac4914) - Timon Viola
+- fix wrong Consumer config value - (739d05e) - Timon Viola
+- fix wrong Consumer config value - (6548e28) - Timon Viola
+- clean up logging - (bea40ff) - Timon Viola
+- consumer code and topic details widget message reading - (dbcd18f) - Timon Viola
+- fix a bug on schmea creation - (9ecf217) - Timon Viola
+- fix topic details layout - (63fcb76) - Timon Viola
+- fix table styling - (cb5492c) - Timon Viola
+- fix schema registry basic auth - (7df94fb) - Timon Viola
+- make styling more unified and fix topics listings - (25b1bb9) - Timon Viola
+- create subclass instances in config structure - (1934bb9) - Timon Viola
+- fix configuration init - (da3fb71) - Timon Viola
+- clean up connect related code - (a653efe) - Timon Viola
+- clean up unused imports - (8a29820) - Timon Viola
+- handle invalid JSON Schema exception - (d89bd76) - Timon Viola
+- fix schema type case validation - (b2f49b4) - Timon Viola
+#### Documentation
+- add to readme - (a2ce487) - Timon Viola
+- update readme status - (06811df) - Timon Viola
+- readme progress - (ec7165b) - Timon Viola
+- update readme - (2d27cf9) - Timon Viola
+- update docs - (604e65e) - Timon Viola
+- add how to run commands - (10497d1) - Timon Viola
+#### Tests
+- add tests (#21) - (371ca4a) - intellectual-destroyer
+#### Build system
+- fix entry-point - (f46f15b) - Timon Viola
+- add typer dependency - (3813f1e) - Timon Viola
+- add uv.lock - (fd6ede1) - Timon Viola
+- exclude linter rule - (bb39d9e) - Timon Viola
+- update textual version - (dd43fe4) - Timon Viola
+- merge 'origin/fix/linter' into trunk - (556cba2) - Timon Viola
+- fix venv path - (dbcd53e) - Timon Viola
+- add docker compose for devX - (ccb4bd2) - Timon Viola
+- add local developer setup - (a62f593) - Timon Viola
+#### Continuous Integration
+- (**deps**) bump astral-sh/setup-uv (#38) - (30654a0) - dependabot[bot], *dependabot[bot]*
+- (**deps**) bump astral-sh/setup-uv (#34) - (fe67e38) - dependabot[bot], *dependabot[bot]*
+- (**deps**) bump the github-actions group with 3 updates (#27) - (53ccde9) - dependabot[bot], *dependabot[bot]*
+- (**deps**) bump the github-actions group across 1 directory with 2 updates (#23) - (bce59f9) - dependabot[bot], *dependabot[bot]*
+- (**deps**) bump astral-sh/setup-uv in the github-actions group (#15) - (e01bb79) - dependabot[bot], *dependabot[bot]*
+- fix nonexistent pinned action SHAs in release workflow (#46) - (dd70b3a) - Timon Viola
+- fix release workflow (#45) - (3286317) - Timon Viola
+- set up ci-cd pipelines (#19) - (cb54c43) - intellectual-destroyer, *Mistral Vibe*
+- update dependabot auto merge - (de0f794) - Timon Viola
+- add uv build workflow with draft release - (9cf026f) - Timon Viola
+- update dependabot to automerge on minor,patch updates - (e6355c3) - Timon Viola
+- add dependabot - (5773ef3) - Timon Viola
+#### Miscellaneous Chores
+- (**deps**) update confluent-kafka[avro,json,protobuf] requirement (#41) - (4812d2f) - dependabot[bot], *dependabot[bot]*
+- (**deps**) update confluent-kafka[avro,json,protobuf] requirement (#30) - (23c522d) - dependabot[bot], *dependabot[bot]*
+- (**deps**) bump the python group with 2 updates (#28) - (e2c9b94) - dependabot[bot], *dependabot[bot]*
+- (**deps**) update confluent-kafka[avro,json,protobuf] requirement (#17) - (e9f944f) - dependabot[bot], *dependabot[bot]*
+- (**deps**) bump the python group with 3 updates (#11) - (37f520b) - dependabot[bot], *dependabot[bot]*
+- (**deps**) bump textual from 4.0.0 to 8.2.8 - (ba65fec) - dependabot[bot]
+- (**deps**) bump rich from 14.0.0 to 15.0.0 - (c977d88) - dependabot[bot]
+- (**deps**) update confluent-kafka[avro,json,protobuf] requirement (#8) - (53d0d29) - dependabot[bot], *dependabot[bot]*
+- (**deps**) bump the python group with 3 updates (#1) - (d04e5c7) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) bump the python group with 2 updates (#42) - (6e7ad75) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) bump the python group with 2 updates (#39) - (d35d6cf) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) bump ruff from 0.17.1 to 0.17.2 in the python group (#35) - (beffe46) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) update pre-commit requirement from ==4.6.* to ==4.7.* (#33) - (26229aa) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) update hypothesis requirement (#32) - (23a089b) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) bump ruff from 0.17.0 to 0.17.1 in the python group (#31) - (ecfeba2) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) update hypothesis requirement (#29) - (c5df8eb) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) update mypy requirement from ==2.3.* to ==2.4.* (#26) - (9eea989) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) bump ruff from 0.16.8 to 0.16.10 in the python group (#25) - (f4dbcd3) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) bump ruff from 0.16.7 to 0.16.8 in the python group (#24) - (6681cdf) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) update hypothesis requirement (#18) - (21a2464) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) bump ruff from 0.16.6 to 0.16.7 in the python group (#16) - (1c8dcfa) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) bump ruff from 0.16.5 to 0.16.6 in the python group (#13) - (bd38770) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) update hypothesis requirement (#12) - (9e7e32b) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) bump ruff from 0.16.3 to 0.16.4 in the python group (#10) - (cbc0aa1) - dependabot[bot], *dependabot[bot]*
+- (**deps-dev**) update pre-commit requirement from ==3.7.* to ==4.6.* - (c289b4d) - dependabot[bot]
+- (**deps-dev**) update mypy requirement from ==1.10.* to ==2.3.* - (483a30c) - dependabot[bot]
+- (**deps-dev**) update towncrier requirement from ==23.11.* to ==25.8.* - (790906b) - dependabot[bot]
+- (**deps-dev**) update hypothesis requirement (#5) - (44de50c) - dependabot[bot], *dependabot[bot]*
+- make the repo public - (75d6d75) - Timon Viola
+- apply linter - (ee50d18) - Timon Viola
+- apply formatter - (69b60a5) - Timon Viola
+- remove comment - (4d2cae0) - Timon Viola
+- apply unsafe fixes - (6a59e9e) - Timon Viola
+- apply linter fixes - (2f0923d) - Timon Viola
+- clean up commits - (da88dcc) - Timon Viola
+- remove __pycache__ - (1c51997) - Timon Viola
+
+- - -
+
+Changelog generated by [cocogitto](https://github.com/cocogitto/cocogitto).
