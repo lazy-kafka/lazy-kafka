@@ -34,11 +34,11 @@ class TestTimestampToStr:
         # Test with a known timestamp
         timestamp = 1705342245000  # milliseconds
         result = _timestamp_to_str(timestamp)
-        
+
         # Should be in ISO format
         assert "T" in result
         assert "Z" in result or "+" in result
-        
+
         # Parse and verify
         dt = datetime.fromisoformat(result.replace("Z", "+00:00"))
         assert dt.year == 2024
@@ -82,13 +82,16 @@ class TestLazyKafkaMessage:
     def test_from_confluent_kafka(self) -> None:
         """Test LazyKafkaMessage.from_confluent_kafka method."""
         mock_msg = MagicMock(spec=Message)
-        mock_msg.timestamp.return_value = (1, 1705342245000)  # type 1 (CreateTime), timestamp in ms
+        mock_msg.timestamp.return_value = (
+            1,
+            1705342245000,
+        )  # type 1 (CreateTime), timestamp in ms
         mock_msg.offset.return_value = 123
         mock_msg.key.return_value = b"test-key"
         mock_msg.value.return_value = b"test-message"
-        
+
         result = LazyKafkaMessage.from_confluent_kafka(mock_msg)
-        
+
         assert result.offset == 123
         assert result.key == b"test-key"
         assert result.message == "b'test-message'"  # str() of bytes
@@ -97,7 +100,7 @@ class TestLazyKafkaMessage:
         """Test that invalid timestamp type raises ValueError."""
         mock_msg = MagicMock(spec=Message)
         mock_msg.timestamp.return_value = (0, 123)  # type 0 (NotAvailable)
-        
+
         with pytest.raises(ValueError, match="Timestamp type not available"):
             LazyKafkaMessage.from_confluent_kafka(mock_msg)
 
@@ -133,13 +136,17 @@ class TestTopicMetadata:
         # We can't easily create a real ConfluentTopicMetadata, so we'll test
         # that the method exists and returns a dict-like object
         from lazy_kafka.topic import TopicMetadata
-        
+
         # Just verify the method exists on the class
         assert hasattr(TopicMetadata, "to_table_values")
         # Create a minimal mock that doesn't interfere
-        metadata = type("MockMetadata", (), {"__dict__": {"topic": "test-topic", "partitions": {}, "error": None}})()
+        metadata = type(
+            "MockMetadata",
+            (),
+            {"__dict__": {"topic": "test-topic", "partitions": {}, "error": None}},
+        )()
         metadata.__class__ = TopicMetadata
-        
+
         result = metadata.to_table_values()
         assert isinstance(result, dict)
 
@@ -153,7 +160,7 @@ class TestKafkaClient:
         with patch("lazy_kafka.topic.Consumer") as mock_consumer_class:
             mock_consumer = MagicMock()
             mock_consumer_class.return_value = mock_consumer
-            
+
             config = KafkaConfiguration(bootstrap_servers="localhost:9092")
             return KafkaClient(config)
 
@@ -176,31 +183,33 @@ class TestKafkaClient:
         mock_metadata.topic = "test-topic"
         mock_metadata.partitions = {}
         mock_metadata.error = None
-        
+
         mock_topics = {"test-topic": mock_metadata}
         mock_admin_client = MagicMock()
         mock_admin_client.list_topics.return_value.topics = mock_topics
         mock_admin.return_value = mock_admin_client
-        
+
         result = mock_client.list_topics()
-        
+
         assert isinstance(result, dict)
         assert Topic("test-topic") in result
 
     @patch("lazy_kafka.topic.AdminClient")
-    def test_get_topic_information(self, mock_admin: MagicMock, mock_client: KafkaClient) -> None:
+    def test_get_topic_information(
+        self, mock_admin: MagicMock, mock_client: KafkaClient
+    ) -> None:
         """Test get_topic_information method."""
         mock_metadata = MagicMock(spec=TopicMetadata)
         mock_metadata.topic = "test-topic"
         mock_metadata.partitions = {0: MagicMock()}
-        
+
         mock_topics = {"test-topic": mock_metadata}
         mock_admin_client = MagicMock()
         mock_admin_client.list_topics.return_value.topics = mock_topics
         mock_admin.return_value = mock_admin_client
-        
+
         result = mock_client.get_topic_information("test-topic")
-        
+
         assert result == mock_metadata
 
     def test_get_topic_partitions(self, mock_client: KafkaClient) -> None:
@@ -209,9 +218,9 @@ class TestKafkaClient:
             mock_metadata = MagicMock()
             mock_metadata.partitions = {0: None, 1: None, 2: None}
             mock_get_info.return_value = mock_metadata
-            
+
             result = mock_client.get_topic_partitions("test-topic")
-            
+
             assert len(result) == 3
             assert all(isinstance(p, TopicPartition) for p in result)
 
@@ -219,9 +228,9 @@ class TestKafkaClient:
         """Test get_watermark_offsets method."""
         partition = TopicPartition("test-topic", 0)
         mock_client._client.get_watermark_offsets.return_value = (0, 100)
-        
+
         result = mock_client.get_watermark_offsets(partition)
-        
+
         assert result == (0, 100)
 
     def test_poll_no_message(self, mock_client: KafkaClient) -> None:
@@ -230,20 +239,20 @@ class TestKafkaClient:
         mock_client._client.assignment.return_value = []
         # position() calls _client.position() which needs to return [] for empty assignment
         mock_client._client.position.return_value = []
-        
+
         with pytest.raises(NoMessagesError):
             mock_client.poll()
 
     def test_poll_offset_invalid(self, mock_client: KafkaClient) -> None:
         """Test poll method when offset is invalid."""
         from confluent_kafka import OFFSET_INVALID
-        
+
         mock_client._client.poll.return_value = None
         partition = TopicPartition("test-topic", 0, OFFSET_INVALID)
         mock_client._client.assignment.return_value = [partition]
         # position() should return the partition with OFFSET_INVALID
         mock_client._client.position.return_value = [partition]
-        
+
         with pytest.raises(OffsetInvalidError):
             mock_client.poll()
 
@@ -254,7 +263,7 @@ class TestKafkaClient:
         mock_error.retriable.return_value = True
         mock_msg.error.return_value = mock_error
         mock_client._client.poll.return_value = mock_msg
-        
+
         with pytest.raises(MessageRetriableError):
             mock_client.poll()
 
@@ -263,7 +272,7 @@ class TestKafkaClient:
         mock_msg = MagicMock(spec=Message)
         mock_msg.error.return_value = None
         mock_client._client.poll.return_value = mock_msg
-        
+
         result = mock_client.poll()
         assert result == mock_msg
 
@@ -271,7 +280,7 @@ class TestKafkaClient:
         """Test position method."""
         partitions = [TopicPartition("test-topic", 0)]
         mock_client._client.position.return_value = partitions
-        
+
         result = mock_client.position(partitions)
         assert result == partitions
 
@@ -282,9 +291,9 @@ class TestKafkaClient:
         # position() calls _client.position() which should return the partition with offset
         mock_client._client.position.return_value = [partition]
         mock_client._client.seek = MagicMock()
-        
+
         mock_client.step_offset()
-        
+
         # Should have increased offset by 1 and called seek
         assert mock_client._client.seek.called
 
@@ -303,7 +312,7 @@ class TestTopicDataToDict:
         metadata.topic = "test-topic"
         metadata.partitions = {0: MagicMock(), 1: MagicMock()}
         metadata.error = None
-        
+
         # Mock the to_dict method if it exists
         def mock_to_dict() -> dict[str, Any]:
             return {
@@ -311,11 +320,11 @@ class TestTopicDataToDict:
                 "partitions": 2,
                 "error": None,
             }
-        
+
         metadata.to_dict = mock_to_dict
-        
+
         result = topic_data_to_dict(metadata)
-        
+
         assert isinstance(result, dict)
 
 
@@ -327,10 +336,10 @@ class TestKafkaTopicDetailsClient:
         with patch("lazy_kafka.topic.KafkaClient") as mock_kafka_client:
             mock_client = MagicMock()
             mock_kafka_client.return_value = mock_client
-            
+
             config = KafkaConfiguration()
             from lazy_kafka.topic import KafkaTopicDetailsClient
-            
+
             client = KafkaTopicDetailsClient(config)
             # KafkaTopicDetailsClient inherits from KafkaClient
             # The mock replaces KafkaClient, so client should be an instance of the mock
@@ -341,11 +350,11 @@ class TestKafkaTopicDetailsClient:
         """Test aget_last_n_messages method."""
         mock_client = MagicMock()
         mock_kafka_client.return_value = mock_client
-        
+
         config = KafkaConfiguration()
         from lazy_kafka.topic import KafkaTopicDetailsClient
-        
+
         client = KafkaTopicDetailsClient(config)
-        
+
         # Just verify the method exists
         assert hasattr(client, "aget_last_n_messages")

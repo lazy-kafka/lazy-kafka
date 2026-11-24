@@ -85,7 +85,7 @@ class TestSchemaRegistryPanel:
         with patch("lazy_kafka.registry.SchemaRegistry") as mock_registry:
             mock_registry_instance = MagicMock()
             mock_registry.return_value = mock_registry_instance
-            
+
             return SchemaRegistryPanel(hook=mock_registry_instance, *[], **{})
 
     def test_init(self, mock_panel: SchemaRegistryPanel) -> None:
@@ -130,11 +130,11 @@ class TestWidgetIntegration:
     def test_widgets_accept_configuration(self) -> None:
         """Test that widgets can accept configuration."""
         config = Configuration()
-        
+
         with patch("lazy_kafka.registry.SchemaRegistry") as mock_registry:
             mock_registry_instance = MagicMock()
             mock_registry.return_value = mock_registry_instance
-            
+
             panel = SchemaRegistryPanel(hook=mock_registry_instance)
             # Panel should be able to use config
             assert panel is not None

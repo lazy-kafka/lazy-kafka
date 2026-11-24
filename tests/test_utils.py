@@ -37,9 +37,11 @@ class TestGetCurrentTime:
 
         # Check that the result is within a reasonable range
         # (accounting for time zone differences)
-        current_seconds = time.localtime(before).tm_hour * 3600 + \
-                         time.localtime(before).tm_min * 60 + \
-                         time.localtime(before).tm_sec
+        current_seconds = (
+            time.localtime(before).tm_hour * 3600
+            + time.localtime(before).tm_min * 60
+            + time.localtime(before).tm_sec
+        )
 
         # Allow 2 seconds difference for execution time
         assert abs(result_seconds - current_seconds) < 2

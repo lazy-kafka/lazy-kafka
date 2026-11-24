@@ -11,7 +11,12 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 import httpx
 import pytest
 
-from lazy_kafka.config import Configuration, ConnectConfiguration, KafkaConfiguration, RegistryConfiguration
+from lazy_kafka.config import (
+    Configuration,
+    ConnectConfiguration,
+    KafkaConfiguration,
+    RegistryConfiguration,
+)
 
 
 # Fixtures for configuration
@@ -38,7 +43,11 @@ def connect_config() -> ConnectConfiguration:
 
 
 @pytest.fixture
-def full_config(kafka_config: KafkaConfiguration, registry_config: RegistryConfiguration, connect_config: ConnectConfiguration) -> Configuration:
+def full_config(
+    kafka_config: KafkaConfiguration,
+    registry_config: RegistryConfiguration,
+    connect_config: ConnectConfiguration,
+) -> Configuration:
     """Provide a full Configuration for testing."""
     return Configuration(
         kafka=kafka_config,
@@ -72,18 +81,21 @@ host = "http://localhost:8083"
 def temp_json_config() -> Generator[Path, None, None]:
     """Create a temporary JSON configuration file for testing."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        json.dump({
-            "kafka": {
-                "bootstrap_servers": "localhost:9092",
-                "group_id": "test-group",
+        json.dump(
+            {
+                "kafka": {
+                    "bootstrap_servers": "localhost:9092",
+                    "group_id": "test-group",
+                },
+                "registry": {
+                    "host": "http://localhost:8081",
+                },
+                "connect": {
+                    "host": "http://localhost:8083",
+                },
             },
-            "registry": {
-                "host": "http://localhost:8081",
-            },
-            "connect": {
-                "host": "http://localhost:8083",
-            },
-        }, f)
+            f,
+        )
         f.flush()
         yield Path(f.name)
     Path(f.name).unlink(missing_ok=True)
@@ -142,22 +154,25 @@ def mock_producer() -> Generator[MagicMock, None, None]:
 
 # Autouse fixture to prevent actual network calls
 @pytest.fixture(autouse=True)
-def prevent_network_calls(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
+def prevent_network_calls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[None, None, None]:
     """Prevent actual network calls during tests."""
+
     def mock_get(*args: Any, **kwargs: Any) -> Mock:
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {}
         mock_response.raise_for_status = Mock()
         return mock_response
-    
+
     def mock_async_get(*args: Any, **kwargs: Any) -> AsyncMock:
         mock_response = AsyncMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {}
         mock_response.raise_for_status = AsyncMock()
         return mock_response
-    
+
     monkeypatch.setattr("httpx.get", mock_get)
     monkeypatch.setattr("httpx.AsyncClient.get", mock_async_get)
     monkeypatch.setattr("httpx.AsyncClient.post", mock_async_get)
