@@ -79,7 +79,7 @@ def consume(
 ):
     """Watch for new messages in [i]`topic`[/] until stopped.
 
-    [blue]🐣 lazy-kafka ➜ python src/lazy_kafka/scripts/topic_schema_producer.py
+    [blue]🐣 lazy-kafka ➜ uv run python src/lazy_kafka/scripts/produce_from_schema.py test-topic
     """
     cfg = Configuration().from_toml(config_file)
     consumer = Consumer(cfg.kafka.to_config())
