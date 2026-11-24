@@ -79,7 +79,10 @@ class TopicDetailsWidget(WidgetWithDataTable[KafkaMessageId, list[LazyKafkaMessa
 
     def __init__(self, hook: KafkaTopicDetailsClient, topic: str, *args, **kwargs):
         self.subjects = dict()
-        self.hook = KafkaTopicDetailsClient(hook.config)
+        registry = getattr(hook, "registry", None)
+        self.hook = KafkaTopicDetailsClient(
+            hook.config, registry=registry, topic=topic
+        )
         self.topic = topic
 
         self.data_auto_refresh = False
@@ -110,10 +113,10 @@ class TopicDetailsWidget(WidgetWithDataTable[KafkaMessageId, list[LazyKafkaMessa
         self.subjects = self.subject_to_table(_response)
         _LOGGER.debug(f"self.subjects is None: {self.subjects is None}")
         for k, v in self.subjects.items():
+            # `raw` payload bytes are excluded: only display columns are added.
             try:
-                data_table.add_row(*v, key=k)
+                data_table.add_row(*v.to_table_values().values(), key=k)
             except DuplicateKey:
-                # No details are shown in rows, so it's ok to just pass
                 continue
         # Set the cursor to the same row
         # TODO: emit data-loaded event and react to that with "move_cursor"

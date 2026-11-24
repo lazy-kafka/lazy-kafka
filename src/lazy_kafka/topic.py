@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -27,7 +28,8 @@ from confluent_kafka.admin import (
     TopicMetadata as ConfluentTopicMetadata,
 )
 
-from lazy_kafka.config import KafkaConfiguration
+from lazy_kafka.config import KafkaConfiguration, RegistryConfiguration
+from lazy_kafka.serializers import AvroMessageDecoder
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,6 +73,7 @@ class LazyKafkaMessage(NamedTuple):
     offset: int
     key: bytes
     message: str
+    raw: bytes | None = None
 
     @classmethod
     def from_confluent_kafka(cls, msg: Message) -> Self:
@@ -81,7 +84,7 @@ class LazyKafkaMessage(NamedTuple):
         if timestamp_type[0] != 1:
             raise ValueError("Timestamp type not available")
         timestamp = _timestamp_to_str(timestamp_type[1])
-        return cls(timestamp, msg.offset(), msg.key(), str(msg.value()))
+        return cls(timestamp, msg.offset(), msg.key(), str(msg.value()), msg.value())
 
     # TODO: this method is not used at the moment,
     #   fix the interface implementations including this one
@@ -128,8 +131,13 @@ class KafkaClient:
     WATERMARK_TIMEOUT_SECONDS = 10.0
     MAX_CONSUMER_POLL = 100
 
-    def __init__(self, config: KafkaConfiguration):
+    def __init__(
+        self,
+        config: KafkaConfiguration,
+        registry: RegistryConfiguration | None = None,
+    ):
         self.config = config
+        self.registry = registry
         _LOGGER.debug(f"{self.config=}")
         _LOGGER.debug("Instantiate Consumer")
         logger = logging.getLogger("consumer")
@@ -426,16 +434,50 @@ class KafkaClient:
 
 
 class KafkaTopicDetailsClient(KafkaClient):
-    def __init__(self, config: KafkaConfiguration, *args, **kwargs):
+    """KafkaClient serving the topic details (message transcript) screen.
+
+    The `aget_details` converter attached here enriches each message with a
+    schema-based representation when possible. When the topic carries an
+    AVRO value schema, message payloads are decoded with an
+    AvroMessageDecoder; otherwise the previous JSON-extraction behaviour is
+    kept. Any decode error degrades gracefully — the raw message text is
+    shown instead, and errors surface in the Logs view, never the UI.
+    """
+
+    def __init__(
+        self,
+        config: KafkaConfiguration,
+        registry: RegistryConfiguration | None = None,
+        topic: str | None = None,
+        *args,
+        **kwargs,
+    ):
         super().__init__(config)
         # re-assign the methods to comply with the service interface:
         # asubjects and aget_details
         self.asubjects = self.aget_last_n_messages
 
-        async def _msg_converter(message):
-            import json
+        avro_decoder = (
+            AvroMessageDecoder(topic=topic, registry=registry)
+            if topic and registry is not None
+            else None
+        )
 
-            _LOGGER.debug(message)
+        def _msg_details(message: LazyKafkaMessage | None):
+            if message is None:
+                return {}
+            # Note: `raw` holds the untouched payload bytes; `message` is
+            # `str(raw)` and only meaningful for textual payloads.
+            payload = getattr(message, "raw", None)
+
+            if avro_decoder is not None and payload:
+                decoded = avro_decoder.decode(payload)
+                if decoded is not None:
+                    return decoded
+                # JSON-encoded payloads legitimately lack the Confluent wire
+                # magic byte — fall through to the plain-JSON handling.
+
+            _LOGGER.debug("%s", message)
             try:
                 _msg = message.message
             except AttributeError:
@@ -447,12 +489,17 @@ class KafkaTopicDetailsClient(KafkaClient):
                 details = json.loads(
                     "{" + str(_msg).split(sep="{")[1].rsplit("}")[0] + "}"
                 )
-            except json.JSONDecodeError as e:
-                _LOGGER.error(e)
+            except (json.JSONDecodeError, IndexError) as e:
+                # Not JSON (or not braces-bounded JSON): show raw text.
+                _LOGGER.debug("Message not JSON: %s", e)
                 details = str(_msg)
             return details
 
-        self.aget_details = _msg_converter
+        async def get_details(message: LazyKafkaMessage | None):
+            """Service interface for `WidgetWithDataTable` (awaited)."""
+            return _msg_details(message)
+
+        self.aget_details = get_details
 
 
 @dataclass
