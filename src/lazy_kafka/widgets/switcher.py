@@ -24,7 +24,7 @@ class ContentSwitcher(Container):
 
     DEFAULT_CSS = """
     ContentSwitcher {
-        height: auto;
+        height: 1fr;
     }
 
     """

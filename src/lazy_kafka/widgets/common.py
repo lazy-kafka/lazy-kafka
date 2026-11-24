@@ -149,7 +149,7 @@ class WidgetWithDataTable(
     DEFAULT_CSS = """
     WidgetWithDataTable {
       layout: vertical;
-      max-height: 90%;
+      height: 1fr;
       DataTable {
         width: 2fr;
         background: $surface;

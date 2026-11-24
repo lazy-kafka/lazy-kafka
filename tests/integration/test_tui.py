@@ -205,7 +205,6 @@ async def test_log_handler_captures_without_console_output(capsys):
         logging.getLogger().handlers.clear()
 
 
-
 async def test_message_sparkline_shows_timestamp_distribution():
     """The Messages screen sparkline reflects the loaded messages' timestamps."""
     from unittest.mock import MagicMock
@@ -216,9 +215,7 @@ async def test_message_sparkline_shows_timestamp_distribution():
     from lazy_kafka.widgets.topic_details import TopicDetails, TopicDetailsWidget
 
     messages = [
-        LazyKafkaMessage(
-            "2024-01-01T00:00:%02d+00:00" % s, s, b"key", "body"
-        )
+        LazyKafkaMessage("2024-01-01T00:00:%02d+00:00" % s, s, b"key", "body")
         for s in range(4)
     ]
     messages += [LazyKafkaMessage("2024-01-01T00:01:00+00:00", 4, b"key", "late")]
@@ -245,3 +242,34 @@ async def test_message_sparkline_shows_timestamp_distribution():
             expected[int(second / 60 * 100)] += 1
         expected[99] += 1
         assert data == expected
+
+
+async def test_topic_panels_fill_available_height():
+    """The has-border panel must reach the bottom of the space below the Tabs
+    (regression: max-height 90% + ContentSwitcher height:auto left a gap)."""
+    app = LazyKafka()
+    async with app.run_test(size=(100, 40)) as pilot:
+        await pilot.pause()
+        from textual.widgets import Tabs
+
+        tabs = app.screen.query_one("#tabs", Tabs)
+        switcher = app.screen.query_one("#main-content-switcher")
+        panel = app.screen.query_one("WidgetWithDataTable")
+
+        screen_region = app.screen.region
+        switcher_region = switcher.region
+        panel_region = panel.region
+
+        # switcher fills everything below the Tabs
+        margin_above = switcher_region.y - (tabs.region.y + tabs.region.height)
+        assert margin_above <= 1
+        assert (
+            switcher_region.height
+            >= screen_region.height - tabs.region.height - switcher_region.y - 1
+        )
+        # the bordered panel fills the switcher exactly
+        assert panel_region.height == switcher_region.height, (
+            f"panel {panel_region} vs switcher {switcher_region}"
+        )
+        # panel bottom lands at the screen bottom (footer is docked on top)
+        assert panel_region.y + panel_region.height >= screen_region.height - 1

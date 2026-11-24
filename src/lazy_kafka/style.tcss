@@ -43,12 +43,6 @@ Topic {
   width: auto;
 }
 
-.tablecontainer {
-  max-height: 90%;
-  layout: horizontal;
-}
-
-
 .has-scroll {
     overflow-y: auto;
 }
