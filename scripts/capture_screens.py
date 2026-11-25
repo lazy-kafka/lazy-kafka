@@ -6,8 +6,9 @@ Kafka / Schema Registry, drives it into a few representative states and
 exports each as an inline-able SVG via `App.export_screenshot()` — the same
 mechanism the Textual widget gallery uses.
 
-Screens are written to `docs/screens/*.svg` and embedded in `docs/index.html`
-through `<img>` tags (SVG stays crisp at any size and needs no JS player).
+Screens are written to `docs/screens/*.svg` and inlined into
+`docs/index.html` between `<!-- shot:NAME:start/end -->` markers — inline
+SVG (the Textual widget gallery approach) keeps characters selectable.
 
 Usage:
 
@@ -20,12 +21,14 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import sys
 from typing import TYPE_CHECKING
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS_DIR = os.path.join(REPO_ROOT, "docs", "screens")
 SIZE = (112, 34)
+INDEX = os.path.join(REPO_ROOT, "docs", "index.html")
 
 if TYPE_CHECKING:
     from textual.pilot import Pilot
@@ -55,12 +58,33 @@ async def capture(pilot: Pilot, app: LazyKafka, name: str, title: str) -> None:
     os.makedirs(SHOTS_DIR, exist_ok=True)
     path = os.path.join(SHOTS_DIR, f"{name}.svg")
     await asyncio.to_thread(_write_svg, path, app.export_screenshot(title=title))
-    print(f"  {path}")
+    await asyncio.to_thread(_inline_into_index, name)
+    print(f"  {path} (inlined into docs/index.html)")
 
 
 def _write_svg(path: str, svg: str) -> None:
     with open(path, "w") as svg_file:
         svg_file.write(svg)
+
+
+def _inline_into_index(name: str) -> None:
+    """Replace the SVG between `shot:{name}` markers in `docs/index.html`.
+
+    The SVGs are inlined (like the Textual widget gallery) rather than
+    referenced with <img>: inline SVG keeps the characters as real `<text>`
+    nodes, so the screenshots are selectable/searchable on the page.
+    """
+    with open(os.path.join(SHOTS_DIR, f"{name}.svg")) as svg_file:
+        svg = svg_file.read().strip()
+    with open(INDEX) as index_file:
+        html = index_file.read()
+    pattern = re.compile(
+        rf"(<!-- shot:{name}:start -->).*?(<!-- shot:{name}:end -->)", re.DOTALL
+    )
+    html, count = pattern.subn(rf"\g<1>\n{svg}\n\g<2>", html)
+    if count != 1:
+        raise RuntimeError(f"marker 'shot:{name}' not found (or duplicated) in docs/index.html")
+    _write_svg(INDEX, html)
 
 
 async def run(shots: list[str]) -> None:
