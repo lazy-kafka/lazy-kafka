@@ -198,10 +198,11 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 14px;
-      margin-top: 14px;
+      margin-top: 20px;
     }
 
-    .shots .terminal { margin-top: 0; }
+    /* id-scoped so the reset wins over `#screens .terminal` margin */
+    #screens .shots .terminal { margin-top: 0; }
 
     .shot { line-height: 0; }
 
