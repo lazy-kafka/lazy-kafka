@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from abc import abstractmethod
 from collections.abc import Mapping, Sequence
+from dataclasses import astuple, is_dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -11,6 +12,7 @@ from typing import (
     TypeVar,
 )
 
+from rich.markup import escape
 from textual import work
 from textual.binding import Binding
 from textual.containers import Container, ScrollableContainer
@@ -179,6 +181,10 @@ class WidgetWithDataTable(
     hook: ProviderProtocol[T, S]
     subjects: Mapping[T, S]
     filter_token: Reactive[str] = reactive("")
+    """Applied on Enter: rows not matching are dropped from the table."""
+
+    search_token: Reactive[str] = reactive("")
+    """Live search term: matches are highlighted while typing (no filtering)."""
 
     def __init__(self, *args, **kwargs):
         assert self.hook is not None
@@ -212,45 +218,137 @@ class WidgetWithDataTable(
             self.action_start_refresh()
 
     async def action_search_subject(self) -> None:
+        """Toggle the search bar (`/` binding).
+
+        Closing the bar (mounting it again over an existing one) resets the
+        applied filter, so the next search starts from a clean slate.
+        """
         try:
             res = self.query_one(SearchInput)
-            await res.remove()
-            self.filter_token = ""
         except NoMatches:
-            # TODO: implement a custom search bar:
-            #   - open/close on `/` binding (text cannot contain `/`)
-            #   - pressing enter focuses the data_table
-            #   - pressing enter again, opens the details panel
-            res = await self.mount(
+            self.mount(
                 SearchInput(placeholder="Search..."), before=self.query_one(DataTable)
             )
-            res = self.query_one(SearchInput)
-            self.app.set_focus(res)
+            self.query_one(SearchInput).focus()
+            return
+        await res.remove()
+        self._reset_search_and_filter(focus_table=True)
 
-    def on_input_submitted(self, message: Input.Submitted):
-        self.log.info(f"Hello {message}")
-        res = self.query_one(DataTable)
-        self.app.set_focus(res.parent)
+    def on_input_submitted(self, message: Input.Submitted) -> None:
+        """Enter: filter rows to matches; Enter on an empty bar resets."""
+        value = message.value
+        if value == "":
+            self._reset_search_and_filter(focus_table=True)
+        else:
+            self.filter_token = value
+            self.query_one(DataTable).focus()
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        """Live search: highlight matching cells while typing (no filtering)."""
+        self.search_token = event.value
+
+    def watch_filter_token(self) -> None:
+        """Re-populate the table when a filter is (un)applied."""
+        self._update_border_title()
+        self._refresh_table()
+
+    def watch_search_token(self) -> None:
+        """Highlight matches live while typing and reflect the term in the title."""
+        self._update_border_title()
+        self._refresh_table()
+
+    # --- Search/filter internals ------------------------------------------
+
+    def _reset_search_and_filter(self, *, focus_table: bool = True) -> None:
+        """Clear search highlight and applied filter; restore the title."""
+        self.search_token = ""
+        # Guard lets the reactive skip a no-op watcher cycle when untouched.
+        if self.filter_token:
+            self.filter_token = ""
+        if focus_table:
+            self.focus()
+
+    def _matchable_strings(self, data: Any) -> Sequence[str]:
+        """Flatten a row value into plain strings for search matching."""
+        if is_dataclass(data) and not isinstance(data, type):
+            return [str(v) for v in astuple(data)]
+        return [str(data)]
+
+    def _visible_rows(self) -> dict:
+        """Compute displayed rows: apply the filter, then the search highlight.
+
+        - `filter_token` (Enter) drops non-matching rows.
+        - `search_token` (typing) re-uses the subclass `apply_filter` to
+          highlight matching substrings (e.g. `dark_orange`) without dropping
+          anything.
+        """
+        rows: dict = self.subjects
+        if self.filter_token:
+            token = self.filter_token.lower()
+            rows = {
+                k: v
+                for k, v in rows.items()
+                if any(token in s.lower() for s in self._matchable_strings(v))
+            }
+        if self.search_token:
+            rows = {
+                k: self.apply_filter(v, self.search_token) for k, v in rows.items()
+            }
+        return rows
+
+    def _populate_rows(self, table: DataTable) -> None:
+        """Rebuild table rows from `_visible_rows`, preserving the cursor."""
+        # Snapshot the currently highlighted row key so the cursor can follow
+        # the same row across rebuilds (fall back to the last selection).
+        try:
+            row_key = table.coordinate_to_cell_key(
+                table.cursor_coordinate
+            ).row_key.value
+        except Exception:  # noqa: BLE001 - empty table / no cursor yet
+            row_key = None
+        row_key = row_key if row_key is not None else getattr(
+            self, "selected_id", None
+        )  # `selected_id` is declared per subclass
+
+        table.clear()
+        for k, v in self._visible_rows().items():
+            try:
+                table.add_row(*v, key=k)
+            except DuplicateKey:
+                # No details are shown in rows, so it's ok to just pass
+                continue
+
+        if row_key is not None:
+            try:
+                table.move_cursor(row=table.get_row_index(row_key))
+            except RowDoesNotExist:
+                pass
+
+    def _refresh_table(self) -> None:
+        try:
+            table = self.query_one(DataTable)
+        except NoMatches:  # not mounted yet
+            return
+        table.loading = True
+        self._populate_rows(table)
+        table.loading = False
+
+    def _update_border_title(self) -> None:
+        """Append the live search term to the container's border title."""
+        if self._base_border_title is None:
+            self._base_border_title = self.border_title or self.BORDER_TITLE
+        term = self.search_token or self.filter_token
+        if term:
+            self.border_title = (
+                f"{self._base_border_title} [dim]\\⌕[/] [bold]{escape(term)}[/bold]"
+            )
+        else:
+            self.border_title = self._base_border_title
+
+    _base_border_title: str | None = None
 
     def on_mount(self):
         self.update_timer = self.set_interval(2, self.action_load_data, pause=True)
-
-    def on_input_changed(self, event: Input.Changed) -> None:
-        logging.debug(event)
-        self.filter_token = event.value
-
-    def watch_filter_token(self, old_filter_token: str, new_filter_token: str) -> None:
-        self.app.log.info("filter token changed")
-        table = self.query_one(DataTable)
-        table.loading = True
-        table.clear()
-        _rows = {
-            k: self.apply_filter(v, self.filter_token) for k, v in self.subjects.items()
-        }
-        for k, v in _rows.items():
-            table.add_row(*v, key=k)
-
-        table.loading = False
 
     def on_data_table_focused(self, event):
         _LOGGER.debug("DATA TABLE FOC %s", f"{event!r}")
@@ -307,31 +405,11 @@ class WidgetWithDataTable(
         data_table.loading = display_load
         _response = await self.hook.asubjects()
         self.subjects = self.subject_to_table(_response)
-        # For now, clearing the whole table looks viable...
-        # problem is that it resets the highlighted row - annoying
         _LOGGER.debug(f"self.subjects is None: {self.subjects is None}")
-        if self.filter_token:
-            _rows = {
-                k: self.apply_filter(v, self.filter_token)
-                for k, v in self.subjects.items()
-            }
-        else:
-            _rows = self.subjects
-
-        for k, v in _rows.items():
-            try:
-                data_table.add_row(*v, key=k)
-            except DuplicateKey:
-                # No details are shown in rows, so it's ok to just pass
-                continue
-        # Set the cursor to the same row
+        # Row population applies the active filter/search state and keeps the
+        # cursor on the same row across rebuilds.
+        self._populate_rows(data_table)
         # TODO: emit data-loaded event and react to that with "move_cursor"
-        try:
-            _new_index_of_old_row = data_table.get_row_index(self.selected_id)
-        except RowDoesNotExist:
-            _new_index_of_old_row = None
-        if _new_index_of_old_row:
-            data_table.move_cursor(row=_new_index_of_old_row)
 
         data_table.loading = False
         label = self.query_one("#time", Label)
