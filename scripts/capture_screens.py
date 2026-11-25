@@ -20,6 +20,7 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import re
 import sys
@@ -83,7 +84,9 @@ def _inline_into_index(name: str) -> None:
     )
     html, count = pattern.subn(rf"\g<1>\n{svg}\n\g<2>", html)
     if count != 1:
-        raise RuntimeError(f"marker 'shot:{name}' not found (or duplicated) in docs/index.html")
+        raise RuntimeError(
+            f"marker 'shot:{name}' not found (or duplicated) in docs/index.html"
+        )
     _write_svg(INDEX, html)
 
 
@@ -168,8 +171,18 @@ async def run(shots: list[str]) -> None:
 
         # --- logs ---------------------------------------------------------
         if on("logs"):
+            _seed_log_events(app)
             await pilot.press("L")
             await pilot.pause(1.0)
+            logs_table = app.screen.query_one(DataTable)
+            # Park the cursor on the first ERROR row so the details panel
+            # shows the untruncated message.
+            for i in range(logs_table.row_count):
+                row = [str(cell) for cell in logs_table.get_row_at(i)]
+                if "ERROR" in row[:2]:
+                    logs_table.move_cursor(row=i)
+                    break
+            await pilot.pause(1.2)  # row-highlight -> details panel mounts
             await capture(pilot, app, "logs", "lazy-kafka · logs")
             await pilot.press("d")
             await pilot.pause(0.5)
@@ -182,8 +195,65 @@ SHOTS = {
     "messages": "topic messages with parsed AVRO payload in the details panel",
     "kconnect": "kafka connect status table",
     "schema-registry": "schema registry subjects",
-    "logs": "in-app log viewer",
+    "logs": "in-app log viewer with level filtering",
 }
+
+# A believable session's worth of log events; the details panel parks on the
+# ERROR row so the shot also demonstrates the untruncated-message view.
+LOG_EVENTS = [
+    (
+        "lazy_kafka.config",
+        logging.INFO,
+        "Configuration loaded from ~/.config/.lazy-kafka.toml",
+    ),
+    (
+        "lazy_kafka.plugin",
+        logging.INFO,
+        "Loaded 3 plugins: core-kafka, kafka-connect, schema-registry",
+    ),
+    (
+        "consumer",
+        logging.INFO,
+        "Consumer group 'lazy-kafka' connected to localhost:9092",
+    ),
+    ("lazy_kafka.topic", logging.INFO, "Discovered 6 topics / 12 partitions"),
+    (
+        "rdkafka#consumer-3",
+        logging.WARNING,
+        "[thrd:main]: broker throttle time 137ms (quota exceeded)",
+    ),
+    (
+        "lazy_kafka.registry",
+        logging.WARNING,
+        "Schema test-topic-value v4 is behind v7 - falling back to latest",
+    ),
+    (
+        "lazy_kafka.consumer",
+        logging.ERROR,
+        "Consume failed on test-topic-avro[1]: Broker: Unknown topic or partition",
+    ),
+    ("lazy_kafka.consumer", logging.INFO, "Rebalance complete - assigned 3 partitions"),
+    (
+        "rdkafka#producer-1",
+        logging.ERROR,
+        "[thrd:localhost:9092]: 1/3 brokers are down",
+    ),
+    (
+        "lazy_kafka.consumer",
+        logging.INFO,
+        "Reconnected to bootstrap servers localhost:9092",
+    ),
+]
+
+
+def _seed_log_events(app: LazyKafka) -> None:
+    """Emit the demo records straight into the app's LogHandler."""
+    for name, level, message in LOG_EVENTS:
+        app.log_handler.emit(
+            logging.LogRecord(
+                name, level, "src/lazy_kafka/__main__.py", 42, message, (), None
+            )
+        )
 
 
 def main() -> int:
