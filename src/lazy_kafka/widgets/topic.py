@@ -11,6 +11,7 @@ from textual.widgets import (
 
 from lazy_kafka.topic import (
     KafkaClient,
+    KafkaTopicDetailsClient,
     Topic,
     TopicData,
     TopicMetadata,
@@ -41,7 +42,16 @@ class TopicPanel(WidgetWithDataTable[Topic, TopicMetadata]):
 
     def action_details(self):
         assert self.details is not None
-        self.app.push_screen(TopicDetails(hook=self.hook, topic=self.details.topic))
+        # Wire a dedicated details client for this topic (registry config and
+        # AVRO decoding included) — the widget consumes it as injected.
+        hook = KafkaTopicDetailsClient(
+            self.hook.config,
+            registry=getattr(self.hook, "registry", None),
+            topic=self.details.topic,
+        )
+        self.app.push_screen(
+            TopicDetails(hook=hook, topic=self.details.topic)
+        )
 
     def __init__(self, hook: KafkaClient, *args, **kwargs):
         self.subjects = dict()

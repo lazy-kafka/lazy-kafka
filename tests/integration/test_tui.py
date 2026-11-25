@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest.mock import AsyncMock
+
 from textual.widget import Widget
 
 from lazy_kafka.__main__ import LazyKafka
@@ -224,6 +226,10 @@ async def test_message_sparkline_shows_timestamp_distribution():
     async with app.run_test(size=(120, 40)) as pilot:
         hook = MagicMock()
         hook.config = app.lazy_kafka_config.kafka
+        # The widget consumes the injected hook as-is: keep its async
+        # interface awaited, returning no rows.
+        hook.asubjects = AsyncMock(return_value=[])
+        hook.aget_details = AsyncMock(return_value={})
         await app.push_screen(TopicDetails(hook=hook, topic="test-topic"))
         await pilot.pause()
 

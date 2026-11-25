@@ -79,10 +79,10 @@ class TopicDetailsWidget(WidgetWithDataTable[KafkaMessageId, list[LazyKafkaMessa
 
     def __init__(self, hook: KafkaTopicDetailsClient, topic: str, *args, **kwargs):
         self.subjects = dict()
-        registry = getattr(hook, "registry", None)
-        self.hook = KafkaTopicDetailsClient(
-            hook.config, registry=registry, topic=topic
-        )
+        # The hook is injected already wired for this topic (registry config
+        # and AVRO decoding included). Rebuilding it here would spawn a
+        # second, uncontrolled consumer per details view.
+        self.hook = hook
         self.topic = topic
 
         self.data_auto_refresh = False
