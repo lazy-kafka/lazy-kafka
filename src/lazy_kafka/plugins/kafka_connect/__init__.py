@@ -21,6 +21,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class KafkaConnectPlugin:
+    """Builtin plugin providing the Kafka Connect connectors dashboard."""
+
     name = "kafka-connect"
     tab_label = Text.from_markup(":warning: K-connect")
     tab_id = "tab-connect"

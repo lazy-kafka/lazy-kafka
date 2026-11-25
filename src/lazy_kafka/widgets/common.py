@@ -7,9 +7,8 @@ from dataclasses import astuple, is_dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generic,
+    ClassVar,
     Protocol,
-    TypeVar,
 )
 
 from rich.markup import escape
@@ -26,20 +25,15 @@ from textual.widgets.data_table import DuplicateKey, RowDoesNotExist
 from lazy_kafka.utils import get_current_time
 
 if TYPE_CHECKING:
-    from lazy_kafka._types import ProviderProtocol, StrLike
+    from lazy_kafka._types import ProviderProtocol, StrLike_co
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class CanConvertToTable(Protocol):
+    """Anything that can convert itself to table row values."""
+
     def to_table_values(self) -> Sequence[Any]: ...
-
-
-T = TypeVar("T", bound=str | None)
-"""Used for the DataTable content and HashMap keys."""
-
-S = TypeVar("S", bound=CanConvertToTable)
-"""Used for Details content and HashMap values."""
 
 
 class SubjectDetails(Widget):
@@ -95,7 +89,7 @@ class DetailsPanelMixin:
     details: Reactive[Any] = reactive(None, init=False)
 
     def watch_details(self, details: Any) -> None:
-        """Callback on details changed."""
+        """Handle a change of the details."""
         try:
             details_panel = self.query_one(SubjectDetails)
         except NoMatches:
@@ -107,13 +101,14 @@ class DetailsPanelMixin:
 
 
 class SearchInput(Input):
-    ...
+    """Standard input used by the search filters."""
+
     # def on_input_submitted(self, message: Input.Submitted):
     # self.log.info(f"Hello {message}")
 
 
-class WidgetWithDataTable(
-    Generic[T, S], DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=True
+class WidgetWithDataTable[T: str | None, S: CanConvertToTable](
+    DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=True
 ):
     """Template class for core widgets with a DataTable and Details.
 
@@ -134,7 +129,7 @@ class WidgetWithDataTable(
 
     """
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list] = [
         ("j", "next_widget_item", "↓"),
         ("k", "previous_widget_item", "↑"),
         ("f", "toggle_refresh", "Toggle follow"),
@@ -291,9 +286,7 @@ class WidgetWithDataTable(
                 if any(token in s.lower() for s in self._matchable_strings(v))
             }
         if self.search_token:
-            rows = {
-                k: self.apply_filter(v, self.search_token) for k, v in rows.items()
-            }
+            rows = {k: self.apply_filter(v, self.search_token) for k, v in rows.items()}
         return rows
 
     def _populate_rows(self, table: DataTable) -> None:
@@ -306,8 +299,8 @@ class WidgetWithDataTable(
             ).row_key.value
         except Exception:  # noqa: BLE001 - empty table / no cursor yet
             row_key = None
-        row_key = row_key if row_key is not None else getattr(
-            self, "selected_id", None
+        row_key = (
+            row_key if row_key is not None else getattr(self, "selected_id", None)
         )  # `selected_id` is declared per subclass
 
         table.clear()
@@ -359,7 +352,7 @@ class WidgetWithDataTable(
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         # The post_message method sends an event to be handled in the DOM
-        _LOGGER.debug(f"selected: {event}")
+        _LOGGER.debug("selected: %s", event)
         if event.cursor_row == -1:
             # Already in top row
             return
@@ -367,8 +360,8 @@ class WidgetWithDataTable(
             _LOGGER.error("False event")
             return
         try:
-            _LOGGER.debug(f"{self.subjects=}")
-            _LOGGER.debug(f"{event.row_key.value=}")
+            _LOGGER.debug("subjects=%r", self.subjects)
+            _LOGGER.debug("event.row_key.value=%r", event.row_key.value)
             self.post_message(self.Selected(self.subjects[event.row_key.value]))
         except KeyError as e:
             _LOGGER.error("Something went wrong.", exc_info=e)
@@ -381,11 +374,11 @@ class WidgetWithDataTable(
 
         Currently -> Message() -> Reactive() -> watch_topic()
         """
-        _LOGGER.debug(f"Row highlihghted{message.selected_id=}")
+        _LOGGER.debug("Row highlihghted selected_id=%r", message.selected_id)
         # Note, this should be in the init method ...
         self.selected_id = message.selected_id
         self.details = await self.hook.aget_details(message.selected_id)
-        _LOGGER.debug(f"{self.details!r}")
+        _LOGGER.debug("details=%r", self.details)
 
         # TODO: it's a bit too much to refresh on focus?
 
@@ -405,7 +398,7 @@ class WidgetWithDataTable(
         data_table.loading = display_load
         _response = await self.hook.asubjects()
         self.subjects = self.subject_to_table(_response)
-        _LOGGER.debug(f"self.subjects is None: {self.subjects is None}")
+        _LOGGER.debug("self.subjects is None: %s", self.subjects is None)
         # Row population applies the active filter/search state and keeps the
         # cursor on the same row across rebuilds.
         self._populate_rows(data_table)
@@ -416,7 +409,7 @@ class WidgetWithDataTable(
         label.update(f"{get_current_time()}")
 
     @abstractmethod
-    def subject_to_table(self, *args, **kwargs) -> Mapping[StrLike, S]: ...
+    def subject_to_table(self, *args, **kwargs) -> Mapping[StrLike_co, S]: ...
 
     @abstractmethod
     def apply_filter(self, data: T, token: str) -> T: ...

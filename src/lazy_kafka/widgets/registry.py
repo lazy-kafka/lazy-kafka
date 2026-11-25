@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING, Any, override
+from typing import TYPE_CHECKING, Any, ClassVar, override
 
 from textual import events, work
 from textual.containers import Container, Grid
@@ -144,8 +144,8 @@ class CreateDialog(Container, can_focus=True):
                 # TODO: dispatch invalid schema action
                 return
 
-            _LOGGER.debug(f"{subject_name=} {schema_type=}")
-            _LOGGER.debug(f"{schema=}")
+            _LOGGER.debug("subject_name=%r schema_type=%r", subject_name, schema_type)
+            _LOGGER.debug("schema=%r", schema)
             self.post_message(self.Create(subject_name, schema_type, schema))
             await self.remove()
         else:
@@ -155,7 +155,7 @@ class CreateDialog(Container, can_focus=True):
 class DeleteDialog(Container, can_focus=True):
     """Modal to display on creating new schema."""
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list] = [
         ("y", "yes", "yes"),
         ("n", "no", "no"),
     ]
@@ -163,12 +163,20 @@ class DeleteDialog(Container, can_focus=True):
     class Delete(Message):
         """Color selected message."""
 
-        def __init__(self, selected_id: str, selected_version: int | None = None) -> None:
+        def __init__(
+            self, selected_id: str, selected_version: int | None = None
+        ) -> None:
             self.selected_id = selected_id
             self.selected_version = selected_version
             super().__init__()
 
-    def __init__(self, selected_id: registry.Subject, selected_version: int | None = None, *args, **kwargs):
+    def __init__(
+        self,
+        selected_id: registry.Subject,
+        selected_version: int | None = None,
+        *args,
+        **kwargs,
+    ):
         self.selected_id = selected_id
         self.selected_version = selected_version
         super(Container, self).__init__(*args, **kwargs)
@@ -212,7 +220,7 @@ class SchemaRegistryPanel(
 
     BORDER_TITLE = "Subjects"
     BORDER_SUBTITLE = "status"
-    BINDINGS = [
+    BINDINGS: ClassVar[list] = [
         ("c", "create", "create"),
         ("d", "delete", "delete"),
     ]
@@ -221,7 +229,7 @@ class SchemaRegistryPanel(
     details = reactive(registry.SubjectDetails)
 
     async def action_delete(self):
-        """Action to display the delete dialog."""
+        """Display the delete dialog."""
         try:
             await self.query_one("#details").remove()
         except NoMatches:
@@ -238,7 +246,7 @@ class SchemaRegistryPanel(
         _LOGGER.info("Topic deleted %s", r)
 
     async def action_create(self):
-        """Action to display the quit dialog."""
+        """Display the quit dialog."""
         try:
             await self.query_one("#details").remove()
         except NoMatches:
@@ -258,7 +266,7 @@ class SchemaRegistryPanel(
             _LOGGER.error("%s", r.content.decode("utf8"))
 
     def __init__(self, hook: registry.SchemaRegistry, *args: Any, **kwargs: Any):
-        self.subjects = dict()
+        self.subjects = {}
         self.hook = hook
         self.data_auto_refresh = False
         super().__init__(*args, **kwargs)

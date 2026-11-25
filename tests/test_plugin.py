@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from lazy_kafka.config import Configuration
 from lazy_kafka.plugin import (
-    Plugin,
     _PLUGINS,
+    Plugin,
     iter_plugins,
     load_builtin_plugins,
     register,
@@ -85,7 +86,7 @@ class TestRegister:
                 return None
 
         # Create an instance to trigger registration
-        plugin = TestPluginClass()
+        TestPluginClass()
 
         # Check that the plugin is in the registry
         plugins = list(iter_plugins())
@@ -140,10 +141,10 @@ class TestLoadBuiltinPlugins:
         # The actual plugin loading happens at import time
         try:
             load_builtin_plugins()
-        except Exception as e:
+        except Exception as exc:  # noqa: BLE001 - dependencies may be missing in the test env
             # May fail if dependencies are not available in test environment
             # That's acceptable for this test
-            pass
+            logging.getLogger(__name__).debug("load_builtin_plugins failed: %s", exc)
 
 
 class TestPluginImplementation:

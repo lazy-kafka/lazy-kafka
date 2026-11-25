@@ -42,10 +42,9 @@ def _register_and_encode():
     from confluent_kafka.schema_registry.avro import AvroSerializer
 
     registry = MockSchemaRegistryClient(dict(REGISTRY_CONF))
-    serializer = AvroSerializer(
-        registry, json.dumps(AVRO_SCHEMA), lambda v, _: v
-    )
+    serializer = AvroSerializer(registry, json.dumps(AVRO_SCHEMA), lambda v, _: v)
     from confluent_kafka.serialization import MessageField, SerializationContext
+
     # AvroSerializer output IS the full Confluent wire message
     # (magic + schema id + encoded payload) — no extra wrapping.
     encoded = serializer(
@@ -99,7 +98,9 @@ def test_decode_no_schema_returns_none():
         "lazy_kafka.serializers._get_schema_registry_client",
         return_value=registry,
     ):
-        decoder = AvroMessageDecoder(topic="no-such-topic", registry=_mock_registry_conf())
+        decoder = AvroMessageDecoder(
+            topic="no-such-topic", registry=_mock_registry_conf()
+        )
         # 5-byte header claiming a schema id that does not exist on the mock.
         assert decoder.decode(_wire(b"\x08")) is None
 

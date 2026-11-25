@@ -42,19 +42,13 @@ def _timestamp_to_str(timestamp: int) -> str:
 class NoMessagesError(Exception):
     """No message retrieved by consumer."""
 
-    pass
-
 
 class MessageRetriableError(Exception):
     """No message retrieved by consumer."""
 
-    pass
-
 
 class ConsumerPollError(Exception):
     """Too many poll() calls and no message retrieved."""
-
-    pass
 
 
 class OffsetInvalidError(Exception):
@@ -62,8 +56,6 @@ class OffsetInvalidError(Exception):
 
     [ref](https://github.com/confluentinc/confluent-kafka-python/blob/master/examples/get_watermark_offsets.py)
     """
-
-    pass
 
 
 class LazyKafkaMessage(NamedTuple):
@@ -98,6 +90,8 @@ class LazyKafkaMessage(NamedTuple):
 
 
 class TopicMetadata(ConfluentTopicMetadata):
+    """Standard topic metadata as returned by AdminClient."""
+
     topic: str | None
     partition: Mapping[Any, Any]
     error: Any
@@ -138,7 +132,7 @@ class KafkaClient:
     ):
         self.config = config
         self.registry = registry
-        _LOGGER.debug(f"{self.config=}")
+        _LOGGER.debug("config=%r", self.config)
         _LOGGER.debug("Instantiate Consumer")
         logger = logging.getLogger("consumer")
         logger.setLevel(logging.DEBUG)
@@ -154,12 +148,12 @@ class KafkaClient:
         self._client.assign(partitions)
 
     def list_topics(self) -> dict[Topic, TopicMetadata]:
-        """Using AdminClient get metadata about all topics."""
+        """Fetch metadata about all topics using the AdminClient."""
         admin_client = AdminClient(self.config.to_config())
         raw_topics: list[TopicMetadata] = list(
             admin_client.list_topics(timeout=1000).topics.values()
         )
-        _LOGGER.debug(f"{raw_topics=}")
+        _LOGGER.debug("raw_topics=%r", raw_topics)
         return {Topic(i.topic): i for i in raw_topics if i.topic is not None}
 
     def asubjects(self) -> asyncio.Future[dict[Topic, TopicMetadata]]:
@@ -305,7 +299,7 @@ class KafkaClient:
         """
         partition_offsets = {}
         committed = self._client.committed(partitions, timeout=1000)
-        _LOGGER.debug(f"{committed=}")
+        _LOGGER.debug("committed=%r", committed)
         for partition in committed:
             # Get the beginning and end offsets for this partition
             low_offset, high_offset = self.get_watermark_offsets(partition)
@@ -318,8 +312,8 @@ class KafkaClient:
             assert start_offset >= 0
             # Store the offset and how many messages we expect from this partition
             partition_offsets[partition] = (start_offset, high_offset)
-            _LOGGER.debug(f"{partition=}")
-            _LOGGER.debug(f"{start_offset=} - {high_offset=}")
+            _LOGGER.debug("partition=%r", partition)
+            _LOGGER.debug("start_offset=%r - high_offset=%r", start_offset, high_offset)
         return partition_offsets
 
     def better_consume_n(self, topic: str, n: int) -> list[LazyKafkaMessage]:
@@ -368,7 +362,9 @@ class KafkaClient:
                         TopicPartition(partition.topic, partition.partition, 0)
                     ]
                     _LOGGER.debug(
-                        f"Partition offset: {current_position=}, {high_offset=}"
+                        "Partition offset: current_position=%r, high_offset=%r",
+                        current_position,
+                        high_offset,
                     )
                     current_offset = current_position.offset
                     if current_offset < high_offset:
@@ -384,7 +380,7 @@ class KafkaClient:
                 print("---Message---")
                 print(f"{msg.value()}")
                 print(f"{msg.error().reason()}")
-                print("")
+                print()
                 error_code = msg.error().code()
                 if error_code == KafkaError._PARTITION_EOF:
                     # End of partition, not an error
@@ -504,6 +500,8 @@ class KafkaTopicDetailsClient(KafkaClient):
 
 @dataclass
 class TopicData:
+    """Aggregated topic data across all partitions."""
+
     topic: str
     partitions: object
 
@@ -559,7 +557,7 @@ if __name__ == "__main__":
     (lo, hi) = consumer.get_watermark_offsets(
         t, timeout=WATERMARK_TIMEOUT_SECONDS, cached=False
     )
-    _LOGGER.debug(f"{lo=} {hi=}")
+    _LOGGER.debug("lo=%r hi=%r", lo, hi)
 
     offset = get_last_n_offset(hi, READ_LAST_N_MESSAGES)
     _LOGGER.debug("reading from offset=%s", offset)
@@ -575,7 +573,7 @@ if __name__ == "__main__":
             if msg is None:
                 continue
             _LOGGER.debug(
-                "%s", f"{msg.offset():<5}, {str(msg.value()):>10}, {msg.topic():>}"
+                "%s", f"{msg.offset():<5}, {msg.value()!s:>10}, {msg.topic():>}"
             )
         except KeyboardInterrupt:
             break

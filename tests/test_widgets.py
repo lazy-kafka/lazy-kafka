@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from lazy_kafka.config import Configuration
 from lazy_kafka.widgets.registry import (
     CreateDialog,
     DeleteDialog,
@@ -86,7 +84,7 @@ class TestSchemaRegistryPanel:
             mock_registry_instance = MagicMock()
             mock_registry.return_value = mock_registry_instance
 
-            return SchemaRegistryPanel(hook=mock_registry_instance, *[], **{})
+            return SchemaRegistryPanel(hook=mock_registry_instance)
 
     def test_init(self, mock_panel: SchemaRegistryPanel) -> None:
         """Test SchemaRegistryPanel initialization."""
@@ -129,8 +127,6 @@ class TestWidgetIntegration:
 
     def test_widgets_accept_configuration(self) -> None:
         """Test that widgets can accept configuration."""
-        config = Configuration()
-
         with patch("lazy_kafka.registry.SchemaRegistry") as mock_registry:
             mock_registry_instance = MagicMock()
             mock_registry.return_value = mock_registry_instance

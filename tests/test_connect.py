@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
 
 from lazy_kafka.config import ConnectConfiguration
-from lazy_kafka.connect import ConnectionRefusedError, ConnectorData, Connect
+from lazy_kafka.connect import Connect, ConnectionRefusedError, ConnectorData
 
 
 class TestConnectorData:
@@ -169,7 +167,6 @@ class TestConnectAsync:
         """Create a Connect instance with mocked _client for async tests."""
         from lazy_kafka.connect import Connect
 
-        config = ConnectConfiguration(host="http://test:8083")
         connect = Connect.__new__(Connect)
         connect.host = "http://test:8083"
         # Create a mock AsyncClient
@@ -217,7 +214,7 @@ class TestConnectAsync:
         mock_response.raise_for_status = AsyncMock()
         mock_connect._client.get.return_value = mock_response
 
-        result = await mock_connect.connector("test-connector")
+        await mock_connect.connector("test-connector")
 
         assert mock_connect._client.get.called
         call_args = mock_connect._client.get.call_args
@@ -235,7 +232,7 @@ class TestConnectAsync:
         mock_response.raise_for_status = AsyncMock()
         mock_connect._client.get.return_value = mock_response
 
-        result = await mock_connect.connector_status("test-connector")
+        await mock_connect.connector_status("test-connector")
 
         assert mock_connect._client.get.called
         call_args = mock_connect._client.get.call_args
@@ -251,7 +248,7 @@ class TestConnectAsync:
 
         # connector_create expects name and config as separate parameters
         config = {"config": {}}
-        result = await mock_connect.connector_create("test-connector", config)
+        await mock_connect.connector_create("test-connector", config)
 
         assert mock_connect._client.post.called
         call_args = mock_connect._client.post.call_args

@@ -20,6 +20,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class CoreKafkaPlugin:
+    """Builtin plugin providing the Kafka topics/messages dashboard."""
+
     name = "core-kafka"
     tab_label = "Topic"
     tab_id = "tab-topic"

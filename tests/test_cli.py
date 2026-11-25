@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from lazy_kafka.cli._cli import app, global_options, version_callback
-from lazy_kafka.config import Configuration
 
 
 class TestVersionCallback:
@@ -108,7 +106,7 @@ class TestMainEntryPoint:
                 mock_instance = MagicMock()
                 mock_tui.return_value = mock_instance
 
-                with patch("lazy_kafka.__main__.logging") as mock_logging:
+                with patch("lazy_kafka.__main__.logging"):
                     from lazy_kafka.__main__ import main
 
                     main()
@@ -121,7 +119,7 @@ class TestPluginCLI:
 
     def test_plugin_cli_commands_exist(self) -> None:
         """Test that plugin CLI commands are registered."""
-        from lazy_kafka.plugin import load_builtin_plugins, iter_plugins
+        from lazy_kafka.plugin import iter_plugins, load_builtin_plugins
 
         load_builtin_plugins()
         plugins = list(iter_plugins())
@@ -132,7 +130,7 @@ class TestPluginCLI:
 
     def test_core_kafka_cli_exists(self) -> None:
         """Test that core Kafka plugin has CLI commands."""
-        from lazy_kafka.plugins.core_kafka.cli import kafka, consume, produce
+        from lazy_kafka.plugins.core_kafka.cli import consume, kafka, produce
 
         assert callable(kafka)
         assert callable(consume)

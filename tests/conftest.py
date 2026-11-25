@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-import httpx
 import pytest
 
 from lazy_kafka.config import (
@@ -136,27 +136,24 @@ def mock_httpx_async_get() -> Generator[AsyncMock, None, None]:
 
 # Fixtures for Kafka mocking
 @pytest.fixture
-def mock_consumer() -> Generator[MagicMock, None, None]:
+def mock_consumer() -> MagicMock:
     """Provide a mock Kafka consumer."""
     mock = MagicMock()
     mock.list_topics.return_value = (None, ["test-topic"])
     mock.get_watermark_offsets.return_value = (0, 10)
     mock.poll.return_value = None
-    yield mock
+    return mock
 
 
 @pytest.fixture
-def mock_producer() -> Generator[MagicMock, None, None]:
+def mock_producer() -> MagicMock:
     """Provide a mock Kafka producer."""
-    mock = MagicMock()
-    yield mock
+    return MagicMock()
 
 
 # Autouse fixture to prevent actual network calls
 @pytest.fixture(autouse=True)
-def prevent_network_calls(
-    monkeypatch: pytest.MonkeyPatch,
-) -> Generator[None, None, None]:
+def prevent_network_calls(monkeypatch: pytest.MonkeyPatch) -> None:
     """Prevent actual network calls during tests."""
 
     def mock_get(*args: Any, **kwargs: Any) -> Mock:
@@ -177,4 +174,3 @@ def prevent_network_calls(
     monkeypatch.setattr("httpx.AsyncClient.get", mock_async_get)
     monkeypatch.setattr("httpx.AsyncClient.post", mock_async_get)
     monkeypatch.setattr("httpx.AsyncClient.delete", mock_async_get)
-    yield

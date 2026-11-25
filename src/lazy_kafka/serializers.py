@@ -66,9 +66,10 @@ class AvroMessageDecoder:
             )
             return None
 
-        if (getattr(latest, "schema_type", None) or getattr(
-            getattr(latest, "schema", None), "schema_type", "AVRO"
-        )) != "AVRO":
+        if (
+            getattr(latest, "schema_type", None)
+            or getattr(getattr(latest, "schema", None), "schema_type", "AVRO")
+        ) != "AVRO":
             # JSON/Protobuf messages keep using the existing JSON handling.
             _LOGGER.debug("Subject %r is not AVRO; skipping Avro decode", subject)
             return None

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -11,7 +9,6 @@ import pytest
 
 from lazy_kafka.config import RegistryConfiguration
 from lazy_kafka.registry import (
-    MetaEnum,
     SchemaRegistry,
     SchemaTypes,
     Subject,
@@ -169,7 +166,7 @@ class TestSchemaRegistryAsync:
         mock_registry._client.get = AsyncMock(return_value=mock_response)
 
         subject = Subject("test-subject")
-        result = await mock_registry.asubject_versions(subject)
+        await mock_registry.asubject_versions(subject)
 
         assert mock_registry._client.get.called
         call_args = mock_registry._client.get.call_args
@@ -191,7 +188,7 @@ class TestSchemaRegistryAsync:
         mock_registry._client.get = AsyncMock(return_value=mock_response)
 
         subject = Subject("test-subject")
-        result = await mock_registry.asubject_latest((subject,))
+        await mock_registry.asubject_latest((subject,))
 
         assert mock_registry._client.get.called
         call_args = mock_registry._client.get.call_args

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections import deque
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from rich.text import Text
 from textual.binding import Binding
@@ -17,7 +17,6 @@ from textual.widgets import DataTable, Footer, Label
 from lazy_kafka.widgets.common import DataTableCursorMixin, DetailsPanelMixin
 
 if TYPE_CHECKING:
-    from textual.app import App
     from textual.timer import Timer
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,7 +74,7 @@ class LogEntry:
 
 class LogHandler(logging.Handler):
     """Custom logging handler that stores log entries for display in the UI.
-    
+
     This handler stores all log entries without filtering - filtering is done
     at the display level (LogsWidget) to avoid duplicate/inconsistent filtering.
     """
@@ -123,7 +122,7 @@ class LogHandler(logging.Handler):
 class LogsWidget(DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=True):
     """Widget for displaying logs with filtering and level control."""
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list] = [
         Binding("c", "clear_logs", "Clear logs"),
         Binding("j", "next_widget_item", "↓"),
         Binding("k", "previous_widget_item", "↑"),
@@ -154,17 +153,17 @@ class LogsWidget(DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=T
             width: 100%;
             height: 1fr;
             background: $background;
-            
+
             & > .datatable--header {
                 background: transparent;
                 color: $primary;
                 text-style: bold;
             }
-            
+
             & > .datatable--odd-row {
                 background: $surface-lighten-1;
             }
-            
+
             & > .datatable--even-row {
                 background: $background;
             }
@@ -181,7 +180,13 @@ class LogsWidget(DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=T
     # Use module-level LOG_LEVELS
     current_level_index: reactive[int] = reactive(1)  # Start at INFO (index 1)
 
-    def __init__(self, log_handler: LogHandler | None = None, initial_level: str | None = None, *args, **kwargs):
+    def __init__(
+        self,
+        log_handler: LogHandler | None = None,
+        initial_level: str | None = None,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.log_handler = log_handler or LogHandler()
         self._data_table: DataTable | None = None
@@ -212,13 +217,13 @@ class LogsWidget(DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=T
     def watch_current_level_index(self, old: int, new: int) -> None:
         """React to log level changes."""
         # Only update display if widget is mounted and DOM is available
-        if hasattr(self, '_data_table') and self._data_table:
+        if hasattr(self, "_data_table") and self._data_table:
             self._update_level_display()
         self._update_table()
 
     def _on_entries_updated(self) -> None:
-        """Called when log_handler.entries is updated.
-        
+        """React to an update of log_handler.entries.
+
         This is triggered by a reactive watcher on the entries count.
         """
         self._update_table()
@@ -255,7 +260,7 @@ class LogsWidget(DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=T
 
     def _passes_level_filter(self, entry: LogEntry) -> bool:
         """Check if a log entry passes the current level filter.
-        
+
         Uses index-based comparison for consistency.
         """
         try:
@@ -371,18 +376,16 @@ class LogsWidget(DataTableCursorMixin, DetailsPanelMixin, Container, can_focus=T
             self._gg_timer = self.set_timer(self._GG_TIMEOUT, self._gg_expired)
 
     def _gg_expired(self) -> None:
-        """A lone `g` was pressed - forget it."""
+        """Forget any pending half-typed `g` jump sequence."""
         self._gg_pending = False
         self._gg_timer = None
 
     def update_from_handler(self) -> None:
         """Public method to update the table from the log handler's entries.
-        
+
         Can be called externally to refresh the display.
         """
         self._update_table()
-
-
 
 
 class LogsScreen(Screen):
@@ -397,9 +400,9 @@ class LogsScreen(Screen):
 
     def compose(self) -> Screen.ComposeResult:
         # Get the log_handler and config from the app
-        log_handler = getattr(self.app, 'log_handler', None)
-        config = getattr(self.app, 'lazy_kafka_config', None)
-        initial_level = getattr(config, 'log_level', "INFO") if config else "INFO"
+        log_handler = getattr(self.app, "log_handler", None)
+        config = getattr(self.app, "lazy_kafka_config", None)
+        initial_level = getattr(config, "log_level", "INFO") if config else "INFO"
         self._logs_widget = LogsWidget(
             log_handler=log_handler,
             initial_level=initial_level,

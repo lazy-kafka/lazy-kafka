@@ -49,14 +49,14 @@ def version_callback(value: bool) -> None:
 @app.callback()
 def global_options(
     config_file: Annotated[
-        Path,
+        Path | None,
         typer.Option(
             "--config-file",
             "-f",
             help="Path to lazy-kafka config file.",
             rich_help_panel="[i][green]Customization and Utils[/]",
         ),
-    ] = Configuration.default_config_file_path(),
+    ] = None,
     verbose: Annotated[
         bool,
         typer.Option(
@@ -74,6 +74,8 @@ def global_options(
     ] = None,
 ):
     """Overwrite the default app config."""
+    if config_file is None:
+        config_file = Configuration.default_config_file_path()
     # Configure app.
     if verbose:
         _set_up_logging(level="DEBUG")
@@ -81,4 +83,6 @@ def global_options(
         _set_up_logging()
 
     _LOGGER = logging.getLogger(__name__)
-    _LOGGER.debug(f"LazyKafka {__version__} {config_file=} {verbose=}")
+    _LOGGER.debug(
+        "LazyKafka %s config_file=%r verbose=%r", __version__, config_file, verbose
+    )

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from textual.await_complete import AwaitComplete
 from textual.containers import Container
@@ -29,7 +29,7 @@ class ContentSwitcher(Container):
 
     """
 
-    current: reactive[str | None] = reactive[Optional[str]](None, init=False)
+    current: reactive[str | None] = reactive[str | None](None, init=False)
     """The ID of the currently-displayed widget.
 
     If set to `None` then no widget is visible.

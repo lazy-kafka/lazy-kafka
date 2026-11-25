@@ -2,18 +2,15 @@
 
 from __future__ import annotations
 
-import asyncio
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-
 from confluent_kafka import Message, TopicPartition
 
 from lazy_kafka.config import KafkaConfiguration
 from lazy_kafka.topic import (
-    ConsumerPollError,
     KafkaClient,
     LazyKafkaMessage,
     MessageRetriableError,
@@ -40,7 +37,7 @@ class TestTimestampToStr:
         assert "Z" in result or "+" in result
 
         # Parse and verify
-        dt = datetime.fromisoformat(result.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(result)
         assert dt.year == 2024
 
     def test_handles_zero_timestamp(self) -> None:

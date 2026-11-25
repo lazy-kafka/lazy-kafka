@@ -39,7 +39,7 @@ class FakeFilterMixin(WidgetWithDataTable[str, Row]):
 
     def __init__(self, rows: list[str], **kwargs) -> None:
         self.hook = FakeHook(rows)
-        self.subjects = dict()
+        self.subjects = {}
         self.data_auto_refresh = False
         super().__init__(**kwargs)
 
