@@ -19,10 +19,13 @@ __all__ = ["app"]
 
 def _set_up_logging(level="INFO"):
     FORMAT = "%(message)s"
-    print(level)
     logging.basicConfig(
         level=level, format=FORMAT, datefmt="[%X]", handlers=[RichHandler(markup=True)]
     )
+    if level != "DEBUG":
+        # httpx logs every request at INFO; keep stdout clean for output
+        # meant to be piped (e.g. `lazy-kafka connectors` JSON).
+        logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 app = typer.Typer(rich_markup_mode="rich")

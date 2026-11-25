@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -141,3 +142,69 @@ class TestPluginCLI:
         from lazy_kafka.plugins.schema_registry.cli import schema_registry
 
         assert callable(schema_registry)
+
+
+class TestConnectorsCli:
+    """Tests for `lazy-kafka connectors`."""
+
+    @pytest.fixture
+    def fake_connect(self, monkeypatch: pytest.MonkeyPatch):
+        # Raw `/connectors?expand=status` payload, as returned by `alist`.
+        raw_response = {
+            "conn-1": {
+                "status": {
+                    "connector": {
+                        "state": "RUNNING",
+                        "worker_id": "worker-1:8083",
+                    },
+                    "type": "source",
+                }
+            },
+            "conn-2": {
+                "status": {
+                    "connector": {
+                        "state": "FAILED",
+                        "worker_id": "worker-2:8083",
+                    },
+                    "type": "sink",
+                }
+            },
+        }
+
+        class _FakeConnect:
+            def __init__(self, config):
+                self.config = config
+
+            async def alist(self):
+                return raw_response
+
+        monkeypatch.setattr(
+            "lazy_kafka.plugins.kafka_connect.cli.Connect", _FakeConnect
+        )
+        return raw_response
+
+    def test_connectors_plugin_has_cli(self) -> None:
+        """Test that the kafka-connect plugin registers a `connectors` CLI."""
+        from lazy_kafka.plugin import load_builtin_plugins
+        from lazy_kafka.plugins.kafka_connect import KafkaConnectPlugin
+
+        load_builtin_plugins()
+        assert KafkaConnectPlugin.cli_name == "connectors"
+        assert KafkaConnectPlugin().build_cli() is not None
+
+    def test_connectors_prints_json_status_list(
+        self, fake_connect, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test that bare `lazy-kafka connectors` prints a JSON list."""
+        from typer.testing import CliRunner
+
+        from lazy_kafka.cli._cli import app
+
+        result = CliRunner().invoke(app, ["connectors"])
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert isinstance(parsed, list)
+        assert {entry["name"] for entry in parsed} == set(fake_connect)
+        assert all(
+            {"name", "state", "worker_id", "type"} <= set(entry) for entry in parsed
+        )
