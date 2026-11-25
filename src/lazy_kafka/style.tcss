@@ -47,6 +47,11 @@ Topic {
     overflow-y: auto;
 }
 
+#settings-metadata {
+    margin: 0 1 1 1;
+    padding: 1 2;
+}
+
 .has-border {
     border: round $primary;
     border-title-color: $primary;

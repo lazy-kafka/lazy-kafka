@@ -33,6 +33,33 @@ async def test_keyboard_bindings_headless():
         assert app.screen.__class__.__name__ == "SettingsScreen"
 
 
+async def test_settings_screen_shows_environment_metadata():
+    """The settings screen must lead with version/runtime metadata."""
+    import importlib.metadata
+    import platform as pyplatform
+
+    from textual.widgets import Static
+
+    from lazy_kafka import __version__
+
+    app = LazyKafka()
+    async with app.run_test(size=(100, 40)) as pilot:
+        await pilot.pause()
+        await pilot.press("s")
+        await pilot.pause()
+        metadata = app.screen.query_one("#settings-metadata", Static)
+        content = metadata.content
+        assert __version__ in content
+        assert importlib.metadata.version("textual") in content
+        assert pyplatform.python_version() in content
+        # config file path is shown inside the metadata panel
+        assert str(app._configuration_file.absolute()) in content
+        # exactly one footer on the screen
+        from textual.widgets import Footer
+
+        assert len(app.screen.query(Footer)) == 1
+
+
 async def test_logs_screen_headless():
     """Pressing L must switch to the logs screen without raising (# set_focus)."""
     app = LazyKafka()
@@ -217,7 +244,7 @@ async def test_message_sparkline_shows_timestamp_distribution():
     from lazy_kafka.widgets.topic_details import TopicDetails, TopicDetailsWidget
 
     messages = [
-        LazyKafkaMessage("2024-01-01T00:00:%02d+00:00" % s, s, b"key", "body")
+        LazyKafkaMessage(f"2024-01-01T00:00:{s:02d}+00:00", s, b"key", "body")
         for s in range(4)
     ]
     messages += [LazyKafkaMessage("2024-01-01T00:01:00+00:00", 4, b"key", "late")]
@@ -239,7 +266,8 @@ async def test_message_sparkline_shows_timestamp_distribution():
 
         sparkline = app.screen.query_one("#message-distribution", Sparkline)
         data = sparkline.data
-        assert data is not None and len(data) == 100
+        assert data is not None
+        assert len(data) == 100
         assert sum(data) == 5
         # bucket i covers seconds [i * 0.6, (i + 1) * 0.6) of the message range
         # (0s..3s, plus the late message at 60s -> clamped into the last bucket)
