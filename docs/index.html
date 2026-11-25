@@ -189,6 +189,24 @@
       color: var(--salmon);
     }
 
+    /* ---- screenshots ---- */
+
+    #screens .terminal { margin-top: 20px; }
+    #screens .terminal:first-of-type { margin-top: 0; }
+
+    .shots {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .shots .terminal { margin-top: 0; }
+
+    .shot { line-height: 0; }
+
+    .shot img { display: block; width: 100%; height: auto; }
+
     /* ---- keys table ---- */
 
     .keys {
@@ -304,6 +322,68 @@
             <li>vimming optional, zealotry welcome</li>
           </ul>
         </div>
+      </div>
+    </section>
+
+    <section id="screens">
+      <h2>screens</h2>
+
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+          <span class="terminal-title">lazy-kafka · topics</span>
+        </div>
+        <div class="shot"><img src="screens/topics.svg" alt="topics table with metadata and sparkline" loading="lazy"></div>
+      </div>
+
+      <div class="shots">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+            <span class="terminal-title">search · highlight while typing</span>
+          </div>
+          <div class="shot"><img src="screens/topics-search.svg" alt="live search highlighting matches" loading="lazy"></div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+            <span class="terminal-title">search · enter applies the filter</span>
+          </div>
+          <div class="shot"><img src="screens/topics-filtered.svg" alt="table filtered to matching rows" loading="lazy"></div>
+        </div>
+      </div>
+
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+          <span class="terminal-title">lazy-kafka · messages (avro decoded)</span>
+        </div>
+        <div class="shot"><img src="screens/messages.svg" alt="message table with parsed avro payload in details panel and timestamp histogram" loading="lazy"></div>
+      </div>
+
+      <div class="shots">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+            <span class="terminal-title">kafka connect</span>
+          </div>
+          <div class="shot"><img src="screens/kconnect.svg" alt="kafka connect status table" loading="lazy"></div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+            <span class="terminal-title">schema registry</span>
+          </div>
+          <div class="shot"><img src="screens/schema-registry.svg" alt="schema registry subjects" loading="lazy"></div>
+        </div>
+      </div>
+
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+          <span class="terminal-title">lazy-kafka · logs</span>
+        </div>
+        <div class="shot"><img src="screens/logs.svg" alt="in-app log viewer with level filtering" loading="lazy"></div>
       </div>
     </section>
 
