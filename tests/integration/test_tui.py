@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock
 
 from textual.widget import Widget
+
+if TYPE_CHECKING:
+    import pytest
 
 from lazy_kafka.__main__ import LazyKafka
 from lazy_kafka.widgets._logs import LogsWidget
@@ -278,9 +282,31 @@ async def test_message_sparkline_shows_timestamp_distribution():
         assert data == expected
 
 
-async def test_topic_panels_fill_available_height():
+async def test_topic_panels_fill_available_height(
+    monkeypatch: pytest.MonkeyPatch,
+):
     """The has-border panel must reach the bottom of the space below the Tabs
     (regression: max-height 90% + ContentSwitcher height:auto left a gap)."""
+
+    from lazy_kafka.plugins.core_kafka import CoreKafkaPlugin
+    from lazy_kafka.widgets.common import WidgetWithDataTable
+    from lazy_kafka.widgets.topic import TopicPanel
+
+    class _NoopHook:
+        """Stands in for the Kafka hook: layout must not depend on a broker."""
+
+        async def asubjects(self) -> dict[str, Any]:
+            return {}
+
+    def _fake_build_panel(self, config: Any):
+        return TopicPanel(id=self.tab_id, classes="has-border", hook=_NoopHook())
+
+    # The dashboard mounts a live TopicPanel only when its connection probe
+    # succeeds; stub it so this layout test cannot depend on a local broker
+    # (`query_one("WidgetWithDataTable")` would otherwise pick a *hidden*
+    # inactive tab and compare a 0x0 region — the original CI failure).
+    monkeypatch.setattr(CoreKafkaPlugin, "build_panel", _fake_build_panel)
+
     app = LazyKafka()
     async with app.run_test(size=(100, 40)) as pilot:
         await pilot.pause()
@@ -288,11 +314,14 @@ async def test_topic_panels_fill_available_height():
 
         tabs = app.screen.query_one("#tabs", Tabs)
         switcher = app.screen.query_one("#main-content-switcher")
-        panel = app.screen.query_one("WidgetWithDataTable")
 
         screen_region = app.screen.region
         switcher_region = switcher.region
-        panel_region = panel.region
+        content = switcher.visible_content
+        assert isinstance(content, WidgetWithDataTable), (
+            f"expected a live panel below the tabs, got {content!r}"
+        )
+        panel_region = content.region
 
         # switcher fills everything below the Tabs
         margin_above = switcher_region.y - (tabs.region.y + tabs.region.height)
