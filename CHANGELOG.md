@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.2.0 - 2026-11-26
+#### Features
+- minor tweaks (#53) - (77011f8) - Timon Viola, *Mistral Vibe*, *Mistral Vibe*, *Mistral Vibe*, *Mistral Vibe*, *Mistral Vibe*, *Mistral Vibe*, *Mistral Vibe*, *Mistral Vibe*, *Mistral Vibe*, *Mistral Vibe*, *Mistral Vibe*, *Mistral Vibe*, *Mistral Vibe*, *Mistral Vibe*, *Mistral Vibe*
+#### Continuous Integration
+- (**deps**) bump py-cov-action/python-coverage-comment-action (#48) - (41e53d6) - dependabot[bot], *dependabot[bot]*
+#### Miscellaneous Chores
+- (**deps**) bump the python group with 3 updates (#52) - (337bb67) - dependabot[bot], *dependabot[bot]*
+
+- - -
+
 ## v0.1.0 - 2026-11-20
 #### Features
 - (**build**) use textual v1.0.0 🥳 - (a9231a5) - Timon Viola
