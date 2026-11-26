@@ -1,24 +1,29 @@
 from __future__ import annotations
 
+import importlib.metadata
 import logging
+import platform
 import sys
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.css.query import NoMatches
 from textual.screen import Screen
 
+import lazy_kafka
+
 if TYPE_CHECKING:
-    from textual.driver import Driver
     from textual.css.types import CSSPathType
+    from textual.driver import Driver
 from textual.widgets import (
     Footer,
     Header,
     Label,
     Pretty,
+    Static,
     Tab,
     Tabs,
 )
@@ -26,8 +31,10 @@ from textual.widgets import (
 from lazy_kafka.config import Configuration
 from lazy_kafka.plugin import iter_plugins, load_builtin_plugins
 from lazy_kafka.theme import frog_theme
-from lazy_kafka.widgets.switcher import ContentSwitcher
 from lazy_kafka.widgets._logs import LogHandler, LogsScreen
+from lazy_kafka.widgets.switcher import ContentSwitcher
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class SettingsScreen(Screen):
@@ -35,8 +42,21 @@ class SettingsScreen(Screen):
 
     def compose(self) -> ComposeResult:
         assert self.app.lazy_kafka_config
-        yield Label("Default configuration file: ")
-        yield Label(f"  [yellow]{self.app._configuration_file.absolute()}[/]")
+        metadata = Static(
+            "\n".join(
+                [
+                    f"  [bold]Version:[/]      [green]{lazy_kafka.__version__}[/]",
+                    f"  [bold]Python:[/]       [green]{platform.python_version()}[/]",
+                    f"  [bold]Textual:[/]      [green]{importlib.metadata.version('textual')}[/]",
+                    f"  [bold]Platform:[/]     [green]{platform.platform()}[/]",
+                    f"  [bold]Config file:[/]  [yellow]{self.app._configuration_file.absolute()}[/]",
+                ]
+            ),
+            id="settings-metadata",
+        )
+        metadata.border_title = "lazy-kafka environment"
+        metadata.add_class("has-border")
+        yield metadata
         yield Pretty(self.app.lazy_kafka_config)
         yield Footer()
 
@@ -44,7 +64,7 @@ class SettingsScreen(Screen):
 class DashboardScreen(Screen):
     """Content screens."""
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list] = [
         ("l", "next_tab", "→"),
         ("h", "previous_tab", "←"),
     ]
@@ -73,7 +93,11 @@ class DashboardScreen(Screen):
         with ContentSwitcher(initial=initial, id="main-content-switcher"):
             for plugin in plugins:
                 result = plugin.build_panel(self.app.lazy_kafka_config)
-                yield Label(result, id=plugin.tab_id) if isinstance(result, str) else result
+                yield (
+                    Label(result, id=plugin.tab_id)
+                    if isinstance(result, str)
+                    else result
+                )
         yield Footer(show_command_palette=False)
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
@@ -89,19 +113,19 @@ class DashboardScreen(Screen):
         try:
             self.set_focus(cs.visible_content)
         except NoMatches:
-            logging.error("No DataTable component in %s", event.tab.id)
+            _LOGGER.error("No DataTable component in %s", event.tab.id)
 
 
 class LazyKafka(App[None]):
     """A Textual app to browse kafka related stuff'n such."""
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list] = [
         ("d", "switch_mode('dashboard')", "Dashboard"),
         ("s", "switch_mode('settings')", "Settings"),
         ("h", "switch_mode('help')", "Help"),
         Binding("L", "switch_mode('logs')", "Logs", show=True, priority=True),
     ]
-    MODES = {
+    MODES: ClassVar[dict] = {
         "dashboard": DashboardScreen,
         "settings": SettingsScreen,
         "logs": LogsScreen,
@@ -111,7 +135,7 @@ class LazyKafka(App[None]):
 
     def __init__(
         self,
-        driver_class: Type[Driver] | None = None,
+        driver_class: type[Driver] | None = None,
         css_path: CSSPathType | None = None,
         watch_css: bool = False,
         ansi_color: bool = False,
@@ -119,17 +143,17 @@ class LazyKafka(App[None]):
     ):
         try:
             self.lazy_kafka_config = Configuration.from_local_config()
-        except Exception:
+        except Exception:  # noqa: BLE001 - any config failure falls back to defaults
             # Use default config if loading fails
             self.lazy_kafka_config = Configuration()
-        
+
         load_builtin_plugins()
-        
+
         # Set up custom log handler for the logs widget
         # Don't set min_level here - it will be set after config is fully loaded in on_load
-        max_entries = getattr(self.lazy_kafka_config, 'max_log_entries', 1000)
+        max_entries = getattr(self.lazy_kafka_config, "max_log_entries", 1000)
         self.log_handler = log_handler or LogHandler(max_entries=max_entries)
-        
+
         super().__init__(driver_class, css_path, watch_css, ansi_color)
 
     @cached_property
@@ -141,19 +165,19 @@ class LazyKafka(App[None]):
         try:
             # Reload configuration from file to get any updates
             config = Configuration.from_toml(self._configuration_file)
-            logging.debug("app config: %s", f"{config}")
-            
+            _LOGGER.debug("app config: %s", config)
+
             # Update the stored config
             self.lazy_kafka_config = config
-            
+
             # Update the log handler settings from the reloaded config
             # Note: max_entries was already set in __init__, but config might have changed
             self.log_handler.set_max_entries(config.max_log_entries)
-            
+
             # The log level is now controlled by the LogsWidget, not the handler
             # The widget will use config.log_level as its initial filter level
-        except Exception as e:
-            logging.error("Failed to load configuration: %s", e)
+        except Exception as e:  # noqa: BLE001 - never crash the TUI on bad config
+            _LOGGER.error("Failed to load configuration: %s", e)
 
     def on_mount(self) -> None:
         self.register_theme(frog_theme)
@@ -162,16 +186,16 @@ class LazyKafka(App[None]):
 
 
 def main():
-    """Main entrypoint to the TUI and CLI."""
+    """Run the TUI main entrypoint to the TUI and CLI."""
     if len(sys.argv) <= 1:
         # Load configuration first to get settings
         try:
             config = Configuration.from_local_config()
-        except Exception:
+        except Exception:  # noqa: BLE001 - any config failure falls back to defaults
             config = Configuration()
 
         # Create log handler with configured settings BEFORE setting up basicConfig
-        max_entries = getattr(config, 'max_log_entries', 1000)
+        max_entries = getattr(config, "max_log_entries", 1000)
         log_handler = LogHandler(max_entries=max_entries)
 
         # Route all log records into the in-app log handler (displayed on the
@@ -183,16 +207,16 @@ def main():
             handlers=[log_handler],
             force=True,
         )
-        
+
         # Set the logging level for the root logger
         logging.getLogger().setLevel("NOTSET")
-        
+
         # Create the app with the pre-configured log handler
         app = LazyKafka(log_handler=log_handler)
-        
+
         # Store config reference for use in on_load
         app.lazy_kafka_config = config
-        
+
         app.run()
     else:
         from lazy_kafka.cli import app

@@ -20,6 +20,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class CoreKafkaPlugin:
+    """Builtin plugin providing the Kafka topics/messages dashboard."""
+
     name = "core-kafka"
     tab_label = "Topic"
     tab_id = "tab-topic"
@@ -30,7 +32,7 @@ class CoreKafkaPlugin:
             host, port_str = config.kafka.bootstrap_servers.split(":", 1)
             with socket.create_connection((host, int(port_str)), timeout=3):
                 pass
-            hook = KafkaClient(config.kafka)
+            hook = KafkaClient(config.kafka, registry=config.registry)
         except OSError as exc:
             _LOGGER.error("core-kafka: cannot connect", exc_info=exc)
             return "No connection"

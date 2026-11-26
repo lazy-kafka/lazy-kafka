@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Generator
-from typing import override
+from typing import TYPE_CHECKING, ClassVar, override
+
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
+    from textual.widget import Widget
 
 from textual import work
-from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.css.query import NoMatches
 from textual.reactive import Reactive, reactive
@@ -26,14 +29,10 @@ from lazy_kafka.widgets.common import WidgetWithDataTable
 
 _LOGGER = logging.getLogger(__name__)
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from textual.app import ComposeResult
-    from textual.widget import Widget
-
 
 class TopicDetails(ModalScreen):
+    """Modal screen with per-topic message details."""
+
     def __init__(
         self,
         topic: str,
@@ -70,7 +69,7 @@ class TopicDetailsWidget(WidgetWithDataTable[KafkaMessageId, list[LazyKafkaMessa
     BORDER_TITLE = "Topics"
     BORDER_SUBTITLE = "status"
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list] = [
         ("escape", "app.pop_screen", "close"),
     ]
 
@@ -78,8 +77,11 @@ class TopicDetailsWidget(WidgetWithDataTable[KafkaMessageId, list[LazyKafkaMessa
     details: Reactive[LazyKafkaMessage | None] = reactive(None)
 
     def __init__(self, hook: KafkaTopicDetailsClient, topic: str, *args, **kwargs):
-        self.subjects = dict()
-        self.hook = KafkaTopicDetailsClient(hook.config)
+        self.subjects = {}
+        # The hook is injected already wired for this topic (registry config
+        # and AVRO decoding included). Rebuilding it here would spawn a
+        # second, uncontrolled consumer per details view.
+        self.hook = hook
         self.topic = topic
 
         self.data_auto_refresh = False
@@ -108,12 +110,12 @@ class TopicDetailsWidget(WidgetWithDataTable[KafkaMessageId, list[LazyKafkaMessa
         data_table.loading = display_load
         _response = await self.hook.asubjects(self.topic)
         self.subjects = self.subject_to_table(_response)
-        _LOGGER.debug(f"self.subjects is None: {self.subjects is None}")
+        _LOGGER.debug("self.subjects is None: %s", self.subjects is None)
         for k, v in self.subjects.items():
+            # `raw` payload bytes are excluded: only display columns are added.
             try:
-                data_table.add_row(*v, key=k)
+                data_table.add_row(*v.to_table_values().values(), key=k)
             except DuplicateKey:
-                # No details are shown in rows, so it's ok to just pass
                 continue
         # Set the cursor to the same row
         # TODO: emit data-loaded event and react to that with "move_cursor"
@@ -150,5 +152,5 @@ class TopicDetailsWidget(WidgetWithDataTable[KafkaMessageId, list[LazyKafkaMessa
     def subject_to_table(
         self, response: list[LazyKafkaMessage], *args, **kwargs
     ) -> dict[KafkaMessageId, LazyKafkaMessage]:
-        _LOGGER.debug(f"{response=}")
+        _LOGGER.debug("response=%r", response)
         return {i.offset: i for i in response}

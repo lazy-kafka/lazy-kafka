@@ -1,6 +1,12 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+from unittest.mock import AsyncMock
+
 from textual.widget import Widget
+
+if TYPE_CHECKING:
+    import pytest
 
 from lazy_kafka.__main__ import LazyKafka
 from lazy_kafka.widgets._logs import LogsWidget
@@ -29,6 +35,33 @@ async def test_keyboard_bindings_headless():
         await pilot.press("s")  # switch to settings mode
         await pilot.pause()
         assert app.screen.__class__.__name__ == "SettingsScreen"
+
+
+async def test_settings_screen_shows_environment_metadata():
+    """The settings screen must lead with version/runtime metadata."""
+    import importlib.metadata
+    import platform as pyplatform
+
+    from textual.widgets import Static
+
+    from lazy_kafka import __version__
+
+    app = LazyKafka()
+    async with app.run_test(size=(100, 40)) as pilot:
+        await pilot.pause()
+        await pilot.press("s")
+        await pilot.pause()
+        metadata = app.screen.query_one("#settings-metadata", Static)
+        content = metadata.content
+        assert __version__ in content
+        assert importlib.metadata.version("textual") in content
+        assert pyplatform.python_version() in content
+        # config file path is shown inside the metadata panel
+        assert str(app._configuration_file.absolute()) in content
+        # exactly one footer on the screen
+        from textual.widgets import Footer
+
+        assert len(app.screen.query(Footer)) == 1
 
 
 async def test_logs_screen_headless():
@@ -205,7 +238,6 @@ async def test_log_handler_captures_without_console_output(capsys):
         logging.getLogger().handlers.clear()
 
 
-
 async def test_message_sparkline_shows_timestamp_distribution():
     """The Messages screen sparkline reflects the loaded messages' timestamps."""
     from unittest.mock import MagicMock
@@ -216,9 +248,7 @@ async def test_message_sparkline_shows_timestamp_distribution():
     from lazy_kafka.widgets.topic_details import TopicDetails, TopicDetailsWidget
 
     messages = [
-        LazyKafkaMessage(
-            "2024-01-01T00:00:%02d+00:00" % s, s, b"key", "body"
-        )
+        LazyKafkaMessage(f"2024-01-01T00:00:{s:02d}+00:00", s, b"key", "body")
         for s in range(4)
     ]
     messages += [LazyKafkaMessage("2024-01-01T00:01:00+00:00", 4, b"key", "late")]
@@ -227,6 +257,10 @@ async def test_message_sparkline_shows_timestamp_distribution():
     async with app.run_test(size=(120, 40)) as pilot:
         hook = MagicMock()
         hook.config = app.lazy_kafka_config.kafka
+        # The widget consumes the injected hook as-is: keep its async
+        # interface awaited, returning no rows.
+        hook.asubjects = AsyncMock(return_value=[])
+        hook.aget_details = AsyncMock(return_value={})
         await app.push_screen(TopicDetails(hook=hook, topic="test-topic"))
         await pilot.pause()
 
@@ -236,7 +270,8 @@ async def test_message_sparkline_shows_timestamp_distribution():
 
         sparkline = app.screen.query_one("#message-distribution", Sparkline)
         data = sparkline.data
-        assert data is not None and len(data) == 100
+        assert data is not None
+        assert len(data) == 100
         assert sum(data) == 5
         # bucket i covers seconds [i * 0.6, (i + 1) * 0.6) of the message range
         # (0s..3s, plus the late message at 60s -> clamped into the last bucket)
@@ -245,3 +280,59 @@ async def test_message_sparkline_shows_timestamp_distribution():
             expected[int(second / 60 * 100)] += 1
         expected[99] += 1
         assert data == expected
+
+
+async def test_topic_panels_fill_available_height(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """The has-border panel must reach the bottom of the space below the Tabs
+    (regression: max-height 90% + ContentSwitcher height:auto left a gap)."""
+
+    from lazy_kafka.plugins.core_kafka import CoreKafkaPlugin
+    from lazy_kafka.widgets.common import WidgetWithDataTable
+    from lazy_kafka.widgets.topic import TopicPanel
+
+    class _NoopHook:
+        """Stands in for the Kafka hook: layout must not depend on a broker."""
+
+        async def asubjects(self) -> dict[str, Any]:
+            return {}
+
+    def _fake_build_panel(self, config: Any):
+        return TopicPanel(id=self.tab_id, classes="has-border", hook=_NoopHook())
+
+    # The dashboard mounts a live TopicPanel only when its connection probe
+    # succeeds; stub it so this layout test cannot depend on a local broker
+    # (`query_one("WidgetWithDataTable")` would otherwise pick a *hidden*
+    # inactive tab and compare a 0x0 region — the original CI failure).
+    monkeypatch.setattr(CoreKafkaPlugin, "build_panel", _fake_build_panel)
+
+    app = LazyKafka()
+    async with app.run_test(size=(100, 40)) as pilot:
+        await pilot.pause()
+        from textual.widgets import Tabs
+
+        tabs = app.screen.query_one("#tabs", Tabs)
+        switcher = app.screen.query_one("#main-content-switcher")
+
+        screen_region = app.screen.region
+        switcher_region = switcher.region
+        content = switcher.visible_content
+        assert isinstance(content, WidgetWithDataTable), (
+            f"expected a live panel below the tabs, got {content!r}"
+        )
+        panel_region = content.region
+
+        # switcher fills everything below the Tabs
+        margin_above = switcher_region.y - (tabs.region.y + tabs.region.height)
+        assert margin_above <= 1
+        assert (
+            switcher_region.height
+            >= screen_region.height - tabs.region.height - switcher_region.y - 1
+        )
+        # the bordered panel fills the switcher exactly
+        assert panel_region.height == switcher_region.height, (
+            f"panel {panel_region} vs switcher {switcher_region}"
+        )
+        # panel bottom lands at the screen bottom (footer is docked on top)
+        assert panel_region.y + panel_region.height >= screen_region.height - 1

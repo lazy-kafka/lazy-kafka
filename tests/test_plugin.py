@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from lazy_kafka.config import Configuration
-from lazy_kafka.plugin import Plugin, _PLUGINS, iter_plugins, load_builtin_plugins, register
+from lazy_kafka.plugin import (
+    _PLUGINS,
+    Plugin,
+    iter_plugins,
+    load_builtin_plugins,
+    register,
+)
 
 if TYPE_CHECKING:
     from textual.widgets import Widget
@@ -33,7 +40,7 @@ class TestPlugin:
         assert "tab_label" in Plugin.__annotations__
         assert "name" in Plugin.__annotations__
         assert "cli_name" in Plugin.__annotations__
-        
+
         # Also check that the protocol has the methods
         assert "build_panel" in dir(Plugin)
         assert "build_cli" in dir(Plugin)
@@ -44,41 +51,43 @@ class TestRegister:
 
     def test_register_returns_plugin(self) -> None:
         """Test that register returns the plugin."""
+
         @register
         class TestPluginClass:
             name = "test-plugin"
             tab_id = "test"
             tab_label = "Test"
             cli_name = None
-            
+
             def build_panel(self, config: Configuration) -> Widget | str:
                 return "test"
-            
+
             def build_cli(self) -> Any | None:
                 return None
-        
+
         plugin = TestPluginClass()
         result = register(plugin)
         assert isinstance(result, TestPluginClass)
 
     def test_register_adds_to_registry(self) -> None:
         """Test that register adds the plugin to the registry."""
+
         @register
         class TestPluginClass:
             name = "test-registry-plugin"
             tab_id = "test-registry"
             tab_label = "Test Registry"
             cli_name = None
-            
+
             def build_panel(self, config: Configuration) -> Widget | str:
                 return "test"
-            
+
             def build_cli(self) -> Any | None:
                 return None
-        
+
         # Create an instance to trigger registration
-        plugin = TestPluginClass()
-        
+        TestPluginClass()
+
         # Check that the plugin is in the registry
         plugins = list(iter_plugins())
         assert any(p.tab_id == "test-registry" for p in plugins)
@@ -94,6 +103,7 @@ class TestIterPlugins:
 
     def test_iter_plugins_yields_plugins(self) -> None:
         """Test that iter_plugins yields Plugin instances."""
+
         # Register a test plugin first
         @register
         class TestIterPluginClass:
@@ -101,18 +111,18 @@ class TestIterPlugins:
             tab_id = "test-iter"
             tab_label = "Test Iter"
             cli_name = None
-            
+
             def build_panel(self, config: Configuration) -> str:
                 return "test"
-            
+
             def build_cli(self) -> None:
                 return None
-        
+
         # Create instance to register
         TestIterPluginClass()
-        
+
         plugins = list(iter_plugins())
-        
+
         # Should have at least our test plugin
         assert len(plugins) > 0
         for plugin in plugins:
@@ -131,10 +141,10 @@ class TestLoadBuiltinPlugins:
         # The actual plugin loading happens at import time
         try:
             load_builtin_plugins()
-        except Exception as e:
+        except Exception as exc:  # noqa: BLE001 - dependencies may be missing in the test env
             # May fail if dependencies are not available in test environment
             # That's acceptable for this test
-            pass
+            logging.getLogger(__name__).debug("load_builtin_plugins failed: %s", exc)
 
 
 class TestPluginImplementation:
@@ -144,7 +154,7 @@ class TestPluginImplementation:
         """Test that all plugins have unique tab_ids."""
         load_builtin_plugins()
         plugins = list(iter_plugins())
-        
+
         tab_ids = [p.tab_id for p in plugins]
         # Check for duplicates
         assert len(tab_ids) == len(set(tab_ids))
@@ -153,7 +163,7 @@ class TestPluginImplementation:
         """Test that all plugins have non-empty tab_labels."""
         load_builtin_plugins()
         plugins = list(iter_plugins())
-        
+
         for plugin in plugins:
             assert plugin.tab_label, f"Plugin {plugin.tab_id} has empty tab_label"
 
@@ -162,7 +172,7 @@ class TestPluginImplementation:
         load_builtin_plugins()
         plugins = list(iter_plugins())
         config = Configuration()
-        
+
         for plugin in plugins:
             result = plugin.build_panel(config)
             # Should be either a Widget or a string
@@ -172,7 +182,7 @@ class TestPluginImplementation:
         """Test that build_cli may return None."""
         load_builtin_plugins()
         plugins = list(iter_plugins())
-        
+
         for plugin in plugins:
             result = plugin.build_cli()
             # Should be either None or a CLI command

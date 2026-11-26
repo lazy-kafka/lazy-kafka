@@ -20,9 +20,7 @@ def get_current_time() -> str:
     return time_str
 
 
-def timestamp_histogram(
-    timestamps: Sequence[str], num_buckets: int = 100
-) -> list[int]:
+def timestamp_histogram(timestamps: Sequence[str], num_buckets: int = 100) -> list[int]:
     """Bucket ISO-8601 timestamps into a histogram of counts.
 
     The first bucket holds the oldest timestamps, the last the newest.

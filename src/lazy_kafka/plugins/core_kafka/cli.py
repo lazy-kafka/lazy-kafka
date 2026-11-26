@@ -68,19 +68,21 @@ def consume(
     ctx: typer.Context,
     topic: Annotated[str, typer.Argument(help="Name of the topic", show_default=False)],
     config_file: Annotated[
-        Path,
+        Path | None,
         typer.Option(
             "--config-file",
             "-f",
             help="Path to lazy-kafka config file.",
             rich_help_panel="[i][green]Customization and Utils[/]",
         ),
-    ] = Configuration.default_config_file_path(),
+    ] = None,
 ):
     """Watch for new messages in [i]`topic`[/] until stopped.
 
-    [blue]🐣 lazy-kafka ➜ python src/lazy_kafka/scripts/topic_schema_producer.py
+    [blue]🐣 lazy-kafka ➜ uv run python src/lazy_kafka/scripts/produce_from_schema.py test-topic
     """
+    if config_file is None:
+        config_file = Configuration.default_config_file_path()
     cfg = Configuration().from_toml(config_file)
     consumer = Consumer(cfg.kafka.to_config())
 
@@ -107,14 +109,14 @@ def consume(
 def produce(
     topic: Annotated[str, typer.Argument(help="Name of the topic", show_default=False)],
     config_file: Annotated[
-        Path,
+        Path | None,
         typer.Option(
             "--config-file",
             "-f",
             help="Path to lazy-kafka config file.",
             rich_help_panel="[i][green]Customization and Utils[/]",
         ),
-    ] = Configuration.default_config_file_path(),
+    ] = None,
 ):
     """Produce new messages in [i]`topic`[/] until stopped.
 
@@ -126,6 +128,8 @@ def produce(
       - AVRO Schema
       - Protobuff
     """
+    if config_file is None:
+        config_file = Configuration.default_config_file_path()
     print("Press <C>+C to stop producing messages.")
     _produce(topic, config_file)
 
@@ -151,11 +155,11 @@ def _produce(topic: str, config_file: Path):
             }
         )
 
-        return dict(
-            name=str([chr(random.randint(97, 122)) for _ in range(4)]),
-            favorite_number=random.randint(0, 10),
-            favorite_color=random.choice(["blue", "red"]),
-        )
+        return {
+            "name": str([chr(random.randint(97, 122)) for _ in range(4)]),
+            "favorite_number": random.randint(0, 10),
+            "favorite_color": random.choice(["blue", "red"]),
+        }
 
     with rich.progress.Progress(
         rich.progress.SpinnerColumn(),
@@ -169,14 +173,14 @@ def _produce(topic: str, config_file: Path):
 
         def _delivery_report(err, msg):
             """
-            Reports the success or failure of a message delivery.
+            Report the success or failure of a message delivery.
 
             Args:
                 err (KafkaError): The error that occurred on None on success.
                 msg (Message): The message that was produced or failed.
             """
             if err is not None:
-                _LOGGER.info(f"Delivery failed for User record {msg.key()}: {err}")
+                _LOGGER.info("Delivery failed for User record %s: %s", msg.key(), err)
                 return
             prog.log(
                 f"Record {msg.key()} successfully produced to [blue]{msg.topic()}[/] partition-{msg.partition()} at offset [orange]{msg.offset()}[/]."

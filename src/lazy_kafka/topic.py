@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -27,7 +28,8 @@ from confluent_kafka.admin import (
     TopicMetadata as ConfluentTopicMetadata,
 )
 
-from lazy_kafka.config import KafkaConfiguration
+from lazy_kafka.config import KafkaConfiguration, RegistryConfiguration
+from lazy_kafka.serializers import AvroMessageDecoder
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,19 +42,13 @@ def _timestamp_to_str(timestamp: int) -> str:
 class NoMessagesError(Exception):
     """No message retrieved by consumer."""
 
-    pass
-
 
 class MessageRetriableError(Exception):
     """No message retrieved by consumer."""
 
-    pass
-
 
 class ConsumerPollError(Exception):
     """Too many poll() calls and no message retrieved."""
-
-    pass
 
 
 class OffsetInvalidError(Exception):
@@ -60,8 +56,6 @@ class OffsetInvalidError(Exception):
 
     [ref](https://github.com/confluentinc/confluent-kafka-python/blob/master/examples/get_watermark_offsets.py)
     """
-
-    pass
 
 
 class LazyKafkaMessage(NamedTuple):
@@ -71,6 +65,7 @@ class LazyKafkaMessage(NamedTuple):
     offset: int
     key: bytes
     message: str
+    raw: bytes | None = None
 
     @classmethod
     def from_confluent_kafka(cls, msg: Message) -> Self:
@@ -81,7 +76,7 @@ class LazyKafkaMessage(NamedTuple):
         if timestamp_type[0] != 1:
             raise ValueError("Timestamp type not available")
         timestamp = _timestamp_to_str(timestamp_type[1])
-        return cls(timestamp, msg.offset(), msg.key(), str(msg.value()))
+        return cls(timestamp, msg.offset(), msg.key(), str(msg.value()), msg.value())
 
     # TODO: this method is not used at the moment,
     #   fix the interface implementations including this one
@@ -95,6 +90,8 @@ class LazyKafkaMessage(NamedTuple):
 
 
 class TopicMetadata(ConfluentTopicMetadata):
+    """Standard topic metadata as returned by AdminClient."""
+
     topic: str | None
     partition: Mapping[Any, Any]
     error: Any
@@ -128,9 +125,14 @@ class KafkaClient:
     WATERMARK_TIMEOUT_SECONDS = 10.0
     MAX_CONSUMER_POLL = 100
 
-    def __init__(self, config: KafkaConfiguration):
+    def __init__(
+        self,
+        config: KafkaConfiguration,
+        registry: RegistryConfiguration | None = None,
+    ):
         self.config = config
-        _LOGGER.debug(f"{self.config=}")
+        self.registry = registry
+        _LOGGER.debug("config=%r", self.config)
         _LOGGER.debug("Instantiate Consumer")
         logger = logging.getLogger("consumer")
         logger.setLevel(logging.DEBUG)
@@ -146,12 +148,12 @@ class KafkaClient:
         self._client.assign(partitions)
 
     def list_topics(self) -> dict[Topic, TopicMetadata]:
-        """Using AdminClient get metadata about all topics."""
+        """Fetch metadata about all topics using the AdminClient."""
         admin_client = AdminClient(self.config.to_config())
         raw_topics: list[TopicMetadata] = list(
             admin_client.list_topics(timeout=1000).topics.values()
         )
-        _LOGGER.debug(f"{raw_topics=}")
+        _LOGGER.debug("raw_topics=%r", raw_topics)
         return {Topic(i.topic): i for i in raw_topics if i.topic is not None}
 
     def asubjects(self) -> asyncio.Future[dict[Topic, TopicMetadata]]:
@@ -297,7 +299,7 @@ class KafkaClient:
         """
         partition_offsets = {}
         committed = self._client.committed(partitions, timeout=1000)
-        _LOGGER.debug(f"{committed=}")
+        _LOGGER.debug("committed=%r", committed)
         for partition in committed:
             # Get the beginning and end offsets for this partition
             low_offset, high_offset = self.get_watermark_offsets(partition)
@@ -310,8 +312,8 @@ class KafkaClient:
             assert start_offset >= 0
             # Store the offset and how many messages we expect from this partition
             partition_offsets[partition] = (start_offset, high_offset)
-            _LOGGER.debug(f"{partition=}")
-            _LOGGER.debug(f"{start_offset=} - {high_offset=}")
+            _LOGGER.debug("partition=%r", partition)
+            _LOGGER.debug("start_offset=%r - high_offset=%r", start_offset, high_offset)
         return partition_offsets
 
     def better_consume_n(self, topic: str, n: int) -> list[LazyKafkaMessage]:
@@ -360,7 +362,9 @@ class KafkaClient:
                         TopicPartition(partition.topic, partition.partition, 0)
                     ]
                     _LOGGER.debug(
-                        f"Partition offset: {current_position=}, {high_offset=}"
+                        "Partition offset: current_position=%r, high_offset=%r",
+                        current_position,
+                        high_offset,
                     )
                     current_offset = current_position.offset
                     if current_offset < high_offset:
@@ -376,7 +380,7 @@ class KafkaClient:
                 print("---Message---")
                 print(f"{msg.value()}")
                 print(f"{msg.error().reason()}")
-                print("")
+                print()
                 error_code = msg.error().code()
                 if error_code == KafkaError._PARTITION_EOF:
                     # End of partition, not an error
@@ -426,16 +430,50 @@ class KafkaClient:
 
 
 class KafkaTopicDetailsClient(KafkaClient):
-    def __init__(self, config: KafkaConfiguration, *args, **kwargs):
+    """KafkaClient serving the topic details (message transcript) screen.
+
+    The `aget_details` converter attached here enriches each message with a
+    schema-based representation when possible. When the topic carries an
+    AVRO value schema, message payloads are decoded with an
+    AvroMessageDecoder; otherwise the previous JSON-extraction behaviour is
+    kept. Any decode error degrades gracefully — the raw message text is
+    shown instead, and errors surface in the Logs view, never the UI.
+    """
+
+    def __init__(
+        self,
+        config: KafkaConfiguration,
+        registry: RegistryConfiguration | None = None,
+        topic: str | None = None,
+        *args,
+        **kwargs,
+    ):
         super().__init__(config)
         # re-assign the methods to comply with the service interface:
         # asubjects and aget_details
         self.asubjects = self.aget_last_n_messages
 
-        async def _msg_converter(message):
-            import json
+        avro_decoder = (
+            AvroMessageDecoder(topic=topic, registry=registry)
+            if topic and registry is not None
+            else None
+        )
 
-            _LOGGER.debug(message)
+        def _msg_details(message: LazyKafkaMessage | None):
+            if message is None:
+                return {}
+            # Note: `raw` holds the untouched payload bytes; `message` is
+            # `str(raw)` and only meaningful for textual payloads.
+            payload = getattr(message, "raw", None)
+
+            if avro_decoder is not None and payload:
+                decoded = avro_decoder.decode(payload)
+                if decoded is not None:
+                    return decoded
+                # JSON-encoded payloads legitimately lack the Confluent wire
+                # magic byte — fall through to the plain-JSON handling.
+
+            _LOGGER.debug("%s", message)
             try:
                 _msg = message.message
             except AttributeError:
@@ -447,16 +485,23 @@ class KafkaTopicDetailsClient(KafkaClient):
                 details = json.loads(
                     "{" + str(_msg).split(sep="{")[1].rsplit("}")[0] + "}"
                 )
-            except json.JSONDecodeError as e:
-                _LOGGER.error(e)
+            except (json.JSONDecodeError, IndexError) as e:
+                # Not JSON (or not braces-bounded JSON): show raw text.
+                _LOGGER.debug("Message not JSON: %s", e)
                 details = str(_msg)
             return details
 
-        self.aget_details = _msg_converter
+        async def get_details(message: LazyKafkaMessage | None):
+            """Service interface for `WidgetWithDataTable` (awaited)."""
+            return _msg_details(message)
+
+        self.aget_details = get_details
 
 
 @dataclass
 class TopicData:
+    """Aggregated topic data across all partitions."""
+
     topic: str
     partitions: object
 
@@ -512,7 +557,7 @@ if __name__ == "__main__":
     (lo, hi) = consumer.get_watermark_offsets(
         t, timeout=WATERMARK_TIMEOUT_SECONDS, cached=False
     )
-    _LOGGER.debug(f"{lo=} {hi=}")
+    _LOGGER.debug("lo=%r hi=%r", lo, hi)
 
     offset = get_last_n_offset(hi, READ_LAST_N_MESSAGES)
     _LOGGER.debug("reading from offset=%s", offset)
@@ -528,7 +573,7 @@ if __name__ == "__main__":
             if msg is None:
                 continue
             _LOGGER.debug(
-                "%s", f"{msg.offset():<5}, {str(msg.value()):>10}, {msg.topic():>}"
+                "%s", f"{msg.offset():<5}, {msg.value()!s:>10}, {msg.topic():>}"
             )
         except KeyboardInterrupt:
             break

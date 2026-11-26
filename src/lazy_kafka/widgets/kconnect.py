@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, ClassVar
 
 from textual.reactive import Reactive, reactive
 from textual.widgets import (
@@ -18,7 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _apply_styling(d: connect.ConnectorData) -> connect.ConnectorData:
-    """
+    """Normalize and style a connector data payload.
 
     Possible states:
         RUNNING
@@ -57,7 +57,7 @@ class KConnectPanel(WidgetWithDataTable[connect.ConnectorData, Any]):
     BORDER_TITLE = "Connectors"
     BORDER_SUBTITLE = "status"
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list] = [
         ("c", "create", "create"),
         ("d", "delete", "delete"),
     ]
@@ -66,7 +66,7 @@ class KConnectPanel(WidgetWithDataTable[connect.ConnectorData, Any]):
     details: Reactive[connect.ConnectorData] = reactive(connect.ConnectorData())
 
     def __init__(self, hook: connect.Connect, *args: Any, **kwargs: Any):
-        self.subjects = dict()
+        self.subjects = {}
         self.hook = hook
         self.data_auto_refresh = False
         super().__init__(*args, **kwargs)

@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol, TypeVar, runtime_checkable
 
-T = TypeVar("T", covariant=True)
-S = TypeVar("S", covariant=True)
-
-StrLike = TypeVar("StrLike", covariant=True, bound=str)
+StrLike_co = TypeVar("StrLike_co", covariant=True, bound=str)
 """Type for str derived types e.g.: topic.Topic."""
 
 

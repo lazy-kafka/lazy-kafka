@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Iterable
+from collections.abc import Iterator
 from dataclasses import asdict, dataclass
 from functools import partialmethod
 from typing import TYPE_CHECKING, Any, Self
@@ -21,8 +21,6 @@ _LOGGER = logging.getLogger(__name__)
 
 class ConnectionRefusedError(Exception):
     """Connection was refused."""
-
-    pass
 
 
 @dataclass(frozen=True, slots=False)
@@ -43,7 +41,7 @@ class ConnectorData:
     worker_id: str | None = None
     type: str | None = None
 
-    def __iter__(self: Self) -> Iterable[str | None]:
+    def __iter__(self: Self) -> Iterator[str | None]:
         return iter(self.__dict__.values())
 
     def to_dict(self: Self) -> dict[str, Any]:
@@ -71,10 +69,12 @@ class ConnectorData:
 
 
 class Connect:
+    """Client for the Kafka Connect REST API."""
+
     # [Reference](https://docs.confluent.io/platform/current/connect/references/restapi.html#content-types)
     _CONTENT_TYPE = "application/json"
 
-    def __init__(self, config: ConnectConfiguration = ConnectConfiguration()) -> None:
+    def __init__(self, config: ConnectConfiguration | None = None) -> None:
         """Initialise client.
 
         Performs a sanity 'get' request, before creating a client.
@@ -82,6 +82,8 @@ class Connect:
         Args:
             host:
         """
+        if config is None:
+            config = ConnectConfiguration()
         _auth = None
         if config.username and config.password:
             # Basic authentication
@@ -109,25 +111,29 @@ class Connect:
         return response.json()
 
     async def _ageneric_get_json(self, url: str) -> dict[str, Any]:
-        """Generic async GET request."""
+        """Perform a generic async GET request."""
         _LOGGER.debug("%s GET request: %s", self, url)
         response = await self._client.get(url)
         return response.json()
 
-    async def _ageneric_post_json(self, url: str, json_data: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Generic async POST request with JSON."""
+    async def _ageneric_post_json(
+        self, url: str, json_data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """Perform a generic async POST request with JSON."""
         _LOGGER.debug("%s POST request: %s", self, url)
         response = await self._client.post(url, json=json_data)
         return response.json()
 
-    async def _ageneric_put_json(self, url: str, json_data: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Generic async PUT request with JSON."""
+    async def _ageneric_put_json(
+        self, url: str, json_data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """Perform a generic async PUT request with JSON."""
         _LOGGER.debug("%s PUT request: %s", self, url)
         response = await self._client.put(url, json=json_data)
         return response.json()
 
     async def _ageneric_delete(self, url: str) -> dict[str, Any]:
-        """Generic async DELETE request."""
+        """Perform a generic async DELETE request."""
         _LOGGER.debug("%s DELETE request: %s", self, url)
         response = await self._client.delete(url)
         return response.json()
@@ -151,7 +157,7 @@ class Connect:
 
     async def aget_details(self, connector_id: ConnectorData):
         # todo get connector details
-        _LOGGER.debug(f"{connector_id=}")
+        _LOGGER.debug("connector_id=%r", connector_id)
         return connector_id.to_dict()
 
     asubjects = alist
@@ -169,11 +175,17 @@ class Connect:
         """Get connector status."""
         return await self._ageneric_get_json(f"/connectors/{name}/status")
 
-    async def aconnector_create(self, name: str, config: dict[str, Any]) -> dict[str, Any]:
+    async def aconnector_create(
+        self, name: str, config: dict[str, Any]
+    ) -> dict[str, Any]:
         """Create a connector."""
-        return await self._ageneric_post_json("/connectors", {"name": name, "config": config})
+        return await self._ageneric_post_json(
+            "/connectors", {"name": name, "config": config}
+        )
 
-    async def aconnector_update(self, name: str, config: dict[str, Any]) -> dict[str, Any]:
+    async def aconnector_update(
+        self, name: str, config: dict[str, Any]
+    ) -> dict[str, Any]:
         """Update a connector."""
         return await self._ageneric_put_json(f"/connectors/{name}/config", config)
 

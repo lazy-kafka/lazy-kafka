@@ -44,24 +44,24 @@ def create(
         ),
     ] = registry.SchemaTypes.JSON,
     config_file: Annotated[
-        Path,
+        Path | None,
         typer.Option(
             "--config-file",
             "-f",
             help="Path to lazy-kafka config file.",
             rich_help_panel="[i][green]Customization and Utils[/]",
         ),
-    ] = Configuration.default_config_file_path(),
+    ] = None,
 ):
     """Submit a new schema  ([i]`subject`[/]).
 
     If the schema already exists, a "latest" version is going to be registered.
     """
+    if config_file is None:
+        config_file = Configuration.default_config_file_path()
     cfg = Configuration().from_toml(config_file)
     client = registry.SchemaRegistry(cfg.registry)
-    version = typer.prompt(
-        "Provide the schema version (int). Press enter to use 'latest'."
-    )
+    typer.prompt("Provide the schema version (int). Press enter to use 'latest'.")
 
     async def _subject_create():
         await client.asubjects_create(

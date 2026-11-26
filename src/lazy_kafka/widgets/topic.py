@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Generator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from textual.reactive import Reactive, reactive
 from textual.widgets import (
@@ -11,6 +11,7 @@ from textual.widgets import (
 
 from lazy_kafka.topic import (
     KafkaClient,
+    KafkaTopicDetailsClient,
     Topic,
     TopicData,
     TopicMetadata,
@@ -32,7 +33,7 @@ class TopicPanel(WidgetWithDataTable[Topic, TopicMetadata]):
 
     BORDER_TITLE = "Topics"
     BORDER_SUBTITLE = "status"
-    BINDINGS = [
+    BINDINGS: ClassVar[list] = [
         ("enter", "details", "Details"),
     ]
 
@@ -41,10 +42,17 @@ class TopicPanel(WidgetWithDataTable[Topic, TopicMetadata]):
 
     def action_details(self):
         assert self.details is not None
-        self.app.push_screen(TopicDetails(hook=self.hook, topic=self.details.topic))
+        # Wire a dedicated details client for this topic (registry config and
+        # AVRO decoding included) — the widget consumes it as injected.
+        hook = KafkaTopicDetailsClient(
+            self.hook.config,
+            registry=getattr(self.hook, "registry", None),
+            topic=self.details.topic,
+        )
+        self.app.push_screen(TopicDetails(hook=hook, topic=self.details.topic))
 
     def __init__(self, hook: KafkaClient, *args, **kwargs):
-        self.subjects = dict()
+        self.subjects = {}
         self.hook = hook
         self.data_auto_refresh = False
         super().__init__(*args, **kwargs)
@@ -60,7 +68,7 @@ class TopicPanel(WidgetWithDataTable[Topic, TopicMetadata]):
         super().on_mount()
 
     def subject_to_table(self, response: dict[Topic, TopicMetadata], *args, **kwargs):
-        return {i: i for i in response.keys()}
+        return {i: i for i in response}
 
     def apply_filter(
         self, data: Topic, token: str, *, textual_styling="dark_orange"

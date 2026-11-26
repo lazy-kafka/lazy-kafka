@@ -121,6 +121,7 @@ Unit tests test individual functions or classes in isolation, using mocks for de
 
 ```python
 """tests/unit/test_config.py"""
+
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -156,7 +157,7 @@ host = "http://test-connect:8083"
         with NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
             f.write(toml_content)
             f.flush()
-            
+
             config = Configuration.from_toml(Path(f.name))
             assert config.kafka.bootstrap_servers == "test-server:9092"
             assert config.registry.host == "http://test-registry:8081"
@@ -168,7 +169,7 @@ host = "http://test-connect:8083"
             group_id="test-group",
         )
         result = kafka_config.to_config()
-        
+
         assert result["bootstrap.servers"] == "localhost:9092"
         assert result["group.id"] == "test-group"
 ```
@@ -181,6 +182,7 @@ Integration tests test how components work together, with minimal mocking.
 
 ```python
 """tests/integration/test_cli.py"""
+
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -231,6 +233,7 @@ Use pytest fixtures for shared test dependencies.
 
 ```python
 """tests/conftest.py"""
+
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -254,7 +257,7 @@ def mock_kafka_client(mock_kafka_config):
     with patch("lazy_kafka.topic.Consumer") as mock_consumer_class:
         mock_consumer = MagicMock()
         mock_consumer_class.return_value = mock_consumer
-        
+
         # Mock admin client
         with patch("lazy_kafka.topic.AdminClient") as mock_admin_class:
             mock_admin = MagicMock()
@@ -264,7 +267,7 @@ def mock_kafka_client(mock_kafka_config):
                 topics={"test-topic": mock_topic_metadata}
             )
             mock_admin_class.return_value = mock_admin
-            
+
             client = KafkaClient(mock_kafka_config)
             yield client
 
@@ -359,18 +362,18 @@ from unittest.mock import patch
 import httpx
 import pytest
 
+
 # Using pytest-httpx (recommended)
 @pytest.mark.asyncio
 async def test_schema_registry_list_subjects():
     """Test SchemaRegistry.list_subjects with mocked HTTP."""
     from lazy_kafka.registry import SchemaRegistry
-    
+
     # Mock response
     mock_response = httpx.Response(
-        status_code=200,
-        json=["test-subject-1", "test-subject-2"]
+        status_code=200, json=["test-subject-1", "test-subject-2"]
     )
-    
+
     # Patch httpx.AsyncClient.get
     with patch.object(httpx.AsyncClient, "get", return_value=mock_response):
         registry = SchemaRegistry(config)
@@ -386,18 +389,19 @@ For testing TUI components:
 from textual.app import App
 from textual.widgets import DataTable
 
+
 # Use Textual's testing utilities
 async def test_topic_panel():
     """Test TopicPanel widget."""
     from lazy_kafka.widgets.topic import TopicPanel
-    
+
     # Create a test app
     app = App()
-    
+
     # Mount the panel
     panel = TopicPanel(mock_hook)
     await app.mount(panel)
-    
+
     # Test panel behavior
     assert panel.BORDER_TITLE == "Topics"
 ```
@@ -474,7 +478,8 @@ Use descriptive test names:
 # Good
 def test_configuration_from_toml_loads_kafka_settings():
     """Test that Configuration.from_toml loads Kafka settings correctly."""
-    
+
+
 # Bad (too vague)
 def test_config():
     pass
@@ -490,16 +495,20 @@ def test_create_topic():
     topic = Topic("test-topic")
     # Test with this topic
 
+
 def test_list_topics():
     topics = [Topic("topic-1"), Topic("topic-2")]
     # Test with these topics
-    
+
+
 # Bad: Tests depend on each other
 test_topic = None
+
 
 def test_create():
     global test_topic
     test_topic = Topic("test")
+
 
 def test_use():
     # Depends on test_create running first
@@ -535,13 +544,16 @@ class TestClient:
 # Good: Test edge cases
 def test_parse_message_with_none_value():
     """Test parsing a message with None value."""
-    
+
+
 def test_parse_message_with_empty_string():
     """Test parsing a message with empty string."""
-    
+
+
 def test_parse_message_with_malformed_json():
     """Test parsing a message with malformed JSON."""
-    
+
+
 # Bad: Only test happy path
 def test_parse_message():
     # Only tests valid JSON
@@ -557,7 +569,8 @@ def test_list_topics():
     assert len(topics) == 3
     assert "test-topic" in topics
     assert all(isinstance(t, Topic) for t in topics)
-    
+
+
 # Bad: Vague assertions
 def test_list_topics():
     topics = client.list_topics()
@@ -569,11 +582,14 @@ def test_list_topics():
 Use `@pytest.mark.parametrize` for testing multiple inputs:
 
 ```python
-@pytest.mark.parametrize("bootstrap_servers,expected", [
-    ("localhost:9092", "localhost:9092"),
-    ("kafka:9092,kafka2:9092", "kafka:9092,kafka2:9092"),
-    ("", "localhost:9092"),  # Default
-])
+@pytest.mark.parametrize(
+    "bootstrap_servers,expected",
+    [
+        ("localhost:9092", "localhost:9092"),
+        ("kafka:9092,kafka2:9092", "kafka:9092,kafka2:9092"),
+        ("", "localhost:9092"),  # Default
+    ],
+)
 def test_bootstrap_servers_config(bootstrap_servers, expected):
     """Test bootstrap.servers configuration."""
     config = KafkaConfiguration(bootstrap_servers=bootstrap_servers or None)
@@ -601,10 +617,8 @@ async def test_large_message_set():
 def test_produce_messages():
     pass
 
-@pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="Not supported on Windows"
-)
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Not supported on Windows")
 def test_unix_socket():
     pass
 ```

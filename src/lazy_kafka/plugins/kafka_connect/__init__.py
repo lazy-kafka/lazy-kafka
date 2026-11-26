@@ -21,10 +21,12 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class KafkaConnectPlugin:
+    """Builtin plugin providing the Kafka Connect connectors dashboard."""
+
     name = "kafka-connect"
     tab_label = Text.from_markup(":warning: K-connect")
     tab_id = "tab-connect"
-    cli_name = None
+    cli_name = "connectors"
 
     def build_panel(self, config: Configuration) -> Widget | str:
         try:
@@ -35,7 +37,9 @@ class KafkaConnectPlugin:
         return KConnectPanel(id=self.tab_id, classes="has-border", hook=hook)
 
     def build_cli(self) -> typer.Typer | None:
-        return None
+        from lazy_kafka.plugins.kafka_connect.cli import app
+
+        return app
 
 
 register(KafkaConnectPlugin())

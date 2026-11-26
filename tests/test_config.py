@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-import json
-import tempfile
 from pathlib import Path
 
 import pytest
 
-from lazy_kafka.config import Configuration, ConnectConfiguration, KafkaConfiguration, RegistryConfiguration
+from lazy_kafka.config import (
+    Configuration,
+    ConnectConfiguration,
+    KafkaConfiguration,
+    RegistryConfiguration,
+)
 
 
 class TestKafkaConfiguration:
@@ -195,10 +198,13 @@ class TestConfiguration:
 
     def test_from_local_config_no_file(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test loading from local config when file doesn't exist."""
+
         def mock_default_path() -> Path:
             return Path("/nonexistent/path/config.toml")
-        
-        monkeypatch.setattr(Configuration, "default_config_file_path", mock_default_path)
+
+        monkeypatch.setattr(
+            Configuration, "default_config_file_path", mock_default_path
+        )
         config = Configuration.from_local_config()
         assert isinstance(config, Configuration)
 

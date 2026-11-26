@@ -19,6 +19,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class SchemaRegistryPlugin:
+    """Builtin plugin providing the Schema Registry dashboard."""
+
     name = "schema-registry"
     tab_label = "Schema Registry"
     tab_id = "tab-schema"

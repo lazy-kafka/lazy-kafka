@@ -43,14 +43,13 @@ Topic {
   width: auto;
 }
 
-.tablecontainer {
-  max-height: 90%;
-  layout: horizontal;
-}
-
-
 .has-scroll {
     overflow-y: auto;
+}
+
+#settings-metadata {
+    margin: 0 1 1 1;
+    padding: 1 2;
 }
 
 .has-border {

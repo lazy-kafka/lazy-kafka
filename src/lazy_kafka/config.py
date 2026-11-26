@@ -55,6 +55,8 @@ class KafkaConfiguration:
 
 @dataclass(frozen=True)
 class ConnectConfiguration:
+    """Kafka Connect REST API endpoint configuration."""
+
     host: str = "http://localhost:8083"
     username: str | None = None
     password: str | None = None
@@ -62,6 +64,8 @@ class ConnectConfiguration:
 
 @dataclass(frozen=True)
 class RegistryConfiguration:
+    """Schema Registry REST API endpoint configuration."""
+
     host: str = "http://localhost:8081"
     username: str | None = None
     password: str | None = None

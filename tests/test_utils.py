@@ -29,7 +29,6 @@ class TestGetCurrentTime:
 
         before = time.time()
         result = get_current_time()
-        after = time.time()
 
         # Parse the time string
         hours, minutes, seconds = map(float, result.split(":"))
@@ -37,9 +36,11 @@ class TestGetCurrentTime:
 
         # Check that the result is within a reasonable range
         # (accounting for time zone differences)
-        current_seconds = time.localtime(before).tm_hour * 3600 + \
-                         time.localtime(before).tm_min * 60 + \
-                         time.localtime(before).tm_sec
+        current_seconds = (
+            time.localtime(before).tm_hour * 3600
+            + time.localtime(before).tm_min * 60
+            + time.localtime(before).tm_sec
+        )
 
         # Allow 2 seconds difference for execution time
         assert abs(result_seconds - current_seconds) < 2
@@ -53,22 +54,26 @@ class TestTimeMocking:
         # Create a mock that returns a specific time tuple
         mock_time = (2024, 1, 15, 14, 30, 45, 0, 15, 0)  # Jan 15, 2024, 14:30:45
 
-        with patch("time.localtime", return_value=mock_time):
+        with (
+            patch("time.localtime", return_value=mock_time),
             # Also mock time.time() to return an integer (no fractional seconds)
-            with patch("time.time", return_value=1705342245.0):
-                result = get_current_time()
-                assert result == "14:30:45"
+            patch("time.time", return_value=1705342245.0),
+        ):
+            result = get_current_time()
+            assert result == "14:30:45"
 
     def test_mocked_time_with_microseconds(self) -> None:
         """Test get_current_time with mocked time including microseconds."""
         mock_time = (2024, 1, 15, 14, 30, 45, 0, 15, 0)
 
-        with patch("time.localtime", return_value=mock_time):
-            with patch("time.time", return_value=1705342245.123456):
-                result = get_current_time()
-                # Should include microseconds
-                assert "." in result
-                assert result.startswith("14:30:45")
+        with (
+            patch("time.localtime", return_value=mock_time),
+            patch("time.time", return_value=1705342245.123456),
+        ):
+            result = get_current_time()
+            # Should include microseconds
+            assert "." in result
+            assert result.startswith("14:30:45")
 
 
 class TestTimestampHistogram:
@@ -81,7 +86,7 @@ class TestTimestampHistogram:
     def test_bucket_count_and_total(self) -> None:
         """The histogram has num_buckets slots and counts every timestamp."""
         timestamps = [
-            "2024-01-01T00:00:%02d+00:00" % s for s in range(10) for _ in range(3)
+            f"2024-01-01T00:00:{s:02d}+00:00" for s in range(10) for _ in range(3)
         ]
         histogram = timestamp_histogram(timestamps, num_buckets=4)
         assert len(histogram) == 4

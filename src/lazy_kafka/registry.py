@@ -54,7 +54,7 @@ class MetaEnum(EnumMeta):
         except ValueError:
             return False
         return True
-    
+
     def __getitem__(cls, name):
         """Make enum case-insensitive for item access."""
         if isinstance(name, str):
@@ -62,7 +62,7 @@ class MetaEnum(EnumMeta):
             if hasattr(cls, name_upper):
                 return getattr(cls, name_upper)
         return super().__getitem__(name)
-    
+
     def __call__(cls, value, *args, **kwargs):
         """Make enum case-insensitive by converting value to uppercase."""
         if isinstance(value, str):
@@ -76,6 +76,8 @@ class MetaEnum(EnumMeta):
 
 
 class SubjectDetails(TypedDict):
+    """A single schema version under a registry subject."""
+
     id: int
     subject: Subject
     version: int
@@ -100,16 +102,20 @@ class SubjectNew(TypedDict):
 
 
 class SchemaTypes(StrEnum, metaclass=MetaEnum):
+    """Supported schema serialization formats."""
+
     JSON = "JSON"
     PROTOBUF = "PROTOBUF"
     AVRO = "AVRO"
 
 
 class SchemaRegistry:
+    """Client for the Confluent Schema Registry REST API."""
+
     # Reference: https://docs.confluent.io/platform/current/schema-registry/develop/api.html#content-types
     _CONTENT_TYPE = "application/vnd.schemaregistry.v1+json"
 
-    def __init__(self, config: RegistryConfiguration = RegistryConfiguration()) -> None:
+    def __init__(self, config: RegistryConfiguration | None = None) -> None:
         """Initialise client.
 
         Performs a sanity 'get' request, before creating a client.
@@ -117,6 +123,8 @@ class SchemaRegistry:
         Args:
             host:
         """
+        if config is None:
+            config = RegistryConfiguration()
         _auth = None
         if config.username and config.password:
             # Basic authentication

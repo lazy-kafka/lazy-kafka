@@ -2,27 +2,31 @@
 
 from __future__ import annotations
 
-from typing import Any
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from lazy_kafka.cli._cli import app, global_options, version_callback
-from lazy_kafka.config import Configuration
 
 
 class TestVersionCallback:
     """Tests for version_callback function."""
 
-    def test_version_callback_prints_version(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_version_callback_prints_version(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         """Test that version_callback prints the version."""
         import typer
+
         with pytest.raises(typer.Exit):
             version_callback(True)
         captured = capsys.readouterr()
         assert "LazyKafka" in captured.out
 
-    def test_version_callback_no_output(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_version_callback_no_output(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         """Test that version_callback doesn't output when value is False."""
         version_callback(False)
         captured = capsys.readouterr()
@@ -45,7 +49,7 @@ class TestGlobalOptions:
         assert app is not None
         # The version option is registered via the callback
         # We can verify the callback exists
-        assert hasattr(app, 'callback')
+        assert hasattr(app, "callback")
 
 
 class TestCLIApp:
@@ -70,11 +74,13 @@ class TestCLIIntegration:
     def test_cli_imports(self) -> None:
         """Test that CLI imports are correct."""
         from lazy_kafka.cli import app as cli_app
+
         assert cli_app is not None
 
     def test_cli_entry_point(self) -> None:
         """Test that CLI entry point is configured."""
         from lazy_kafka.entry_points import lazy_kafka
+
         assert callable(lazy_kafka)
 
 
@@ -85,9 +91,10 @@ class TestMainEntryPoint:
         """Test that main calls CLI when args are provided."""
         with patch("lazy_kafka.__main__.sys") as mock_sys:
             mock_sys.argv = ["lazy-kafka", "--version"]
-            
+
             with patch("lazy_kafka.cli.app") as mock_app:
                 from lazy_kafka.__main__ import main
+
                 main()
                 assert mock_app.called
 
@@ -95,13 +102,14 @@ class TestMainEntryPoint:
         """Test that main runs TUI when no args are provided."""
         with patch("lazy_kafka.__main__.sys") as mock_sys:
             mock_sys.argv = ["lazy-kafka"]
-            
+
             with patch("lazy_kafka.__main__.LazyKafka") as mock_tui:
                 mock_instance = MagicMock()
                 mock_tui.return_value = mock_instance
-                
-                with patch("lazy_kafka.__main__.logging") as mock_logging:
+
+                with patch("lazy_kafka.__main__.logging"):
                     from lazy_kafka.__main__ import main
+
                     main()
                     # TUI should be instantiated
                     assert mock_tui.called or mock_instance.run.called
@@ -112,18 +120,19 @@ class TestPluginCLI:
 
     def test_plugin_cli_commands_exist(self) -> None:
         """Test that plugin CLI commands are registered."""
-        from lazy_kafka.plugin import load_builtin_plugins, iter_plugins
-        
+        from lazy_kafka.plugin import iter_plugins, load_builtin_plugins
+
         load_builtin_plugins()
         plugins = list(iter_plugins())
-        
+
         # Check that at least some plugins have CLI commands
         cli_commands = [p for p in plugins if p.build_cli() is not None]
         assert len(cli_commands) >= 0  # May be zero if plugins don't have CLI
 
     def test_core_kafka_cli_exists(self) -> None:
         """Test that core Kafka plugin has CLI commands."""
-        from lazy_kafka.plugins.core_kafka.cli import kafka, consume, produce
+        from lazy_kafka.plugins.core_kafka.cli import consume, kafka, produce
+
         assert callable(kafka)
         assert callable(consume)
         assert callable(produce)
@@ -131,4 +140,71 @@ class TestPluginCLI:
     def test_schema_registry_cli_exists(self) -> None:
         """Test that schema registry plugin has CLI commands."""
         from lazy_kafka.plugins.schema_registry.cli import schema_registry
+
         assert callable(schema_registry)
+
+
+class TestConnectorsCli:
+    """Tests for `lazy-kafka connectors`."""
+
+    @pytest.fixture
+    def fake_connect(self, monkeypatch: pytest.MonkeyPatch):
+        # Raw `/connectors?expand=status` payload, as returned by `alist`.
+        raw_response = {
+            "conn-1": {
+                "status": {
+                    "connector": {
+                        "state": "RUNNING",
+                        "worker_id": "worker-1:8083",
+                    },
+                    "type": "source",
+                }
+            },
+            "conn-2": {
+                "status": {
+                    "connector": {
+                        "state": "FAILED",
+                        "worker_id": "worker-2:8083",
+                    },
+                    "type": "sink",
+                }
+            },
+        }
+
+        class _FakeConnect:
+            def __init__(self, config):
+                self.config = config
+
+            async def alist(self):
+                return raw_response
+
+        monkeypatch.setattr(
+            "lazy_kafka.plugins.kafka_connect.cli.Connect", _FakeConnect
+        )
+        return raw_response
+
+    def test_connectors_plugin_has_cli(self) -> None:
+        """Test that the kafka-connect plugin registers a `connectors` CLI."""
+        from lazy_kafka.plugin import load_builtin_plugins
+        from lazy_kafka.plugins.kafka_connect import KafkaConnectPlugin
+
+        load_builtin_plugins()
+        assert KafkaConnectPlugin.cli_name == "connectors"
+        assert KafkaConnectPlugin().build_cli() is not None
+
+    def test_connectors_prints_json_status_list(
+        self, fake_connect, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test that bare `lazy-kafka connectors` prints a JSON list."""
+        from typer.testing import CliRunner
+
+        from lazy_kafka.cli._cli import app
+
+        result = CliRunner().invoke(app, ["connectors"])
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert isinstance(parsed, list)
+        assert {entry["name"] for entry in parsed} == set(fake_connect)
+        assert all(
+            {"name", "state", "worker_id", "type"} <= set(entry) for entry in parsed
+        )
