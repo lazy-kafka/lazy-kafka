@@ -2,56 +2,57 @@
 
 [Full report](https://htmlpreview.github.io/?https://github.com/lazy-kafka/lazy-kafka/blob/python-coverage-comment-action-data/htmlcov/index.html)
 
-| Name                                                          |    Stmts |     Miss |   Branch |   BrPart |   Cover |   Missing |
-|-------------------------------------------------------------- | -------: | -------: | -------: | -------: | ------: | --------: |
-| src/lazy\_kafka/\_\_init\_\_.py                               |        6 |        0 |        0 |        0 |    100% |           |
-| src/lazy\_kafka/\_\_main\_\_.py                               |       92 |       11 |        6 |        1 |     88% |53, 56, 88, 91-92, 122-124, 155-156, 170-171 |
-| src/lazy\_kafka/\_logging.py                                  |       14 |       14 |        0 |        0 |      0% |      3-30 |
-| src/lazy\_kafka/\_types.py                                    |       10 |       10 |        4 |        0 |      0% |      1-16 |
-| src/lazy\_kafka/cli/\_\_init\_\_.py                           |        3 |        0 |        0 |        0 |    100% |           |
-| src/lazy\_kafka/cli/\_cli.py                                  |       35 |        2 |       10 |        2 |     91% |    39, 79 |
-| src/lazy\_kafka/config.py                                     |       96 |        6 |       16 |        3 |     92% |78-79, 111-115, 119-123 |
-| src/lazy\_kafka/connect.py                                    |      106 |        8 |        2 |        0 |     93% |108-109, 154-155, 217-221 |
-| src/lazy\_kafka/entry\_points.py                              |        4 |        1 |        0 |        0 |     75% |         7 |
-| src/lazy\_kafka/plugin/\_\_init\_\_.py                        |       33 |        2 |        4 |        0 |     95% |    57, 61 |
-| src/lazy\_kafka/plugins/\_\_init\_\_.py                       |        3 |        0 |        0 |        0 |    100% |           |
-| src/lazy\_kafka/plugins/core\_kafka/\_\_init\_\_.py           |       27 |        3 |        0 |        0 |     89% | 32-33, 37 |
-| src/lazy\_kafka/plugins/core\_kafka/cli.py                    |       80 |       55 |        8 |        0 |     28% |38-58, 84-103, 129-130, 134-203 |
-| src/lazy\_kafka/plugins/kafka\_connect/\_\_init\_\_.py        |       23 |        3 |        0 |        0 |     87% |     32-34 |
-| src/lazy\_kafka/plugins/schema\_registry/\_\_init\_\_.py      |       23 |        3 |        0 |        0 |     87% |     30-32 |
-| src/lazy\_kafka/plugins/schema\_registry/cli.py               |       23 |        7 |        0 |        0 |     70% |     60-73 |
-| src/lazy\_kafka/registry.py                                   |       99 |       16 |       12 |        2 |     80% |45, 60-64, 68-\>75, 123, 143-144, 188-207 |
-| src/lazy\_kafka/scripts/\_\_init\_\_.py                       |        0 |        0 |        0 |        0 |    100% |           |
-| src/lazy\_kafka/scripts/topic\_schema\_consumer.py            |       24 |       24 |        4 |        0 |      0% |      1-56 |
-| src/lazy\_kafka/scripts/topic\_schema\_consumer\_ex.py        |       31 |       31 |        4 |        0 |      0% |      1-98 |
-| src/lazy\_kafka/scripts/topic\_schema\_consumer\_generator.py |       32 |       32 |        6 |        0 |      0% |      1-65 |
-| src/lazy\_kafka/scripts/topic\_schema\_consumer\_n\_times.py  |       64 |       64 |       16 |        0 |      0% |     1-127 |
-| src/lazy\_kafka/scripts/topic\_schema\_producer.py            |       48 |       48 |        2 |        0 |      0% |     1-140 |
-| src/lazy\_kafka/theme.py                                      |        4 |        0 |        0 |        0 |    100% |           |
-| src/lazy\_kafka/topic.py                                      |      234 |      107 |       40 |        1 |     50% |158-160, 163-165, 211, 248-250, 268-285, 298-315, 330-397, 411-425, 436-453 |
-| src/lazy\_kafka/utils.py                                      |       26 |        0 |        8 |        0 |    100% |           |
-| src/lazy\_kafka/widgets/\_\_init\_\_.py                       |        0 |        0 |        0 |        0 |    100% |           |
-| src/lazy\_kafka/widgets/\_logs.py                             |      181 |       20 |       38 |       11 |     83% |109, 117-120, 202-\>205, 215-\>217, 224, 239, 243-\>exit, 276, 323, 325-\>exit, 330-336, 340-341, 345-346, 350-\>exit, 355-\>exit, 365-\>368, 383, 413-\>exit |
-| src/lazy\_kafka/widgets/\_status.py                           |       10 |        0 |        0 |        0 |    100% |           |
-| src/lazy\_kafka/widgets/common.py                             |      159 |       67 |       22 |        4 |     54% |33-\>exit, 193-194, 197-200, 203-206, 209-212, 215-228, 231-233, 239-240, 251, 256, 259-260, 264-276, 286-290, 307-338, 341-\>exit, 344-\>exit |
-| src/lazy\_kafka/widgets/kconnect.py                           |       46 |       11 |        4 |        0 |     70% |34-47, 51, 90, 96-103 |
-| src/lazy\_kafka/widgets/registry.py                           |      143 |       62 |       16 |        0 |     53% |38-41, 45, 101-104, 111-120, 134-152, 167-169, 177-179, 183-189, 192, 204-205, 225-231, 235-238, 242-247, 251-258, 279, 284 |
-| src/lazy\_kafka/widgets/switcher.py                           |       46 |       19 |       12 |        0 |     50% |101-108, 123-139 |
-| src/lazy\_kafka/widgets/topic.py                              |       37 |       14 |        0 |        0 |     62% |43-44, 47-51, 54-55, 58-60, 63, 68 |
-| src/lazy\_kafka/widgets/topic\_details.py                     |       86 |       22 |        4 |        0 |     71% |110-132, 142-144, 153-154 |
-| tests/\_\_init\_\_.py                                         |        0 |        0 |        0 |        0 |    100% |           |
-| tests/conftest.py                                             |       88 |       27 |        0 |        0 |     69% |21, 31, 37, 43, 96-99, 116-122, 129-133, 139-140, 155-159 |
-| tests/integration/\_\_init\_\_.py                             |        0 |        0 |        0 |        0 |    100% |           |
-| tests/integration/test\_tui.py                                |      163 |        0 |        6 |        0 |    100% |           |
-| tests/test\_cli.py                                            |       71 |        0 |        0 |        0 |    100% |           |
-| tests/test\_config.py                                         |      135 |        0 |        0 |        0 |    100% |           |
-| tests/test\_connect.py                                        |      168 |        0 |        0 |        0 |    100% |           |
-| tests/test\_plugin.py                                         |      100 |       13 |        8 |        3 |     85% |55, 58, 74, 77, 106, 109, 134-137, 158, 167-169, 177-179 |
-| tests/test\_registry.py                                       |      149 |        0 |        0 |        0 |    100% |           |
-| tests/test\_topic.py                                          |      193 |        1 |        0 |        0 |     99% |       309 |
-| tests/test\_utils.py                                          |       58 |        0 |        0 |        0 |    100% |           |
-| tests/test\_widgets.py                                        |       70 |        0 |        0 |        0 |    100% |           |
-| **TOTAL**                                                     | **3043** |  **703** |  **252** |   **27** | **74%** |           |
+| Name                                                     |    Stmts |     Miss |   Branch |   BrPart |   Cover |   Missing |
+|--------------------------------------------------------- | -------: | -------: | -------: | -------: | ------: | --------: |
+| src/lazy\_kafka/\_\_init\_\_.py                          |        6 |        0 |        0 |        0 |    100% |           |
+| src/lazy\_kafka/\_\_main\_\_.py                          |       98 |       11 |        6 |        1 |     88% |73, 76, 112, 115-116, 146-148, 179-180, 194-195 |
+| src/lazy\_kafka/\_logging.py                             |       14 |       14 |        0 |        0 |      0% |      3-30 |
+| src/lazy\_kafka/\_types.py                               |        8 |        8 |        4 |        0 |      0% |      1-13 |
+| src/lazy\_kafka/cli/\_\_init\_\_.py                      |        3 |        0 |        0 |        0 |    100% |           |
+| src/lazy\_kafka/cli/\_cli.py                             |       38 |        3 |       14 |        5 |     85% |25-\>exit, 39, 42, 80-\>83, 84 |
+| src/lazy\_kafka/config.py                                |       96 |        6 |       16 |        3 |     92% |82-83, 115-119, 123-127 |
+| src/lazy\_kafka/connect.py                               |      107 |        9 |        4 |        1 |     91% |86, 110-111, 160-161, 229-233 |
+| src/lazy\_kafka/entry\_points.py                         |        4 |        1 |        0 |        0 |     75% |         7 |
+| src/lazy\_kafka/plugin/\_\_init\_\_.py                   |       33 |        2 |        4 |        0 |     95% |    57, 61 |
+| src/lazy\_kafka/plugins/\_\_init\_\_.py                  |        3 |        0 |        0 |        0 |    100% |           |
+| src/lazy\_kafka/plugins/core\_kafka/\_\_init\_\_.py      |       27 |        3 |        0 |        0 |     89% | 34-35, 39 |
+| src/lazy\_kafka/plugins/core\_kafka/cli.py               |       84 |       59 |       12 |        0 |     26% |38-58, 84-105, 131-134, 138-207 |
+| src/lazy\_kafka/plugins/kafka\_connect/\_\_init\_\_.py   |       24 |        3 |        0 |        0 |     88% |     34-36 |
+| src/lazy\_kafka/plugins/kafka\_connect/cli.py            |       26 |        5 |        4 |        2 |     77% |43, 48, 51-53 |
+| src/lazy\_kafka/plugins/schema\_registry/\_\_init\_\_.py |       23 |        3 |        0 |        0 |     87% |     32-34 |
+| src/lazy\_kafka/plugins/schema\_registry/cli.py          |       25 |        9 |        2 |        0 |     59% |     60-73 |
+| src/lazy\_kafka/registry.py                              |      101 |       17 |       14 |        3 |     79% |45, 60-64, 68-\>75, 127, 131, 151-152, 196-215 |
+| src/lazy\_kafka/scripts/\_\_init\_\_.py                  |        0 |        0 |        0 |        0 |    100% |           |
+| src/lazy\_kafka/scripts/produce\_from\_schema.py         |      130 |       37 |       52 |        2 |     75% |192, 195-196, 207-209, 213-216, 220-270 |
+| src/lazy\_kafka/serializers.py                           |       45 |        4 |       10 |        1 |     91% |31-33, 74-75 |
+| src/lazy\_kafka/theme.py                                 |        4 |        0 |        0 |        0 |    100% |           |
+| src/lazy\_kafka/topic.py                                 |      243 |      118 |       46 |        1 |     47% |160-162, 165-167, 213, 250-252, 270-287, 300-317, 330-401, 410-412, 415-429, 463-492, 496 |
+| src/lazy\_kafka/utils.py                                 |       26 |        0 |        8 |        0 |    100% |           |
+| src/lazy\_kafka/widgets/\_\_init\_\_.py                  |        0 |        0 |        0 |        0 |    100% |           |
+| src/lazy\_kafka/widgets/\_logs.py                        |      181 |       20 |       38 |       11 |     83% |108, 116-119, 207-\>210, 220-\>222, 229, 244, 248-\>exit, 281, 328, 330-\>exit, 335-341, 345-346, 350-351, 355-\>exit, 360-\>exit, 370-\>373, 388, 416-\>exit |
+| src/lazy\_kafka/widgets/\_status.py                      |       10 |        0 |        0 |        0 |    100% |           |
+| src/lazy\_kafka/widgets/common.py                        |      195 |       26 |       34 |        9 |     84% |36-\>exit, 198-201, 204-207, 210-213, 236, 261-\>263, 263-\>exit, 269, 310-312, 323-324, 347, 350-351, 358, 360-361, 366-367, 381, 412-\>exit, 415-\>exit |
+| src/lazy\_kafka/widgets/kconnect.py                      |       46 |       11 |        4 |        0 |     70% |34-47, 51, 90, 96-103 |
+| src/lazy\_kafka/widgets/registry.py                      |      143 |       62 |       16 |        0 |     53% |38-41, 45, 101-104, 111-120, 134-152, 169-171, 185-187, 191-197, 200, 212-213, 233-239, 243-246, 250-255, 259-266, 287, 292 |
+| src/lazy\_kafka/widgets/switcher.py                      |       46 |       19 |       12 |        0 |     50% |101-108, 123-139 |
+| src/lazy\_kafka/widgets/topic.py                         |       38 |        4 |        0 |        0 |     89% | 44-52, 76 |
+| src/lazy\_kafka/widgets/topic\_details.py                |       84 |        8 |        4 |        2 |     89% |116-119, 127, 144-146 |
+| tests/\_\_init\_\_.py                                    |        0 |        0 |        0 |        0 |    100% |           |
+| tests/conftest.py                                        |       86 |       26 |        0 |        0 |     70% |26, 36, 42, 52, 108-111, 128-134, 141-145, 151, 167-171 |
+| tests/integration/\_\_init\_\_.py                        |        0 |        0 |        0 |        0 |    100% |           |
+| tests/integration/test\_search\_filter.py                |       87 |        0 |        0 |        0 |    100% |           |
+| tests/integration/test\_tui.py                           |      212 |        0 |        6 |        0 |    100% |           |
+| tests/test\_cli.py                                       |       96 |        0 |        0 |        0 |    100% |           |
+| tests/test\_config.py                                    |      133 |        0 |        0 |        0 |    100% |           |
+| tests/test\_connect.py                                   |      165 |        0 |        0 |        0 |    100% |           |
+| tests/test\_plugin.py                                    |      101 |       13 |        8 |        3 |     85% |63, 66, 83, 86, 116, 119, 144-147, 168, 177-179, 187-189 |
+| tests/test\_produce\_from\_schema.py                     |       97 |        0 |        0 |        0 |    100% |           |
+| tests/test\_registry.py                                  |      147 |        0 |        0 |        0 |    100% |           |
+| tests/test\_serializers.py                               |       70 |        0 |        0 |        0 |    100% |           |
+| tests/test\_topic.py                                     |      192 |        1 |        0 |        0 |     99% |       315 |
+| tests/test\_utils.py                                     |       55 |        0 |        0 |        0 |    100% |           |
+| tests/test\_widgets.py                                   |       67 |        0 |        0 |        0 |    100% |           |
+| **TOTAL**                                                | **3419** |  **502** |  **318** |   **44** | **83%** |           |
 
 
 ## Setup coverage badge
